@@ -12,6 +12,14 @@ import getSwaggerOptions from '../docs/config/head.js';
 
 dotenv.config();
 
+const swaggerMiddlewarePromise = (async () => {
+    const opts = await getSwaggerOptions();
+    const swaggerDocs = swaggerJSDoc(opts);
+    return swaggerUI.setup(swaggerDocs, {
+        customSiteTitle: 'Pasto Livre API Docs',
+    });
+})();
+
 const routes = (app) => {
     // Middleware de log, se ativado
     if (process.env.DEBUGLOG) {
@@ -22,11 +30,10 @@ const routes = (app) => {
         res.redirect('/docs');
     });
 
-    app.use(swaggerUI.serve);
-    app.get('/docs', async (req, res, next) => {
-        const opts = await getSwaggerOptions();
-        const swaggerDocs = swaggerJSDoc(opts);
-        swaggerUI.setup(swaggerDocs)(req, res, next);
+    app.use('/docs', swaggerUI.serve, (req, res, next) => {
+        swaggerMiddlewarePromise
+            .then((setup) => setup(req, res, next))
+            .catch(next);
     });
 
     // Health check endpoint

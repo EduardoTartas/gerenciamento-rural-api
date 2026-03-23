@@ -21,6 +21,9 @@ app.use(helmet({
         directives: {
             defaultSrc: ["'self'"],
             imgSrc: ["'self'", "data:", "blob:"],
+            scriptSrc: ["'self'", "'unsafe-inline'"],
+            styleSrc: ["'self'", "'unsafe-inline'"],
+            fontSrc: ["'self'", "data:"],
         }
     }
 }));
