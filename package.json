@@ -1,0 +1,44 @@
+{
+  "name": "pasto-livre-api",
+  "version": "1.0.0",
+  "description": "Aplicativo mobile e backend para gerenciamento de propriedades rurais de pequeno e médio porte, com foco em pecuária. Permite controle multi-fazenda, manejo de pastagens, gestão de lotes, inventário de insumos, cálculo de autonomia e operação offline-first. Solução acessível para produtores que buscam organização, rastreabilidade e suporte à decisão, mesmo em ambientes com conectividade limitada.",
+  "main": "src/app.js",
+  "type": "module",
+  "scripts": {
+    "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate",
+    "dev:local": "nodemon --legacy-watch server.js",
+    "start": "node server.js",
+    "start:docker": "docker compose -f docker-compose.yml up --build"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api/issues"
+  },
+  "homepage": "https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api#readme",
+  "dependencies": {
+    "@prisma/adapter-ppg": "^7.5.0",
+    "@prisma/client": "^7.5.0",
+    "compression": "^1.8.1",
+    "cors": "^2.8.6",
+    "express": "^5.2.1",
+    "express-fileupload": "^1.5.2",
+    "helmet": "^8.1.0",
+    "swagger-jsdoc": "^6.2.8",
+    "swagger-ui-express": "^5.0.1",
+    "uuid": "^13.0.0",
+    "winston": "^3.19.0",
+    "winston-daily-rotate-file": "^5.0.0",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "dotenv": "^17.3.1",
+    "nodemon": "^3.1.14",
+    "prisma": "^7.5.0"
+  }
+}

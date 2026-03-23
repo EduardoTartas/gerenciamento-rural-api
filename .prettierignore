@@ -1,0 +1,8 @@
+node_modules/
+coverage/
+logs/
+minio-data/
+dist/
+build/
+*.min.js
+package-lock.json
