@@ -8,7 +8,9 @@
     "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate",
     "dev:local": "nodemon --legacy-watch server.js",
     "start": "node server.js",
-    "start:docker": "docker compose -f docker-compose.yml up --build"
+    "start:docker": "docker compose -f docker-compose.yml up --build",
+    "prisma:studio": "docker compose -f docker-compose.dev.yml exec api npx prisma studio",
+    "prisma:migrate": "docker compose -f docker-compose.dev.yml exec api npx prisma migrate dev --name update-schema"
   },
   "repository": {
     "type": "git",
