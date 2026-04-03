@@ -5,6 +5,8 @@ import helmet from "helmet";
 import errorHandler from './utils/helpers/errorHandler.js';
 import logger from './utils/logger.js';
 import DbConnect from './config/dbConnect.js';
+import { auth } from './config/auth.js';
+import { toNodeHandler } from 'better-auth/node';
 import routes from './routes/index.js';
 import CommonResponse from './utils/helpers/CommonResponse.js';
 import express from "express";
@@ -29,12 +31,25 @@ app.use(helmet({
 }));
 
 // Habilitando CORS
-app.use(cors());
+app.use(cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    credentials: true,
+}));
 
 // Habilitando a compressão de respostas
 app.use(compression());
 
-// Habilitando o uso de json pelo express
+// Configuração para o proxy confiar no cliente
+app.set('trust proxy', true);
+
+// =============================================
+// BetterAuth handler — DEVE vir ANTES de express.json()
+// O BetterAuth faz seu próprio parsing do body
+// =============================================
+app.all('/api/auth/{*any}', toNodeHandler(auth));
+
+// Habilitando o uso de json pelo express (APÓS BetterAuth handler)
 app.use(express.json());
 
 // Habilitando o uso de arquivos pelo express, com limite de segurança em memória de 50MB
@@ -42,9 +57,6 @@ app.use(expressFileUpload({
     limits: { fileSize: 50 * 1024 * 1024 }, // Trava em 50MB para não esgotar a RAM
     abortOnLimit: true // Rejeita a requisição e poupa a banda automaticamente se passar
 }));
-
-// Configuração para o proxy confiar no cliente
-app.set('trust proxy', true);
 
 // Habilitando o uso de urlencoded pelo express
 app.use(express.urlencoded({ extended: true }));

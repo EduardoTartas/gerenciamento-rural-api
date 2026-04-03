@@ -9,7 +9,7 @@
     "dev:local": "nodemon --legacy-watch server.js",
     "start": "node server.js",
     "start:docker": "docker compose -f docker-compose.yml up --build",
-    "prisma:studio": "docker compose -f docker-compose.dev.yml exec api npx prisma studio",
+    "prisma:studio": "docker compose -f docker-compose.dev.yml exec api npx prisma studio --browser none",
     "prisma:migrate": "docker compose -f docker-compose.dev.yml exec api npx prisma migrate dev --name update-schema"
   },
   "repository": {
@@ -26,6 +26,7 @@
   "dependencies": {
     "@prisma/adapter-ppg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "better-auth": "^1.5.6",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",

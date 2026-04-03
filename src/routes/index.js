@@ -6,9 +6,10 @@ import dotenv from 'dotenv';
 import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUI from 'swagger-ui-express';
 import getSwaggerOptions from '../docs/config/head.js';
+import DbConnect from '../config/dbConnect.js';
 
-// Importação das rotas
-
+// Route imports
+import userRoutes from './userRoutes.js';
 
 dotenv.config();
 
@@ -21,7 +22,7 @@ const swaggerMiddlewarePromise = (async () => {
 })();
 
 const routes = (app) => {
-    // Middleware de log, se ativado
+    // Debug log middleware
     if (process.env.DEBUGLOG) {
         app.use(logRoutes);
     }
@@ -37,20 +38,27 @@ const routes = (app) => {
     });
 
     // Health check endpoint
-    app.get('/health', (req, res) => {
-        const isConnected = mongoose.connection.readyState === 1;
+    app.get('/health', async (req, res) => {
+        let isConnected = false;
+        try {
+            await DbConnect.prisma.$queryRaw`SELECT 1`;
+            isConnected = true;
+        } catch {
+            isConnected = false;
+        }
 
         res.status(isConnected ? 200 : 503).json({
             status: isConnected ? 'healthy' : 'unhealthy',
             database: isConnected ? 'connected' : 'disconnected',
             timestamp: new Date().toISOString(),
-            uptime: process.uptime()
+            uptime: process.uptime(),
         });
     });
 
-    // Registra todas as rotas
+    // Register all routes
     app.use(
         express.json(),
+        userRoutes,
     );
 };
 
