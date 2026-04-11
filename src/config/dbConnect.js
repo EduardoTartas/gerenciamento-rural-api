@@ -1,6 +1,7 @@
 // src/config/dbConnect.js
 
-import { PrismaClient } from '@prisma/client';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
 import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
 import logger from '../utils/logger.js';
 
