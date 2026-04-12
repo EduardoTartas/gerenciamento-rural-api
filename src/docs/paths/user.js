@@ -7,7 +7,7 @@ import { generateParameters } from "./utils/generateParameters.js";
 const userRoutes = {
     "/usuarios": {
         get: {
-            tags: ["Users"],
+            tags: ["Usuários"],
             summary: "Lista todos os usuários registrados",
             description: `
             + Caso de uso: Permite que um usuário autenticado liste todos os usuários no sistema com filtros opcionais.
@@ -56,7 +56,7 @@ const userRoutes = {
 
     "/usuarios/{id}": {
         get: {
-            tags: ["Users"],
+            tags: ["Usuários"],
             summary: "Obtém detalhes de um usuário específico",
             description: `
             + Caso de uso: Recuperar informações detalhadas sobre um usuário específico.
@@ -91,7 +91,7 @@ const userRoutes = {
             }
         },
         patch: {
-            tags: ["Users"],
+            tags: ["Usuários"],
             summary: "Atualiza parcialmente o perfil de um usuário",
             description: `
             + Caso de uso: Permite que um usuário atualize seus próprios dados de perfil.
@@ -135,7 +135,7 @@ const userRoutes = {
             }
         },
         delete: {
-            tags: ["Users"],
+            tags: ["Usuários"],
             summary: "Exclui uma conta de usuário",
             description: `
             + Caso de uso: Permite que um usuário exclua sua própria conta.

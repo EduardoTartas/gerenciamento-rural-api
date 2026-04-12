@@ -81,7 +81,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     description: "Fluxos de autenticação gerenciados pelo BetterAuth (cadastro, login, logout, recuperação de senha)"
                 },
                 {
-                    name: "Users",
+                    name: "Usuários",
                     description: "Gerenciamento de perfil de usuários (listar, visualizar, atualizar, excluir)"
                 },
                 {
