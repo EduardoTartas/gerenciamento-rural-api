@@ -4,8 +4,8 @@ const userSchemas = {
     UserFilter: {
         type: "object",
         properties: {
-            name: { type: "string", description: "Filter by name (case-insensitive, partial match)" },
-            email: { type: "string", format: "email", description: "Filter by email (case-insensitive, partial match)" },
+            name: { type: "string", description: "Filtrar por nome (não sensível a maiúsculas/minúsculas, correspondência parcial)" },
+            email: { type: "string", format: "email", description: "Filtrar por e-mail (não sensível a maiúsculas/minúsculas, correspondência parcial)" },
         }
     },
 
@@ -20,7 +20,7 @@ const userSchemas = {
             createdAt: { type: "string", format: "date-time", example: "2026-04-02T12:00:00.000Z" },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-02T12:00:00.000Z" }
         },
-        description: "Schema for user list item"
+        description: "Esquema para item da lista de usuários"
     },
 
     UserDetails: {
@@ -34,7 +34,7 @@ const userSchemas = {
             createdAt: { type: "string", format: "date-time", example: "2026-04-02T12:00:00.000Z" },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-02T12:00:00.000Z" }
         },
-        description: "Schema for user details"
+        description: "Esquema para detalhes do usuário"
     },
 
     UserPaginatedList: {
@@ -49,18 +49,18 @@ const userSchemas = {
             limit: { type: "integer", example: 10 },
             totalPages: { type: "integer", example: 3 }
         },
-        description: "Paginated list of users"
+        description: "Lista paginada de usuários"
     },
 
     UserPatch: {
         type: "object",
         properties: {
-            name: { type: "string", description: "Full name (2-100 characters)", example: "João da Silva Pereira" },
-            email: { type: "string", format: "email", description: "New email address", example: "joao.novo@email.com" },
-            image: { type: "string", description: "Profile image URL", nullable: true, example: "https://example.com/photo.jpg" }
+            name: { type: "string", description: "Nome completo (2-100 caracteres)", example: "João da Silva Pereira" },
+            email: { type: "string", format: "email", description: "Novo endereço de e-mail", example: "joao.novo@email.com" },
+            image: { type: "string", description: "URL da imagem de perfil", nullable: true, example: "https://example.com/photo.jpg" }
         },
         required: [],
-        description: "Schema for partial user update. At least one field is required.",
+        description: "Esquema para atualização parcial de usuário. Pelo menos um campo é obrigatório.",
         example: {
             name: "João da Silva Pereira"
         }

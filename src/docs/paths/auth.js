@@ -6,26 +6,26 @@ const authRoutes = {
     "/api/auth/sign-up/email": {
         post: {
             tags: ["Auth"],
-            summary: "Registers a new user account",
+            summary: "Registra uma nova conta de usuário",
             description: `
-            + Use case: User self-registration via email and password.
+            + Caso de uso: Autocadastro de usuário via e-mail e senha.
 
-            + Business Function:
-                - Allows new users to create an account in the system.
-                + Receives in the request body:
-                    - **name**: full name of the user.
-                    - **email**: valid email address.
-                    - **password**: password (minimum 8 characters).
+            + Função de Negócio:
+                - Permite que novos usuários criem uma conta no sistema.
+                + Recebe no corpo da requisição:
+                    - **name**: nome completo do usuário.
+                    - **email**: endereço de e-mail válido.
+                    - **password**: senha (mínimo de 8 caracteres).
 
-            + Business Rules:
-                - All fields (name, email, password) are required.
-                - Email must be unique in the system.
-                - Password is automatically hashed by BetterAuth.
-                - On success, a session is created and session cookies are set.
+            + Regras de Negócio:
+                - Todos os campos (nome, e-mail, senha) são obrigatórios.
+                - O e-mail deve ser único no sistema.
+                - A senha é criptografada automaticamente pelo BetterAuth.
+                - Em caso de sucesso, uma sessão é criada e os cookies de sessão são definidos.
 
-            + Expected Result:
-                - HTTP 200 OK with session and user data.
-                - Session cookie is automatically set in the response.
+            + Resultado Esperado:
+                - HTTP 200 OK com dados da sessão e do usuário.
+                - O cookie de sessão é definido automaticamente na resposta.
             `,
             requestBody: {
                 content: {
@@ -48,25 +48,25 @@ const authRoutes = {
     "/api/auth/sign-in/email": {
         post: {
             tags: ["Auth"],
-            summary: "Authenticates a user and creates a session",
+            summary: "Autentica um usuário e cria uma sessão",
             description: `
-            + Use case: User authentication via email and password.
+            + Caso de uso: Autenticação de usuário via e-mail e senha.
 
-            + Business Function:
-                - Authenticates the user and creates a server-side session.
-                + Receives in the request body:
-                    - **email**: registered email address.
-                    - **password**: user password.
+            + Função de Negócio:
+                - Autentica o usuário e cria uma sessão no servidor.
+                + Recebe no corpo da requisição:
+                    - **email**: endereço de e-mail registrado.
+                    - **password**: senha do usuário.
 
-            + Business Rules:
-                - Email and password are required.
-                - Credentials are validated against stored hashes.
-                - On success, a session is created in the database and cookies are set.
-                - On failure, returns 401 Unauthorized.
+            + Regras de Negócio:
+                - E-mail e senha são obrigatórios.
+                - As credenciais são validadas em relação aos hashes armazenados.
+                - Em caso de sucesso, uma sessão é criada no banco de dados e os cookies são definidos.
+                - Em caso de falha, retorna 401 Unauthorized.
 
-            + Expected Result:
-                - HTTP 200 OK with **SignInResponse** containing session and user data.
-                - Session cookie is automatically set for subsequent authenticated requests.
+            + Resultado Esperado:
+                - HTTP 200 OK com **SignInResponse** contendo os dados da sessão e do usuário.
+                - O cookie de sessão é definido automaticamente para chamadas autenticadas subsequentes.
             `,
             requestBody: {
                 content: {
@@ -89,24 +89,24 @@ const authRoutes = {
     "/api/auth/sign-out": {
         post: {
             tags: ["Auth"],
-            summary: "Signs out the user and invalidates the session",
+            summary: "Desloga o usuário e invalida a sessão",
             description: `
-            + Use case: User logout and session invalidation.
+            + Caso de uso: Logout do usuário e invalidação da sessão.
 
-            + Business Function:
-                - Ends the current session and removes it from the database.
-                - Clears session cookies from the client.
+            + Função de Negócio:
+                - Encerra a sessão atual e a remove do banco de dados.
+                - Limpa os cookies de sessão do cliente.
 
-            + Authentication:
-                - Requires a valid session cookie in the request.
+            + Autenticação:
+                - Requer um cookie de sessão válido na requisição.
 
-            + Business Rules:
-                - The session is deleted from the database.
-                - Session cookies are cleared from the response.
-                - Idempotent: if the session is already expired, still returns 200.
+            + Regras de Negócio:
+                - A sessão é excluída do banco de dados.
+                - Os cookies de sessão são limpos da resposta.
+                - Idempotente: se a sessão já estiver expirada, ainda retorna 200.
 
-            + Expected Result:
-                - HTTP 200 OK with success confirmation.
+            + Resultado Esperado:
+                - HTTP 200 OK com uma mensagem de sucesso.
             `,
             responses: {
                 200: commonResponses[200]("#/components/schemas/MessageResponse"),
@@ -119,20 +119,20 @@ const authRoutes = {
     "/api/auth/get-session": {
         get: {
             tags: ["Auth"],
-            summary: "Returns the current user session",
+            summary: "Retorna a sessão de usuário atual",
             description: `
-            + Use case: Verify if the user is authenticated and retrieve session data.
+            + Caso de uso: Verificar se o usuário está autenticado e recuperar os dados da sessão.
 
-            + Business Function:
-                - Returns the active session and the associated user data.
-                - Used by the frontend to check authentication state.
+            + Função de Negócio:
+                - Retorna a sessão ativa e os dados do usuário associado.
+                - Usado pelo frontend para verificar o estado da autenticação.
 
-            + Authentication:
-                - Requires a valid session cookie in the request.
+            + Autenticação:
+                - Requer um cookie de sessão válido na requisição.
 
-            + Expected Result:
-                - HTTP 200 OK with **SessionResponse** containing session and user data.
-                - Returns null/empty if no valid session exists.
+            + Resultado Esperado:
+                - HTTP 200 OK com **SessionResponse** contendo dados de sessão e usuário.
+                - Retorna nulo/vazio se não existir nenhuma sessão válida.
             `,
             responses: {
                 200: commonResponses[200]("#/components/schemas/SessionResponse"),
@@ -145,23 +145,23 @@ const authRoutes = {
     "/api/auth/forget-password": {
         post: {
             tags: ["Auth"],
-            summary: "Requests password recovery via email",
+            summary: "Solicita a recuperação de senha via e-mail",
             description: `
-            + Use case: Password recovery when the user forgot their credentials.
+            + Caso de uso: Recuperação de senha quando o usuário esqueceu suas credenciais.
 
-            + Business Function:
-                - Generates a recovery token and stores it in the verifications table.
-                + Receives in the request body:
-                    - **email**: registered email address.
-                    - **redirectTo** (optional): URL to redirect after clicking the recovery link.
+            + Função de Negócio:
+                - Gera um token de recuperação e o armazena na tabela de verificações.
+                + Recebe no corpo da requisição:
+                    - **email**: endereço de e-mail registrado.
+                    - **redirectTo** (opcional): URL para redirecionar após clicar no link de recuperação.
 
-            + Business Rules:
-                - The email must be registered in the system.
-                - A temporary recovery token is generated with an expiration time.
-                - **NOTE**: Email sending is not yet configured (TODO). The token is generated and stored but no email is dispatched.
+            + Regras de Negócio:
+                - O e-mail deve estar cadastrado no sistema.
+                - Um token de recuperação temporário é gerado com tempo de expiração.
+                - **NOTA**: O envio de e-mail ainda não está configurado (TODO). O token é gerado e armazenado, mas nenhum e-mail é disparado.
 
-            + Expected Result:
-                - HTTP 200 OK with success confirmation.
+            + Resultado Esperado:
+                - HTTP 200 OK com confirmação de sucesso.
             `,
             requestBody: {
                 content: {
@@ -184,23 +184,23 @@ const authRoutes = {
     "/api/auth/reset-password": {
         post: {
             tags: ["Auth"],
-            summary: "Resets password using recovery token",
+            summary: "Redefine a senha utilizando o token de recuperação",
             description: `
-            + Use case: Password reset using the token received via email.
+            + Caso de uso: Redefinição de senha utilizando um token recebido por e-mail.
 
-            + Business Function:
-                - Allows the user to set a new password using a valid recovery token.
-                + Receives in the request body:
-                    - **newPassword**: the new password to set.
-                    - **token**: the recovery token received via email.
+            + Função de Negócio:
+                - Permite que o usuário defina uma nova senha usando um token de recuperação válido.
+                + Recebe no corpo da requisição:
+                    - **newPassword**: a nova senha a ser definida.
+                    - **token**: o token de recuperação recebido por e-mail.
 
-            + Business Rules:
-                - The recovery token must be valid and not expired.
-                - The new password is automatically hashed by BetterAuth.
-                - After reset, the token is invalidated.
+            + Regras de Negócio:
+                - O token de recuperação deve ser válido e não expirado.
+                - A nova senha é criptografada automaticamente pelo BetterAuth.
+                - Após a redefinição, o token é invalidado.
 
-            + Expected Result:
-                - HTTP 200 OK with success confirmation.
+            + Resultado Esperado:
+                - HTTP 200 OK com confirmação de sucesso.
             `,
             requestBody: {
                 content: {
@@ -223,16 +223,16 @@ const authRoutes = {
     "/api/auth/ok": {
         get: {
             tags: ["Auth"],
-            summary: "BetterAuth health check",
+            summary: "Health check do BetterAuth",
             description: `
-            + Use case: Verify that the BetterAuth handler is running correctly.
+            + Caso de uso: Verificar se o processador do BetterAuth está em execução corretamente.
 
-            + Expected Result:
-                - HTTP 200 OK with a simple status response.
+            + Resultado Esperado:
+                - HTTP 200 OK com uma resposta de status simples.
             `,
             responses: {
                 200: {
-                    description: "BetterAuth is running",
+                    description: "O BetterAuth está em execução",
                     content: {
                         "application/json": {
                             schema: {

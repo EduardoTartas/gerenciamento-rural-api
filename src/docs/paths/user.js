@@ -8,24 +8,24 @@ const userRoutes = {
     "/users": {
         get: {
             tags: ["Users"],
-            summary: "Lists all registered users",
+            summary: "Lista todos os usuários registrados",
             description: `
-            + Use case: Allows an authenticated user to list all users in the system with optional filters.
+            + Caso de uso: Permite que um usuário autenticado liste todos os usuários no sistema com filtros opcionais.
 
-            + Business Function:
-                - Returns a paginated list of users.
-                + Accepts optional query parameters:
-                    • **name**: filter by name (partial match, case-insensitive).
-                    • **email**: filter by email (partial match, case-insensitive).
-                    • **page**: page number (default: 1).
-                    • **limit**: records per page (default: 10, max: 100).
+            + Função de Negócio:
+                - Retorna uma lista paginada de usuários.
+                + Aceita parâmetros de consulta opcionais:
+                    • **name**: filtrar por nome (correspondência parcial, não sensível a maiúsculas e minúsculas).
+                    • **email**: filtrar por e-mail (correspondência parcial, não sensível a maiúsculas e minúsculas).
+                    • **page**: número da página (padrão: 1).
+                    • **limit**: registros por página (padrão: 10, máximo: 100).
 
-            + Business Rules:
-                - Requires a valid authenticated session (cookie-based via BetterAuth).
-                - Returns paginated results with totalDocs, totalPages metadata.
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida (baseada em cookie via BetterAuth).
+                - Retorna resultados paginados com metadados totalDocs, totalPages.
 
-            + Expected Result:
-                - HTTP 200 OK with **UserPaginatedList** containing docs array and pagination info.
+            + Resultado Esperado:
+                - HTTP 200 OK com **UserPaginatedList** contendo array de documentos e informações de paginação.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
@@ -35,14 +35,14 @@ const userRoutes = {
                     in: "query",
                     schema: { type: "integer", default: 10, maximum: 100 },
                     required: false,
-                    description: "Number of records per page (max 100)"
+                    description: "Número de registros por página (máx 100)"
                 },
                 {
                     name: "page",
                     in: "query",
                     schema: { type: "integer", default: 1 },
                     required: false,
-                    description: "Page number"
+                    description: "Número da página"
                 }
             ],
             responses: {
@@ -57,22 +57,22 @@ const userRoutes = {
     "/users/{id}": {
         get: {
             tags: ["Users"],
-            summary: "Gets details of a specific user",
+            summary: "Obtém detalhes de um usuário específico",
             description: `
-            + Use case: Retrieve detailed information about a specific user.
+            + Caso de uso: Recuperar informações detalhadas sobre um usuário específico.
 
-            + Business Function:
-                - Returns all profile data for the given user ID.
-                + Receives as path parameter:
-                    - **id**: UUID of the user.
+            + Função de Negócio:
+                - Retorna todos os dados de perfil para o ID de usuário fornecido.
+                + Recebe como parâmetro de caminho:
+                    - **id**: UUID do usuário.
 
-            + Business Rules:
-                - Requires a valid authenticated session.
-                - The ID must be a valid UUID format.
-                - Returns 404 if the user is not found.
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida.
+                - O ID deve estar no formato UUID válido.
+                - Retorna 404 se o usuário não for encontrado.
 
-            + Expected Result:
-                - HTTP 200 OK with **UserDetails** schema.
+            + Resultado Esperado:
+                - HTTP 200 OK com esquema **UserDetails**.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{
@@ -80,7 +80,7 @@ const userRoutes = {
                 in: "path",
                 required: true,
                 schema: { type: "string", format: "uuid" },
-                description: "User UUID"
+                description: "UUID do Usuário"
             }],
             responses: {
                 200: commonResponses[200]("#/components/schemas/UserDetails"),
@@ -92,23 +92,23 @@ const userRoutes = {
         },
         patch: {
             tags: ["Users"],
-            summary: "Partially updates a user's profile",
+            summary: "Atualiza parcialmente o perfil de um usuário",
             description: `
-            + Use case: Allows a user to update their own profile data.
+            + Caso de uso: Permite que um usuário atualize seus próprios dados de perfil.
 
-            + Business Function:
-                - Updates user fields (name, email, image).
-                + Receives as path parameter:
-                    - **id**: UUID of the user.
+            + Função de Negócio:
+                - Atualiza os campos do usuário (nome, e-mail, imagem).
+                + Recebe como parâmetro de caminho:
+                    - **id**: UUID do usuário.
 
-            + Business Rules:
-                - Requires a valid authenticated session.
-                - A user can only update their own profile (self-action enforcement).
-                - At least one field must be provided in the request body.
-                - If email is changed, it must be unique across the system.
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida.
+                - Um usuário só pode atualizar seu próprio perfil (aplicação de ação própria).
+                - Pelo menos um campo deve ser fornecido no corpo da requisição.
+                - Se o e-mail for alterado, deve ser único em todo o sistema.
 
-            + Expected Result:
-                - HTTP 200 OK with updated **UserDetails**.
+            + Resultado Esperado:
+                - HTTP 200 OK com **UserDetails** atualizado.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{
@@ -116,7 +116,7 @@ const userRoutes = {
                 in: "path",
                 required: true,
                 schema: { type: "string", format: "uuid" },
-                description: "User UUID"
+                description: "UUID do Usuário"
             }],
             requestBody: {
                 content: {
@@ -136,22 +136,22 @@ const userRoutes = {
         },
         delete: {
             tags: ["Users"],
-            summary: "Deletes a user account",
+            summary: "Exclui uma conta de usuário",
             description: `
-            + Use case: Allows a user to delete their own account.
+            + Caso de uso: Permite que um usuário exclua sua própria conta.
 
-            + Business Function:
-                - Permanently removes the user and all associated sessions/accounts.
-                + Receives as path parameter:
-                    - **id**: UUID of the user.
+            + Função de Negócio:
+                - Remove permanentemente o usuário e todas as sessões/contas associadas.
+                + Recebe como parâmetro de caminho:
+                    - **id**: UUID do usuário.
 
-            + Business Rules:
-                - Requires a valid authenticated session.
-                - A user can only delete their own account (self-action enforcement).
-                - Cascade delete removes related sessions and accounts.
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida.
+                - Um usuário só pode excluir sua própria conta (aplicação de ação própria).
+                - A exclusão em cascata remove as sessões e contas relacionadas.
 
-            + Expected Result:
-                - HTTP 200 OK with confirmation message.
+            + Resultado Esperado:
+                - HTTP 200 OK com mensagem de confirmação.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{
@@ -159,7 +159,7 @@ const userRoutes = {
                 in: "path",
                 required: true,
                 schema: { type: "string", format: "uuid" },
-                description: "User UUID"
+                description: "UUID do Usuário"
             }],
             responses: {
                 200: commonResponses[200](),

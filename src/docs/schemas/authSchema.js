@@ -6,23 +6,23 @@ const authSchemas = {
         properties: {
             name: {
                 type: "string",
-                description: "Full name of the user",
+                description: "Nome completo do usuário",
                 example: "João da Silva"
             },
             email: {
                 type: "string",
                 format: "email",
-                description: "User email address",
+                description: "Endereço de e-mail do usuário",
                 example: "joao.silva@email.com"
             },
             password: {
                 type: "string",
-                description: "User password (minimum 8 characters)",
+                description: "Senha do usuário (mínimo de 8 caracteres)",
                 example: "MinhaSenh@123"
             }
         },
         required: ["name", "email", "password"],
-        description: "Schema for user registration via BetterAuth",
+        description: "Esquema para registro de usuário via BetterAuth",
         example: {
             name: "João da Silva",
             email: "joao.silva@email.com",
@@ -36,17 +36,17 @@ const authSchemas = {
             email: {
                 type: "string",
                 format: "email",
-                description: "Registered user email",
+                description: "E-mail de usuário registrado",
                 example: "joao.silva@email.com"
             },
             password: {
                 type: "string",
-                description: "User password",
+                description: "Senha do usuário",
                 example: "MinhaSenh@123"
             }
         },
         required: ["email", "password"],
-        description: "Schema for user authentication via BetterAuth",
+        description: "Esquema para autenticação de usuário via BetterAuth",
         example: {
             email: "joao.silva@email.com",
             password: "MinhaSenh@123"
@@ -80,7 +80,7 @@ const authSchemas = {
                 }
             }
         },
-        description: "Schema for BetterAuth sign-in response containing session and user data"
+        description: "Esquema para resposta de login do BetterAuth contendo dados da sessão e do usuário"
     },
 
     SessionResponse: {
@@ -106,7 +106,7 @@ const authSchemas = {
                 }
             }
         },
-        description: "Schema for session verification response"
+        description: "Esquema para resposta de verificação de sessão"
     },
 
     ForgetPasswordRequest: {
@@ -115,17 +115,17 @@ const authSchemas = {
             email: {
                 type: "string",
                 format: "email",
-                description: "Registered email for password recovery",
+                description: "E-mail registrado para recuperação de senha",
                 example: "joao.silva@email.com"
             },
             redirectTo: {
                 type: "string",
-                description: "URL to redirect the user after clicking the recovery link (optional)",
+                description: "URL para redirecionar o usuário após clicar no link de recuperação (opcional)",
                 example: "https://myapp.com/reset-password"
             }
         },
         required: ["email"],
-        description: "Schema for password recovery request",
+        description: "Esquema para solicitação de recuperação de senha",
         example: {
             email: "joao.silva@email.com",
             redirectTo: "https://myapp.com/reset-password"
@@ -137,17 +137,17 @@ const authSchemas = {
         properties: {
             newPassword: {
                 type: "string",
-                description: "New password (minimum 8 characters)",
+                description: "Nova senha (mínimo de 8 caracteres)",
                 example: "NovaSenha@456"
             },
             token: {
                 type: "string",
-                description: "Recovery token received via email",
+                description: "Token de recuperação recebido por e-mail",
                 example: "eyJhbGciOiJIUzI1NiIsInR5..."
             }
         },
         required: ["newPassword", "token"],
-        description: "Schema for password reset with recovery token",
+        description: "Esquema para redefinição de senha com token de recuperação",
         example: {
             newPassword: "NovaSenha@456",
             token: "eyJhbGciOiJIUzI1NiIsInR5..."
@@ -162,7 +162,7 @@ const authSchemas = {
                 example: true
             }
         },
-        description: "Generic BetterAuth success response"
+        description: "Resposta de sucesso genérica do BetterAuth"
     }
 };
 

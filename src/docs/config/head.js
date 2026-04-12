@@ -7,12 +7,12 @@ const getServersInCorrectOrder = () => {
 
     const devUrl = {
         url: process.env.SWAGGER_DEV_URL || defaultDevUrl,
-        description: "Development environment"
+        description: "Ambiente de desenvolvimento"
     };
 
     const prodUrl = {
         url: process.env.SWAGGER_PROD_URL || defaultProdUrl,
-        description: "Production environment"
+        description: "Ambiente de produção"
     };
 
     return process.env.NODE_ENV === "development" ? [devUrl, prodUrl] : [prodUrl, devUrl];
@@ -40,30 +40,30 @@ const getSwaggerOptions = async () => {
                 title: "Pasto Livre API - Gestão Rural",
                 version: "1.0.0",
                 description: `
-### 📋 Overview
-Official documentation for the **Pasto Livre API** — a backend for rural property management focused on small and mid-sized livestock operations.
+### 📋 Visão Geral
+Documentação oficial da **Pasto Livre API** — um backend para gestão de propriedades rurais focado em operações pecuárias de pequeno e médio porte.
 
-This API supports multi-farm registration, pasture management, herd control, feed inventory, and offline-first mobile synchronization.
-
----
-
-### 🔐 Authentication
-Authentication is managed by **BetterAuth** with session-based cookies.
-
-- **Sign Up**: \`POST /api/auth/sign-up/email\`
-- **Sign In**: \`POST /api/auth/sign-in/email\`
-- **Sign Out**: \`POST /api/auth/sign-out\`
-- **Get Session**: \`GET /api/auth/get-session\`
-
-After signing in, session cookies are automatically set. For Swagger UI testing, use the **Authorize** button with a Bearer token or ensure cookies are enabled.
+Esta API suporta o registro de múltiplas fazendas, manejo de pastagens, controle de rebanho, inventário de insumos e sincronização offline-first com o aplicativo móvel.
 
 ---
 
-### 🚀 Main Features
-- **BetterAuth Session Authentication**: Secure cookie-based sessions with PostgreSQL persistence.
-- **User Management**: Profile CRUD with Zod validation and UUID identifiers.
-- **Password Recovery**: Forget/reset password flows (email service pending configuration).
-- **Prisma ORM**: Type-safe database access with PostgreSQL.
+### 🔐 Autenticação
+A autenticação é gerenciada pelo **BetterAuth** com cookies baseados em sessão.
+
+- **Cadastro**: \`POST /api/auth/sign-up/email\`
+- **Login**: \`POST /api/auth/sign-in/email\`
+- **Logout**: \`POST /api/auth/sign-out\`
+- **Obter Sessão**: \`GET /api/auth/get-session\`
+
+Após o login, os cookies de sessão são definidos automaticamente. Para testes na interface do Swagger, utilize o botão **Authorize** com um token Bearer ou certifique-se de que os cookies estão ativados.
+
+---
+
+### 🚀 Principais Funcionalidades
+- **Autenticação de Sessão BetterAuth**: Sessões seguras baseadas em cookies com persistência em PostgreSQL.
+- **Gerenciamento de Usuários**: CRUD de perfis com validação Zod e identificadores UUID.
+- **Recuperação de Senha**: Fluxos de esquecimento/redefinição de senha (serviço de e-mail pendente de configuração).
+- **Prisma ORM**: Acesso ao banco de dados com tipagem segura e PostgreSQL.
                 `,
                 contact: {
                     name: "Equipe Pasto Livre",
@@ -74,27 +74,27 @@ After signing in, session cookies are automatically set. For Swagger UI testing,
             tags: [
                 {
                     name: "Auth",
-                    description: "Authentication flows managed by BetterAuth (sign-up, sign-in, sign-out, password recovery)"
+                    description: "Fluxos de autenticação gerenciados pelo BetterAuth (cadastro, login, logout, recuperação de senha)"
                 },
                 {
                     name: "Users",
-                    description: "User profile management (list, view, update, delete)"
+                    description: "Gerenciamento de perfil de usuários (listar, visualizar, atualizar, excluir)"
                 },
                 {
                     name: "Propriedades",
-                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard (coming soon)"
+                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard (em breve)"
                 },
                 {
                     name: "Pastagens",
-                    description: "Manejo de pastos, ocupação, descanso e histórico de intervenções (coming soon)"
+                    description: "Manejo de pastos, ocupação, descanso e histórico de intervenções (em breve)"
                 },
                 {
                     name: "Rebanhos (Lotes)",
-                    description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária (coming soon)"
+                    description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária (em breve)"
                 },
                 {
                     name: "Inventário",
-                    description: "Entradas de insumos, unidades de medida e saldo disponível (coming soon)"
+                    description: "Entradas de insumos, unidades de medida e saldo disponível (em breve)"
                 }
             ],
             paths: {
