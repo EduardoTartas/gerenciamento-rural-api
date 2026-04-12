@@ -26,11 +26,15 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const userPaths = (await import(new URL("../paths/user.js",
         import.meta.url).href + t)).default;
+    const propriedadePaths = (await import(new URL("../paths/propriedade.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
         import.meta.url).href + t)).default;
     const userSchemas = (await import(new URL("../schemas/userSchema.js",
+        import.meta.url).href + t)).default;
+    const propriedadeSchemas = (await import(new URL("../schemas/propriedadeSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -100,6 +104,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
             paths: {
                 ...authPaths,
                 ...userPaths,
+                ...propriedadePaths,
             },
             components: {
                 securitySchemes: {
@@ -112,6 +117,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 schemas: {
                     ...authSchemas,
                     ...userSchemas,
+                    ...propriedadeSchemas,
                 }
             },
             security: [{
