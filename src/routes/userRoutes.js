@@ -10,9 +10,9 @@ const router = express.Router();
 const userController = new UserController();
 
 router
-    .get('/users', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
-    .get('/users/:id', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
-    .patch('/users/:id', AuthMiddleware, asyncWrapper(userController.update.bind(userController)))
-    .delete('/users/:id', AuthMiddleware, asyncWrapper(userController.remove.bind(userController)));
+    .get('/usuarios', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
+    .get('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
+    .patch('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.update.bind(userController)))
+    .delete('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.remove.bind(userController)));
 
 export default router;

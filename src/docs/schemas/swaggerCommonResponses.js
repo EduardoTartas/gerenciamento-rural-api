@@ -4,8 +4,8 @@ import HttpStatusCodes from "../../utils/helpers/HttpStatusCodes.js";
 
 const swaggerCommonResponses = {};
 
-// Dynamically creates a response method for each HTTP status code
-// following the same pattern used in the CommonResponse class.
+// Cria dinamicamente um método de resposta para cada código de status HTTP
+// seguindo o mesmo padrão usado na classe CommonResponse.
 Object.keys(HttpStatusCodes).forEach((statusKey) => {
     const { code, message } = HttpStatusCodes[statusKey];
 

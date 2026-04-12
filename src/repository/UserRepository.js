@@ -9,7 +9,7 @@ class UserRepository {
     }
 
     /**
-     * List users with pagination and optional filters.
+     * Lista usuários com paginação e filtros opcionais.
      */
     async list(filters = {}, page = 1, limit = 10) {
         const where = {};
@@ -50,7 +50,7 @@ class UserRepository {
     }
 
     /**
-     * Find a user by ID. Throws if not found.
+     * Busca um usuário pelo ID. Lança erro se não encontrado.
      */
     async findById(id) {
         const user = await this.prisma.user.findUnique({
@@ -80,7 +80,7 @@ class UserRepository {
     }
 
     /**
-     * Find a user by email, optionally excluding a given ID.
+     * Busca um usuário por e-mail, opcionalmente excluindo um ID.
      */
     async findByEmail(email, excludeId = null) {
         const where = { email };
@@ -91,7 +91,7 @@ class UserRepository {
     }
 
     /**
-     * Update a user by ID. Throws if not found.
+     * Atualiza um usuário pelo ID. Lança erro se não encontrado.
      */
     async update(id, data) {
         const user = await this.prisma.user.update({
@@ -112,7 +112,7 @@ class UserRepository {
     }
 
     /**
-     * Delete a user by ID. Throws if not found.
+     * Deleta um usuário pelo ID. Lança erro se não encontrado.
      */
     async remove(id) {
         const user = await this.prisma.user.delete({

@@ -3,21 +3,21 @@
 import { z } from 'zod/v4';
 
 /**
- * Schema for updating a user profile.
- * All fields are optional — the controller validates that at least one field is present.
+ * Schema para atualizar o perfil de um usuário.
+ * Todos os campos são opcionais — o controller valida se pelo menos um campo está presente.
  */
 export const UserUpdateSchema = z.object({
     name: z
         .string()
-        .min(2, 'Name must be at least 2 characters.')
-        .max(100, 'Name must be at most 100 characters.')
+        .min(2, 'O nome deve ter no mínimo 2 caracteres.')
+        .max(100, 'O nome deve ter no máximo 100 caracteres.')
         .optional(),
     email: z
-        .email('Invalid email format.')
+        .email('Formato de e-mail inválido.')
         .optional(),
     image: z
         .string()
-        .url('Image must be a valid URL.')
+        .url('A imagem deve ser uma URL válida.')
         .optional()
         .nullable(),
 }).strict();

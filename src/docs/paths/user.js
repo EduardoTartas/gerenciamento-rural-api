@@ -5,7 +5,7 @@ import userSchemas from "../schemas/userSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const userRoutes = {
-    "/users": {
+    "/usuarios": {
         get: {
             tags: ["Users"],
             summary: "Lista todos os usuários registrados",
@@ -54,7 +54,7 @@ const userRoutes = {
         }
     },
 
-    "/users/{id}": {
+    "/usuarios/{id}": {
         get: {
             tags: ["Users"],
             summary: "Obtém detalhes de um usuário específico",

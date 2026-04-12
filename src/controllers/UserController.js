@@ -40,7 +40,7 @@ class UserController {
                 res,
                 data,
                 HttpStatusCodes.OK.code,
-                'User found successfully.',
+                'Usuário encontrado com sucesso.',
             );
         }
 
@@ -48,8 +48,8 @@ class UserController {
         if (totalDocs === 0) {
             const hasFilters = query && (query.name || query.email);
             const message = hasFilters
-                ? 'No users found with the given filters.'
-                : 'No users registered.';
+                ? 'Nenhum usuário encontrado com os filtros informados.'
+                : 'Nenhum usuário registrado.';
             return CommonResponse.success(
                 res,
                 data,
@@ -62,7 +62,7 @@ class UserController {
             res,
             data,
             HttpStatusCodes.OK.code,
-            `${totalDocs} user(s) found.`,
+            `${totalDocs} usuário(s) encontrado(s).`,
         );
     }
 
@@ -81,10 +81,10 @@ class UserController {
                 details: [
                     {
                         path: 'body',
-                        message: 'Request body cannot be empty.',
+                        message: 'O corpo da requisição não pode estar vazio.',
                     },
                 ],
-                customMessage: 'Please provide at least one field to update.',
+                customMessage: 'Por favor, informe pelo menos um campo para atualizar.',
             });
         }
 
@@ -95,7 +95,7 @@ class UserController {
             res,
             data,
             HttpStatusCodes.OK.code,
-            'User updated successfully.',
+            'Usuário atualizado com sucesso.',
         );
     }
 
@@ -111,7 +111,7 @@ class UserController {
             res,
             data,
             HttpStatusCodes.OK.code,
-            'User deleted successfully.',
+            'Usuário removido com sucesso.',
         );
     }
 }

@@ -8,7 +8,7 @@ import swaggerUI from 'swagger-ui-express';
 import getSwaggerOptions from '../docs/config/head.js';
 import DbConnect from '../config/dbConnect.js';
 
-// Route imports
+// Importação de rotas
 import userRoutes from './userRoutes.js';
 import propriedadeRoutes from './propriedadeRoutes.js';
 
@@ -23,7 +23,7 @@ const swaggerMiddlewarePromise = (async () => {
 })();
 
 const routes = (app) => {
-    // Debug log middleware
+    // Middleware de log para debug
     if (process.env.DEBUGLOG) {
         app.use(logRoutes);
     }
@@ -38,7 +38,7 @@ const routes = (app) => {
             .catch(next);
     });
 
-    // Health check endpoint
+    // Endpoint de verificação de saúde (health check)
     app.get('/health', async (req, res) => {
         let isConnected = false;
         try {
@@ -56,7 +56,7 @@ const routes = (app) => {
         });
     });
 
-    // Register all routes
+    // Registro de todas as rotas
     app.use(
         express.json(),
         userRoutes,

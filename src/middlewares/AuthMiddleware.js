@@ -6,8 +6,8 @@ import CustomError from '../utils/helpers/CustomError.js';
 import HttpStatusCodes from '../utils/helpers/HttpStatusCodes.js';
 
 /**
- * Middleware that protects routes by verifying the user session via BetterAuth.
- * Attaches `req.user` and `req.session` on success.
+ * Middleware que protege rotas verificando a sessão do usuário via BetterAuth.
+ * Anexa `req.user` e `req.session` em caso de sucesso.
  */
 const AuthMiddleware = async (req, res, next) => {
     try {
@@ -25,7 +25,7 @@ const AuthMiddleware = async (req, res, next) => {
             });
         }
 
-        // Attach user and session data to the request object
+        // Anexa os dados do usuário e da sessão no objeto de requisição
         req.user = session.user;
         req.session = session.session;
 

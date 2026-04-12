@@ -1,6 +1,6 @@
 // src/docs/config/head.js
 
-// Retrieves server URLs for documentation based on the current environment
+// Obtém as URLs do servidor para a documentação de acordo com o ambiente atual
 const getServersInCorrectOrder = () => {
     const defaultDevUrl = "http://localhost:6060";
     const defaultProdUrl = `${defaultDevUrl}/prod`;

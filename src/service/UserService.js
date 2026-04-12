@@ -13,7 +13,7 @@ class UserService {
     }
 
     /**
-     * List users with pagination and filtering.
+     * Lista usuários com paginação e filtros.
      */
     async list(req) {
         const { id } = req.params;
@@ -32,14 +32,14 @@ class UserService {
     }
 
     /**
-     * Update a user's profile data.
-     * Only the user themselves can update their data.
+     * Atualiza os dados do perfil de um usuário.
+     * Somente o próprio usuário pode atualizar seus dados.
      */
     async update(id, parsedData, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'update another user\'s profile');
+        this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
 
-        // Validate unique email if changing it
+        // Valida e-mail único caso seja alterado
         if (parsedData.email) {
             await this.validateUniqueEmail(parsedData.email, id);
         }
@@ -48,22 +48,22 @@ class UserService {
     }
 
     /**
-     * Delete a user account.
-     * Only the user themselves can delete their account.
+     * Exclui uma conta de usuário.
+     * Somente o próprio usuário pode excluir sua conta.
      */
     async remove(id, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'delete another user\'s account');
+        this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
 
         return this.repository.remove(id);
     }
 
     // ================================
-    // UTILITY METHODS
+    // MÉTODOS ÚTEIS
     // ================================
 
     /**
-     * Validates that the email is not already in use by another user.
+     * Valida que o e-mail não está em uso por outro usuário.
      */
     async validateUniqueEmail(email, excludeId = null) {
         const existing = await this.repository.findByEmail(email, excludeId);
@@ -72,14 +72,14 @@ class UserService {
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
                 field: 'email',
-                details: [{ path: 'email', message: 'Email is already in use.' }],
-                customMessage: 'Email is already registered.',
+                details: [{ path: 'email', message: 'E-mail já está em uso.' }],
+                customMessage: 'E-mail já cadastrado.',
             });
         }
     }
 
     /**
-     * Ensures a user with the given ID exists. Returns the user data.
+     * Garante que um usuário com o ID informado existe. Retorna os dados do usuário.
      */
     async ensureUserExists(id) {
         const user = await this.repository.findById(id);
@@ -96,7 +96,7 @@ class UserService {
     }
 
     /**
-     * Ensures the logged-in user is performing the action on their own resource.
+     * Garante que o usuário logado está realizando a ação em seu próprio recurso.
      */
     ensureSelfAction(loggedUserId, targetId, actionDescription) {
         if (loggedUserId !== targetId) {
@@ -105,7 +105,7 @@ class UserService {
                 errorType: 'forbidden',
                 field: 'User',
                 details: [],
-                customMessage: `You do not have permission to ${actionDescription}.`,
+                customMessage: `Você não tem permissão para ${actionDescription}.`,
             });
         }
     }

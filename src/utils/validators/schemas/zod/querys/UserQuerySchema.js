@@ -3,14 +3,14 @@
 import { z } from 'zod/v4';
 
 /**
- * Validates a UUID path parameter.
+ * Valida o parâmetro de caminho UUID.
  */
 export const UserIdSchema = z
     .string()
-    .uuid('Invalid user ID format. Must be a valid UUID.');
+    .uuid('Formato de ID de usuário inválido. Deve ser um UUID válido.');
 
 /**
- * Validates query parameters for listing users.
+ * Valida os parâmetros de query para a listagem de usuários.
  */
 export const UserQuerySchema = z.object({
     name: z.string().optional(),
