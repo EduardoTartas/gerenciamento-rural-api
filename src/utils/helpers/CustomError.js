@@ -1,6 +1,7 @@
 // src/utils/helpers/CustomError.js
 
-import { Prisma } from '@prisma/client';
+import pkg from '@prisma/client';
+const { Prisma } = pkg;
 
 /**
  * Wrapper para padronizar erros operacionais na API, permitindo adicionar contexto do

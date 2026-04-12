@@ -1,12 +1,177 @@
 // This is your Prisma schema file,
 // learn more about it in the docs: https://pris.ly/d/prisma-schema
 
-// Get a free hosted Postgres database in seconds: `npx create-db`
-
 generator client {
   provider = "prisma-client-js"
 }
 
 datasource db {
   provider = "postgresql"
+}
+
+model user {
+  id            String    @id @default(uuid())
+  name          String
+  email         String    @unique
+  emailVerified Boolean   @default(false)
+  image         String?
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  sessions      session[]
+  accounts      account[]
+  propriedades  propriedade[]
+
+  @@map("users")
+}
+
+model session {
+  id        String   @id @default(uuid())
+  expiresAt DateTime
+  token     String   @unique
+  ipAddress String?
+  userAgent String?
+  userId    String
+  user      user     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("sessions")
+}
+
+model account {
+  id                    String    @id @default(uuid())
+  accountId             String
+  providerId            String
+  userId                String
+  user                  user      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  accessToken           String?
+  refreshToken          String?
+  idToken               String?
+  accessTokenExpiresAt  DateTime?
+  refreshTokenExpiresAt DateTime?
+  scope                 String?
+  password              String?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("accounts")
+}
+
+model verification {
+  id         String   @id @default(uuid())
+  identifier String
+  value      String
+  expiresAt  DateTime
+
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@map("verifications")
+}
+
+// --- TABELAS DE ESTRUTURA E PROPRIEDADE ---
+
+model propriedade {
+  id          String   @id @default(uuid())
+  usuarioId   String
+  usuario     user     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  nome        String
+  localizacao String?
+  ativo       Boolean  @default(true)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  pastos   pasto[]
+  rebanhos rebanho[]
+
+  @@unique([usuarioId, nome])
+  @@map("propriedades")
+}
+
+model pasto {
+  id              String    @id @default(uuid())
+  propriedadeId   String
+  propriedade     propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  nome            String
+  extensaoHa      Decimal?
+  tipoPastagem    String?
+  status          String    @default("Vazio") // Ocupado, Vazio, Descanso
+  dataUltimaSaida DateTime?
+  ativo           Boolean   @default(true)
+  createdAt       DateTime  @default(now())
+  updatedAt       DateTime  @updatedAt
+
+  rebanhos                rebanho[]
+  manejosPasto            manejoPasto[]
+  movimentacoesOrigem     historicoMovimentacao[] @relation("PastoOrigem")
+  movimentacoesDestino    historicoMovimentacao[] @relation("PastoDestino")
+
+  @@map("pastos")
+}
+
+// --- TABELAS DE ANIMAIS E REBANHO ---
+
+model rebanho {
+  id                   String    @id @default(uuid())
+  propriedadeId        String
+  propriedade          propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  pastoAtualId         String?
+  pastoAtual           pasto?    @relation(fields: [pastoAtualId], references: [id], onDelete: SetNull)
+  nomeRebanho          String
+  quantidadeCabecas    Int?
+  categoria            String?   // Cria, Recria, Engorda
+  raca                 String?
+  pesoMedioAtual       Decimal?
+  dataEntradaPastoAtual DateTime?
+  ativo                Boolean   @default(true)
+  createdAt            DateTime  @default(now())
+  updatedAt            DateTime  @updatedAt
+
+  movimentacoes  historicoMovimentacao[]
+  manejos        manejoRebanho[]
+
+  @@map("rebanhos")
+}
+
+// --- TABELAS DE EVENTOS ---
+
+model historicoMovimentacao {
+  id               String   @id @default(uuid())
+  rebanhoId        String
+  rebanho          rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  pastoOrigemId    String?
+  pastoOrigem      pasto?   @relation("PastoOrigem", fields: [pastoOrigemId], references: [id], onDelete: SetNull)
+  pastoDestinoId   String?
+  pastoDestino     pasto?   @relation("PastoDestino", fields: [pastoDestinoId], references: [id], onDelete: SetNull)
+  dataMovimentacao DateTime @default(now())
+  observacoes      String?
+
+  @@map("historico_movimentacoes")
+}
+
+model manejoRebanho {
+  id               String   @id @default(uuid())
+  rebanhoId        String
+  rebanho          rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  tipoManejo       String   // Vacinação, Pesagem, Vermifugação
+  medicamentoVacina String?
+  pesoRegistrado   Decimal?
+  dataAtividade    DateTime
+  observacoes      String?
+
+  @@map("manejo_rebanhos")
+}
+
+model manejoPasto {
+  id            String   @id @default(uuid())
+  pastoId       String
+  pasto         pasto    @relation(fields: [pastoId], references: [id], onDelete: Cascade)
+  tipoManejo    String   // Roçagem, Reforma de Cerca, Limpeza, etc.
+  dataAtividade DateTime
+  observacoes   String?
+
+  @@map("manejo_pastos")
 }

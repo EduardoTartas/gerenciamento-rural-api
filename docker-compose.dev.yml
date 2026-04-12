@@ -29,12 +29,13 @@ services:
       TERM: "xterm"
     ports:
       - 6060:6060
+      - 51212:51212
     env_file:
       - ./.env
     volumes:
       - ./:/app:delegated
       - /app/node_modules
-    command: npm run dev:local
+    command: sh -c "npx prisma migrate deploy && exec npm run dev:local"
     depends_on:
       postgresql:
         condition: service_healthy

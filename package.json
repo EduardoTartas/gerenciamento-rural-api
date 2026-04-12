@@ -8,7 +8,10 @@
     "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate",
     "dev:local": "nodemon --legacy-watch server.js",
     "start": "node server.js",
-    "start:docker": "docker compose -f docker-compose.yml up --build"
+    "start:docker": "docker compose -f docker-compose.yml up --build",
+    "prisma:studio": "docker compose -f docker-compose.dev.yml exec api npx prisma studio --browser none",
+    "prisma:migrate": "docker compose -f docker-compose.dev.yml exec api npx prisma migrate dev --name update-schema",
+    "prisma:seed": "docker compose -f docker-compose.dev.yml exec api node prisma/seeds/index.js"
   },
   "repository": {
     "type": "git",
@@ -22,13 +25,15 @@
   },
   "homepage": "https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api#readme",
   "dependencies": {
-    "@prisma/adapter-ppg": "^7.5.0",
+    "@prisma/adapter-pg": "^7.5.0",
     "@prisma/client": "^7.5.0",
+    "better-auth": "^1.5.6",
     "compression": "^1.8.1",
     "cors": "^2.8.6",
     "express": "^5.2.1",
     "express-fileupload": "^1.5.2",
     "helmet": "^8.1.0",
+    "pg": "^8.16.0",
     "swagger-jsdoc": "^6.2.8",
     "swagger-ui-express": "^5.0.1",
     "uuid": "^13.0.0",
@@ -37,6 +42,7 @@
     "zod": "^4.3.6"
   },
   "devDependencies": {
+    "@faker-js/faker": "^10.4.0",
     "dotenv": "^17.3.1",
     "nodemon": "^3.1.14",
     "prisma": "^7.5.0"

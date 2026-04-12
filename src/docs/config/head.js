@@ -1,6 +1,6 @@
 // src/docs/config/head.js
 
-// Recupera as URLs de servidores da documentação considerando o ambiente atual
+// Obtém as URLs do servidor para a documentação de acordo com o ambiente atual
 const getServersInCorrectOrder = () => {
     const defaultDevUrl = "http://localhost:6060";
     const defaultProdUrl = `${defaultDevUrl}/prod`;
@@ -19,13 +19,61 @@ const getServersInCorrectOrder = () => {
 };
 
 const getSwaggerOptions = async () => {
+    const t = process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
+
+    // Paths
+    const authPaths = (await import(new URL("../paths/auth.js",
+        import.meta.url).href + t)).default;
+    const userPaths = (await import(new URL("../paths/user.js",
+        import.meta.url).href + t)).default;
+    const propriedadePaths = (await import(new URL("../paths/propriedade.js",
+        import.meta.url).href + t)).default;
+
+    // Schemas
+    const authSchemas = (await import(new URL("../schemas/authSchema.js",
+        import.meta.url).href + t)).default;
+    const userSchemas = (await import(new URL("../schemas/userSchema.js",
+        import.meta.url).href + t)).default;
+    const propriedadeSchemas = (await import(new URL("../schemas/propriedadeSchema.js",
+        import.meta.url).href + t)).default;
+
     return {
         swaggerDefinition: {
             openapi: "3.0.0",
             info: {
                 title: "Pasto Livre API - Gestão Rural",
                 version: "1.0.0",
-                description: "API responsável pelo backend do aplicativo Pasto Livre, solução mobile offline-first para pequenos e médios pecuaristas. Abrange cadastro multi-fazenda, manejo de pastagens, controle de lotes, dietas e inventário de insumos.",
+                description: `
+### 📋 Visão Geral
+Documentação oficial da **Pasto Livre API** — um backend para gestão de propriedades rurais focado em operações pecuárias de pequeno e médio porte.
+
+Esta API suporta o registro de múltiplas fazendas, manejo de pastagens, controle de rebanho, inventário de insumos e sincronização offline-first com o aplicativo móvel.
+
+---
+
+### 🔐 Autenticação
+A autenticação é gerenciada pelo **BetterAuth** com cookies baseados em sessão.
+
+- **Cadastro**: \`POST /api/auth/sign-up/email\`
+- **Login**: \`POST /api/auth/sign-in/email\`
+- **Logout**: \`POST /api/auth/sign-out\`
+- **Obter Sessão**: \`GET /api/auth/get-session\`
+
+> 🔑 **Credenciais de teste (seed):**
+> - \`admin@admin.com\` / \`admin\`
+> - \`joao@pastoverde.com\` / \`Senha@123\`
+> - \`maria@pastoverde.com\` / \`Senha@456\`
+
+Após o login, os cookies de sessão são definidos automaticamente. Para testes na interface do Swagger, utilize o botão **Authorize** com um token Bearer ou certifique-se de que os cookies estão ativados.
+
+---
+
+### 🚀 Principais Funcionalidades
+- **Autenticação de Sessão BetterAuth**: Sessões seguras baseadas em cookies com persistência em PostgreSQL.
+- **Gerenciamento de Usuários**: CRUD de perfis com validação Zod e identificadores UUID.
+- **Recuperação de Senha**: Fluxos de esquecimento/redefinição de senha (serviço de e-mail pendente de configuração).
+- **Prisma ORM**: Acesso ao banco de dados com tipagem segura e PostgreSQL.
+                `,
                 contact: {
                     name: "Equipe Pasto Livre",
                     email: "contato@pastolivre.com"
@@ -34,39 +82,35 @@ const getSwaggerOptions = async () => {
             servers: getServersInCorrectOrder(),
             tags: [
                 {
-                    name: "Autenticação",
-                    description: "Fluxos de login, registro e renovação de tokens"
+                    name: "Auth",
+                    description: "Fluxos de autenticação gerenciados pelo BetterAuth (cadastro, login, logout, recuperação de senha)"
                 },
                 {
-                    name: "Produtores",
-                    description: "Seleção de propriedade, perfis e permissões dos usuários de campo"
+                    name: "Usuários",
+                    description: "Gerenciamento de perfil de usuários (listar, visualizar, atualizar, excluir)"
                 },
                 {
                     name: "Propriedades",
-                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard"
+                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard (em breve)"
                 },
                 {
                     name: "Pastagens",
-                    description: "Manejo de pastos, ocupação, descanso e histórico de intervenções"
+                    description: "Manejo de pastos, ocupação, descanso e histórico de intervenções (em breve)"
                 },
                 {
                     name: "Rebanhos (Lotes)",
-                    description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária"
-                },
-                {
-                    name: "Dietas",
-                    description: "Configuração de consumo por lote, cálculo de autonomia e vínculo com estoque"
+                    description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária (em breve)"
                 },
                 {
                     name: "Inventário",
-                    description: "Entradas de insumos, unidades de medida e saldo disponível"
-                },
-                {
-                    name: "Sincronização",
-                    description: "Status offline, fila de envio e reconciliamento com o servidor"
+                    description: "Entradas de insumos, unidades de medida e saldo disponível (em breve)"
                 }
             ],
-            paths: {}, // TODO: adicionar os paths assim que forem versionados
+            paths: {
+                ...authPaths,
+                ...userPaths,
+                ...propriedadePaths,
+            },
             components: {
                 securitySchemes: {
                     bearerAuth: {
@@ -75,7 +119,11 @@ const getSwaggerOptions = async () => {
                         bearerFormat: "JWT"
                     }
                 },
-                schemas: {} // TODO: adicionar schemas quando disponíveis
+                schemas: {
+                    ...authSchemas,
+                    ...userSchemas,
+                    ...propriedadeSchemas,
+                }
             },
             security: [{
                 bearerAuth: []

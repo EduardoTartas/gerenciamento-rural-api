@@ -28,7 +28,7 @@ services:
       - 6060:6060
     env_file:
       - ./.env
-    command: sh -c "npx prisma generate && npm start"
+    command: sh -c "npx prisma migrate deploy && exec node server.js"
     depends_on:
       postgresql:
         condition: service_healthy

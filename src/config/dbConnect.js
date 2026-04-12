@@ -1,7 +1,8 @@
 // src/config/dbConnect.js
 
-import { PrismaClient } from '@prisma/client';
-import { PrismaPostgresAdapter } from '@prisma/adapter-ppg';
+import pkg from '@prisma/client';
+const { PrismaClient } = pkg;
+import { PrismaPg } from '@prisma/adapter-pg';
 import logger from '../utils/logger.js';
 
 const { DATABASE_URL } = process.env;
@@ -10,9 +11,8 @@ if (!DATABASE_URL) {
   throw new Error('DATABASE_URL não configurada para o Prisma');
 }
 
-const adapter = new PrismaPostgresAdapter({
-  connectionString: DATABASE_URL,
-});
+// Adapter para conexão direta com PostgreSQL via driver pg (porta 5432)
+const adapter = new PrismaPg(DATABASE_URL);
 
 class DbConnect {
   constructor() {
@@ -36,3 +36,5 @@ class DbConnect {
 }
 
 export default new DbConnect();
+
+
