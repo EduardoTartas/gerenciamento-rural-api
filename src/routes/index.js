@@ -10,6 +10,7 @@ import DbConnect from '../config/dbConnect.js';
 
 // Route imports
 import userRoutes from './userRoutes.js';
+import propriedadeRoutes from './propriedadeRoutes.js';
 
 dotenv.config();
 
@@ -59,6 +60,7 @@ const routes = (app) => {
     app.use(
         express.json(),
         userRoutes,
+        propriedadeRoutes,
     );
 };
 
