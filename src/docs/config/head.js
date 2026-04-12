@@ -59,6 +59,11 @@ A autenticação é gerenciada pelo **BetterAuth** com cookies baseados em sess�
 - **Logout**: \`POST /api/auth/sign-out\`
 - **Obter Sessão**: \`GET /api/auth/get-session\`
 
+> 🔑 **Credenciais de teste (seed):**
+> - \`admin@admin.com\` / \`admin\`
+> - \`joao@pastoverde.com\` / \`Senha@123\`
+> - \`maria@pastoverde.com\` / \`Senha@456\`
+
 Após o login, os cookies de sessão são definidos automaticamente. Para testes na interface do Swagger, utilize o botão **Authorize** com um token Bearer ou certifique-se de que os cookies estão ativados.
 
 ---
