@@ -11,6 +11,7 @@ import DbConnect from '../config/dbConnect.js';
 // Importação de rotas
 import userRoutes from './userRoutes.js';
 import propriedadeRoutes from './propriedadeRoutes.js';
+import pastoRoutes from './pastoRoutes.js';
 
 dotenv.config();
 
@@ -61,6 +62,7 @@ const routes = (app) => {
         express.json(),
         userRoutes,
         propriedadeRoutes,
+        pastoRoutes,
     );
 };
 
