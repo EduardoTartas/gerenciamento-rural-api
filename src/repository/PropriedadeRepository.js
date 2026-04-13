@@ -35,6 +35,13 @@ class PropriedadeRepository {
                     ativo: true,
                     createdAt: true,
                     updatedAt: true,
+                    usuario: {
+                        select: {
+                            id: true,
+                            name: true,
+                            email: true,
+                        },
+                    },
                 },
             }),
             this.prisma.propriedade.count({ where }),
@@ -64,6 +71,13 @@ class PropriedadeRepository {
                 ativo: true,
                 createdAt: true,
                 updatedAt: true,
+                usuario: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
             },
         });
 
@@ -109,6 +123,13 @@ class PropriedadeRepository {
                 ativo: true,
                 createdAt: true,
                 updatedAt: true,
+                usuario: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
             },
         });
     }
@@ -128,6 +149,13 @@ class PropriedadeRepository {
                 ativo: true,
                 createdAt: true,
                 updatedAt: true,
+                usuario: {
+                    select: {
+                        id: true,
+                        name: true,
+                        email: true,
+                    },
+                },
             },
         });
     }
