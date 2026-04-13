@@ -12,6 +12,7 @@ import DbConnect from '../config/dbConnect.js';
 import userRoutes from './userRoutes.js';
 import propriedadeRoutes from './propriedadeRoutes.js';
 import pastoRoutes from './pastoRoutes.js';
+import manejoPastoRoutes from './manejoPastoRoutes.js';
 
 dotenv.config();
 
@@ -62,6 +63,7 @@ const routes = (app) => {
         express.json(),
         userRoutes,
         propriedadeRoutes,
+        manejoPastoRoutes,
         pastoRoutes,
     );
 };

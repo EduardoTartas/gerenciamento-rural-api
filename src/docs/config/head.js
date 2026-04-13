@@ -30,6 +30,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const pastoPaths = (await import(new URL("../paths/pasto.js",
         import.meta.url).href + t)).default;
+    const manejoPastoPaths = (await import(new URL("../paths/manejoPasto.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -39,6 +41,8 @@ const getSwaggerOptions = async () => {
     const propriedadeSchemas = (await import(new URL("../schemas/propriedadeSchema.js",
         import.meta.url).href + t)).default;
     const pastoSchemas = (await import(new URL("../schemas/pastoSchema.js",
+        import.meta.url).href + t)).default;
+    const manejoPastoSchemas = (await import(new URL("../schemas/manejoPastoSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -102,6 +106,10 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     description: "Gerenciamento de pastagens, ocupação, descanso e histórico de intervenções"
                 },
                 {
+                    name: "Manejos de Pastagem",
+                    description: "Registro de atividades de manejo realizadas nos pastos (roçagem, adubação, calagem, etc.)"
+                },
+                {
                     name: "Rebanhos (Lotes)",
                     description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária (em breve)"
                 },
@@ -115,6 +123,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 ...userPaths,
                 ...propriedadePaths,
                 ...pastoPaths,
+                ...manejoPastoPaths,
             },
             components: {
                 securitySchemes: {
@@ -129,6 +138,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     ...userSchemas,
                     ...propriedadeSchemas,
                     ...pastoSchemas,
+                    ...manejoPastoSchemas,
                 }
             },
             security: [{
