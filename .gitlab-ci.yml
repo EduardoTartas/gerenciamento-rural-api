@@ -22,5 +22,6 @@ deploy_job:
   tags:
     - k3s-runner
   script:
-    - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n pasto-livre
-    - kubectl rollout status deployment/gerenciamento-rural-api -n pasto-livre
+    - echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
+    - docker buildx create --use
+    - docker buildx build --platform linux/arm64 -t $DOCKER_IMAGE --push .
