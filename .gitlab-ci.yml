@@ -3,6 +3,7 @@ stages:
   - deploy
 
 variables:
+  # Usar o SHA do commit é a melhor prática para rastrear versões
   DOCKER_IMAGE: eduardotartas/gerenciamento-rural-api:$CI_COMMIT_SHORT_SHA
 
 build_job:
@@ -21,5 +22,5 @@ deploy_job:
   tags:
     - k3s-runner
   script:
-    - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n default
-    - kubectl rollout status deployment/gerenciamento-rural-api -n default
+    - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n pasto-livre
+    - kubectl rollout status deployment/gerenciamento-rural-api -n pasto-livre
