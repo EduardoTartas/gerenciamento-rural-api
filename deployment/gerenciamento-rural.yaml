@@ -1,0 +1,95 @@
+---
+# VOLUME PARA O POSTGRES
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: postgres-pvc
+spec:
+  accessModes: [ReadWriteOnce]
+  resources:
+    requests:
+      storage: 2Gi
+
+---
+# BANCO DE DADOS (POSTGRESQL)
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: postgres-db
+spec:
+  selector:
+    matchLabels:
+      app: postgres-db
+  template:
+    metadata:
+      labels:
+        app: postgres-db
+    spec:
+      containers:
+      - name: postgres
+        image: postgres:17-alpine
+        envFrom:
+        - secretRef:
+            name: api-pasto-livre-secrets
+        ports:
+        - containerPort: 5432
+        volumeMounts:
+        - name: db-data
+          mountPath: /var/lib/postgresql/data
+      volumes:
+      - name: db-data
+        persistentVolumeClaim:
+          claimName: postgres-pvc
+
+---
+# SERVIÇO DO BANCO (O DNS INTERNO)
+apiVersion: v1
+kind: Service
+metadata:
+  name: postgresql-pasto-livre
+spec:
+  selector:
+    app: postgres-db
+  ports:
+    - port: 5432
+      targetPort: 5432
+
+---
+#API
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: gerenciamento-rural-api
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: gerenciamento-rural-api
+  template:
+    metadata:
+      labels:
+        app: gerenciamento-rural-api
+    spec:
+      imagePullSecrets:
+        - name: dockerhub-key
+      containers:
+      - name: gerenciamento-rural-api
+        image: eduardotartas/gerenciamento-rural-api:latest
+        command: ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]
+        ports:
+        - containerPort: 6060
+        envFrom:
+        - secretRef:
+            name: api-pasto-livre-secrets
+---
+# SERVIÇO DA API
+apiVersion: v1
+kind: Service
+metadata:
+  name: api-service
+spec:
+  selector:
+    app: gerenciamento-rural-api
+  ports:
+    - port: 80
+      targetPort: 6060
