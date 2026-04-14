@@ -1,4 +1,4 @@
-# 🏗️ Diagrama de Infraestrutura — Pasto Livre
+# Diagrama de Infraestrutura — Pasto Livre
 
 ## Arquitetura Completa (Fluxo de Requisição + CI/CD)
 
