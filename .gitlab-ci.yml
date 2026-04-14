@@ -18,6 +18,7 @@ build_job:
   services:
     - docker:24.0.5-dind
   script:
+    - sleep 5
     - echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
     - docker buildx create --use --driver docker-container
     - docker buildx build --platform linux/arm64 -t $DOCKER_IMAGE --push .
