@@ -23,3 +23,5 @@ deploy_job:
   script:
     - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n pasto-livre
     - kubectl rollout status deployment/gerenciamento-rural-api -n pasto-livre
+  only:
+    - main
