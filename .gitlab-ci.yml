@@ -6,21 +6,28 @@ variables:
   DOCKER_IMAGE: eduardotartas/gerenciamento-rural-api:$CI_COMMIT_SHORT_SHA
   KUBERNETES_NAMESPACE: "pasto-livre"
   KUBERNETES_SERVICE_ACCOUNT: "gitlab-runner-sa"
+  DOCKER_HOST: unix:///var/run/docker.sock
 
 build_job:
   stage: build
   image: docker:24.0.5
   tags:
     - k3s-runner
-  variables:
-    DOCKER_HOST: tcp://127.0.0.1:2375 
-    DOCKER_TLS_CERTDIR: ""
   services:
     - name: docker:24.0.5-dind
       alias: docker
       command: ["--tls=false"]
   script:
-    - sleep 5
+    - |
+      # Espera o soquete do Docker ser criado pelo container dind
+      for i in $(seq 1 30); do
+        if [ -S /var/run/docker.sock ]; then
+          echo "Docker daemon pronto!"
+          break
+        fi
+        echo "Aguardando Docker daemon..."
+        sleep 2
+      done
     - echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
     - docker buildx create --use --driver docker-container
     - docker buildx build --platform linux/arm64 -t $DOCKER_IMAGE --push .
