@@ -4,6 +4,8 @@ stages:
 
 variables:
   DOCKER_IMAGE: eduardotartas/gerenciamento-rural-api:$CI_COMMIT_SHORT_SHA
+  KUBERNETES_NAMESPACE: "pasto-livre"
+  KUBERNETES_SERVICE_ACCOUNT: "gitlab-runner-sa"
 
 build_job:
   stage: build
@@ -12,7 +14,7 @@ build_job:
     - docker:24.0.5-dind
   script:
     - echo "$DOCKERHUB_PASS" | docker login -u "$DOCKERHUB_USER" --password-stdin
-    - docker buildx create --use
+    - docker buildx create --use --driver docker-container
     - docker buildx build --platform linux/arm64 -t $DOCKER_IMAGE --push .
 
 deploy_job:
