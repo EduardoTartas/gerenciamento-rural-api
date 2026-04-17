@@ -21,6 +21,8 @@
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
 import { PrismaPg } from '@prisma/adapter-pg';
+import pg from 'pg';
+const { Pool } = pg;
 
 import { SEED_CONFIG } from './config.js';
 import { seedUsuarios } from './usuarioSeed.js';
@@ -38,7 +40,8 @@ async function main() {
     throw new Error('DATABASE_URL não configurada. Defina a variável de ambiente.');
   }
 
-  const adapter = new PrismaPg(databaseUrl);
+  const pool = new Pool({ connectionString: databaseUrl });
+  const adapter = new PrismaPg(pool);
   const prisma = new PrismaClient({ adapter });
 
   console.log('');
@@ -120,6 +123,7 @@ async function main() {
     process.exit(1);
   } finally {
     await prisma.$disconnect();
+    await pool.end();
   }
 }
 

@@ -28,6 +28,10 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const propriedadePaths = (await import(new URL("../paths/propriedade.js",
         import.meta.url).href + t)).default;
+    const pastoPaths = (await import(new URL("../paths/pasto.js",
+        import.meta.url).href + t)).default;
+    const manejoPastoPaths = (await import(new URL("../paths/manejoPasto.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -35,6 +39,10 @@ const getSwaggerOptions = async () => {
     const userSchemas = (await import(new URL("../schemas/userSchema.js",
         import.meta.url).href + t)).default;
     const propriedadeSchemas = (await import(new URL("../schemas/propriedadeSchema.js",
+        import.meta.url).href + t)).default;
+    const pastoSchemas = (await import(new URL("../schemas/pastoSchema.js",
+        import.meta.url).href + t)).default;
+    const manejoPastoSchemas = (await import(new URL("../schemas/manejoPastoSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -91,11 +99,15 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 },
                 {
                     name: "Propriedades",
-                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard (em breve)"
+                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard"
                 },
                 {
                     name: "Pastagens",
-                    description: "Manejo de pastos, ocupação, descanso e histórico de intervenções (em breve)"
+                    description: "Gerenciamento de pastagens, ocupação, descanso e histórico de intervenções"
+                },
+                {
+                    name: "Manejos de Pastagem",
+                    description: "Registro de atividades de manejo realizadas nos pastos (roçagem, adubação, calagem, etc.)"
                 },
                 {
                     name: "Rebanhos (Lotes)",
@@ -110,6 +122,8 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 ...authPaths,
                 ...userPaths,
                 ...propriedadePaths,
+                ...pastoPaths,
+                ...manejoPastoPaths,
             },
             components: {
                 securitySchemes: {
@@ -123,6 +137,8 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     ...authSchemas,
                     ...userSchemas,
                     ...propriedadeSchemas,
+                    ...pastoSchemas,
+                    ...manejoPastoSchemas,
                 }
             },
             security: [{
