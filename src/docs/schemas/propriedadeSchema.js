@@ -17,7 +17,15 @@ const propriedadeSchemas = {
             localizacao: { type: "string", nullable: true, example: "Vilhena,RO" },
             ativo: { type: "boolean", example: true },
             createdAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
-            updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" }
+            updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
+            usuario: {
+                type: "object",
+                properties: {
+                    id: { type: "string", format: "uuid", example: "f1e2d3c4-b5a6-7890-abcd-ef1234567890" },
+                    name: { type: "string", example: "João Silva" },
+                    email: { type: "string", format: "email", example: "joao@pastoverde.com" }
+                }
+            }
         },
         description: "Esquema para item da lista de propriedades"
     },
@@ -31,7 +39,15 @@ const propriedadeSchemas = {
             localizacao: { type: "string", nullable: true, example: "Vilhena,RO" },
             ativo: { type: "boolean", example: true },
             createdAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
-            updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" }
+            updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
+            usuario: {
+                type: "object",
+                properties: {
+                    id: { type: "string", format: "uuid", example: "f1e2d3c4-b5a6-7890-abcd-ef1234567890" },
+                    name: { type: "string", example: "João Silva" },
+                    email: { type: "string", format: "email", example: "joao@pastoverde.com" }
+                }
+            }
         },
         description: "Esquema para detalhes da propriedade"
     },
