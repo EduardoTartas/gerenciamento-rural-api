@@ -34,7 +34,13 @@ const routes = (app) => {
         res.redirect('/docs');
     });
 
-    app.use('/docs', swaggerUI.serve, (req, res, next) => {
+    // Middleware para impedir que o Cloudflare faça cache da documentação
+    app.use('/docs', (req, res, next) => {
+        res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
+        res.setHeader('Pragma', 'no-cache');
+        res.setHeader('Expires', '0');
+        next();
+    }, swaggerUI.serve, (req, res, next) => {
         swaggerMiddlewarePromise
             .then((setup) => setup(req, res, next))
             .catch(next);
