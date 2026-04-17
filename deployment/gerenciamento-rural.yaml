@@ -4,6 +4,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
+  namespace: pasto-livre
 spec:
   accessModes: [ReadWriteOnce]
   resources:
@@ -16,6 +17,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: postgres-db
+  namespace: pasto-livre
 spec:
   selector:
     matchLabels:
@@ -47,6 +49,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgresql-pasto-livre
+  namespace: pasto-livre
 spec:
   selector:
     app: postgres-db
@@ -55,11 +58,12 @@ spec:
       targetPort: 5432
 
 ---
-#API
+# API
 apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gerenciamento-rural-api
+  namespace: pasto-livre
 spec:
   replicas: 1
   selector:
@@ -75,18 +79,21 @@ spec:
       containers:
       - name: gerenciamento-rural-api
         image: eduardotartas/gerenciamento-rural-api:latest
+        imagePullPolicy: Always
         command: ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]
         ports:
         - containerPort: 6060
         envFrom:
         - secretRef:
             name: api-pasto-livre-secrets
+
 ---
 # SERVIÇO DA API
 apiVersion: v1
 kind: Service
 metadata:
   name: gerenciamento-rural-api-service
+  namespace: pasto-livre
 spec:
   selector:
     app: gerenciamento-rural-api
