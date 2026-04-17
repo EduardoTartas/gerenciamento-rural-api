@@ -195,6 +195,18 @@ class PastoRepository {
             },
         });
     }
+    /**
+     * Conta a quantidade de rebanhos ativos associados a este pasto.
+     * Útil para validações de regra de negócio (não inativar pasto ocupado, etc).
+     */
+    async countRebanhos(id) {
+        return this.prisma.rebanho.count({
+            where: {
+                pastoAtualId: id,
+                ativo: true,
+            },
+        });
+    }
 }
 
 export default PastoRepository;

@@ -49,7 +49,18 @@ class PastoService {
         const usuarioId = req.user.id;
 
         // Valida se a propriedade existe e pertence ao usuário
-        await this.ensurePropriedadeExists(parsedData.propriedadeId, usuarioId);
+        const propriedade = await this.ensurePropriedadeExists(parsedData.propriedadeId, usuarioId);
+
+        if (!propriedade.ativo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'propriedadeId',
+                details: [{ path: 'propriedadeId', message: 'Não é possível criar um pasto em uma propriedade inativa.' }],
+                customMessage: 'Propriedade está inativa.',
+            });
+        }
+
 
         // Valida nome único por propriedade
         await this.validateUniqueNome(parsedData.nome, parsedData.propriedadeId);
@@ -70,6 +81,33 @@ class PastoService {
         if (parsedData.nome) {
             await this.validateUniqueNome(parsedData.nome, pasto.propriedadeId, id);
         }
+
+        // Validação de estado "Ativo" e "Status" usando rebanhos
+        if (parsedData.ativo === false || parsedData.status === 'Vazio' || parsedData.status === 'Descanso') {
+            const rebanhosAtivos = await this.repository.countRebanhos(id);
+            if (rebanhosAtivos > 0) {
+                if (parsedData.ativo === false) {
+                    throw new CustomError({
+                        statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                        errorType: 'validationError',
+                        field: 'ativo',
+                        details: [{ path: 'ativo', message: 'Não é possível inativar um pasto que contém rebanhos.' }],
+                        customMessage: 'Pasto ainda contém rebanhos vinculados.',
+                    });
+                }
+                if (parsedData.status === 'Vazio' || parsedData.status === 'Descanso') {
+                    throw new CustomError({
+                        statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                        errorType: 'validationError',
+                        field: 'status',
+                        details: [{ path: 'status', message: `Não é possível alterar o status para "${parsedData.status}" pois há rebanhos no pasto.` }],
+                        customMessage: 'Pasto está ocupado por um ou mais rebanhos.',
+                    });
+                }
+            }
+        }
+
+        // TODO: Implementar lógica de cálculo de Taxa de Lotação (cabeças/ha) e capacidade de suporte em endpoints futuros (Dashboards).
 
         return this.repository.update(id, parsedData);
     }

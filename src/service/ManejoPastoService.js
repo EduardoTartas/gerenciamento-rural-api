@@ -49,7 +49,18 @@ class ManejoPastoService {
         const usuarioId = req.user.id;
 
         // Valida se o pasto existe e pertence ao usuário
-        await this.ensurePastoExists(parsedData.pastoId, usuarioId);
+        const pasto = await this.ensurePastoExists(parsedData.pastoId, usuarioId);
+
+        if (!pasto.ativo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'pastoId',
+                details: [{ path: 'pastoId', message: 'Não é possível registrar um manejo em um pasto inativo.' }],
+                customMessage: 'Pasto está inativo.',
+            });
+        }
+
 
         return this.repository.create(parsedData);
     }
