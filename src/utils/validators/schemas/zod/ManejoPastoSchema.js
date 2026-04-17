@@ -30,7 +30,8 @@ export const ManejoPastoCreateSchema = z
                 error: `O tipo de manejo deve ser um dos seguintes valores: ${TIPOS_MANEJO_PASTO.join(', ')}.`,
             }),
         dataAtividade: z
-            .coerce.date({ error: 'A data da atividade deve ser uma data válida.' }),
+            .coerce.date({ error: 'A data da atividade deve ser uma data válida.' })
+            .refine((date) => date <= new Date(), { message: 'A data da atividade não pode ser no futuro.' }),
         observacoes: z
             .string()
             .max(500, 'As observações devem ter no máximo 500 caracteres.')
@@ -51,6 +52,7 @@ export const ManejoPastoUpdateSchema = z
             .optional(),
         dataAtividade: z
             .coerce.date({ error: 'A data da atividade deve ser uma data válida.' })
+            .refine((date) => date <= new Date(), { message: 'A data da atividade não pode ser no futuro.' })
             .optional(),
         observacoes: z
             .string()

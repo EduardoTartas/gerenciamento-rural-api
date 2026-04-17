@@ -23,16 +23,17 @@ class PastoService {
         const usuarioId = req.user.id;
 
         if (id) {
-            return this.repository.findById(id, usuarioId);
+            return this.ensurePastoExists(id, usuarioId);
         }
 
-        const { nome, propriedadeId, status, tipoPastagem, page = 1, limit = 10 } = req.query;
+        const { nome, propriedadeId, status, tipoPastagem, ativo, page = 1, limit = 10 } = req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;
         if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (status) filters.status = status;
         if (tipoPastagem) filters.tipoPastagem = tipoPastagem;
+        if (ativo !== undefined) filters.ativo = ativo;
 
         return this.repository.list(
             usuarioId,

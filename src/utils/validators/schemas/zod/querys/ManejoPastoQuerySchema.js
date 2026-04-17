@@ -18,6 +18,8 @@ export const ManejoPastoQuerySchema = z.object({
     pastoId: z.string().uuid('O ID do pasto deve ser um UUID válido.').optional(),
     propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
     tipoManejo: z.enum(TIPOS_MANEJO_PASTO).optional(),
+    dataInicio: z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
+    dataFim: z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
     page: z.coerce.number().int().positive().optional().default(1),
     limit: z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();

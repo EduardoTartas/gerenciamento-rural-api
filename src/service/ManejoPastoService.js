@@ -23,15 +23,17 @@ class ManejoPastoService {
         const usuarioId = req.user.id;
 
         if (id) {
-            return this.repository.findById(id, usuarioId);
+            return this.ensureManejoExists(id, usuarioId);
         }
 
-        const { pastoId, propriedadeId, tipoManejo, page = 1, limit = 10 } = req.query;
+        const { pastoId, propriedadeId, tipoManejo, dataInicio, dataFim, page = 1, limit = 10 } = req.query;
         const filters = {};
 
         if (pastoId) filters.pastoId = pastoId;
         if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (tipoManejo) filters.tipoManejo = tipoManejo;
+        if (dataInicio) filters.dataInicio = dataInicio;
+        if (dataFim) filters.dataFim = dataFim;
 
         return this.repository.list(
             usuarioId,

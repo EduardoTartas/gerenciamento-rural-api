@@ -1,7 +1,7 @@
 // src/repository/ManejoPastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, messages } from '../utils/helpers/index.js';
+
 
 class ManejoPastoRepository {
     constructor() {
@@ -30,6 +30,11 @@ class ManejoPastoRepository {
         }
         if (filters.tipoManejo) {
             where.tipoManejo = filters.tipoManejo;
+        }
+        if (filters.dataInicio || filters.dataFim) {
+            where.dataAtividade = {};
+            if (filters.dataInicio) where.dataAtividade.gte = filters.dataInicio;
+            if (filters.dataFim) where.dataAtividade.lte = filters.dataFim;
         }
 
         const [docs, totalDocs] = await Promise.all([
@@ -102,16 +107,6 @@ class ManejoPastoRepository {
                 },
             },
         });
-
-        if (!manejo) {
-            throw new CustomError({
-                statusCode: 404,
-                errorType: 'resourceNotFound',
-                field: 'Manejo de Pasto',
-                details: [],
-                customMessage: messages.error.resourceNotFound('Manejo de Pasto'),
-            });
-        }
 
         return manejo;
     }

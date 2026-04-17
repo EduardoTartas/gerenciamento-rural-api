@@ -1,7 +1,7 @@
 // src/repository/PastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, messages } from '../utils/helpers/index.js';
+
 
 class PastoRepository {
     constructor() {
@@ -69,7 +69,7 @@ class PastoRepository {
     }
 
     /**
-     * Busca um pasto por ID. Lança erro se não encontrar.
+     * Busca um pasto por ID. Retorna null se não encontrar.
      * Restrito ao usuário autenticado via propriedade.
      */
     async findById(id, usuarioId) {
@@ -97,16 +97,6 @@ class PastoRepository {
                 },
             },
         });
-
-        if (!pasto) {
-            throw new CustomError({
-                statusCode: 404,
-                errorType: 'resourceNotFound',
-                field: 'Pastagem',
-                details: [],
-                customMessage: messages.error.resourceNotFound('Pastagem'),
-            });
-        }
 
         return pasto;
     }
@@ -182,21 +172,7 @@ class PastoRepository {
         });
     }
 
-    /**
-     * Remove um pasto por ID.
-     * A exclusão em cascata é gerenciada pelo schema do Prisma (onDelete: Cascade)
-     * removendo manejos de pasto, e atualizando rebanhos e movimentações relacionadas.
-     */
-    async remove(id) {
-        return this.prisma.pasto.delete({
-            where: { id },
-            select: {
-                id: true,
-                nome: true,
-                propriedadeId: true,
-            },
-        });
-    }
+
     /**
      * Conta a quantidade de rebanhos ativos associados a este pasto.
      * Útil para validações de regra de negócio (não inativar pasto ocupado, etc).
