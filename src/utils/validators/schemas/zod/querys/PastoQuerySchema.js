@@ -18,7 +18,9 @@ export const PastoQuerySchema = z.object({
     propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
     status: z.enum(['Ocupado', 'Vazio', 'Descanso']).optional(),
     tipoPastagem: z.string().optional(),
-    ativo: z.string().transform(v => v === 'true').optional(),
+    ativo: z.enum(['true', 'false'], {
+        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+    }).transform(v => v === 'true').optional(),
     page: z.coerce.number().int().positive().optional().default(1),
     limit: z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();
