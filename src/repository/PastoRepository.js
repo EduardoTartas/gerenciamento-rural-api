@@ -15,6 +15,7 @@ class PastoRepository {
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             propriedade: { usuarioId },
+            ativo: filters.ativo !== undefined ? filters.ativo : true,
         };
 
         if (filters.nome) {
@@ -118,6 +119,7 @@ class PastoRepository {
         const where = {
             nome: { equals: nome, mode: 'insensitive' },
             propriedadeId,
+            ativo: true,
         };
         if (excludeId) {
             where.id = { not: excludeId };

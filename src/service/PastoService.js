@@ -113,17 +113,13 @@ class PastoService {
     }
 
     /**
-     * Exclui um pasto.
-     * Apenas o dono da propriedade pode excluir.
-     * A exclusão em cascata remove manejos de pasto relacionados.
-     * Rebanhos vinculados têm o pastoAtualId definido como null (SetNull).
+     * Arquiva (Soft-Delete) um pasto.
+     * Apenas o dono da propriedade pode arquivar.
+     * O método redireciona para a atualização da flag 'ativo', que já possui validações de integridade
+     * (não permite arquivar se houver rebanhos ativos).
      */
     async remove(id, req) {
-        const usuarioId = req.user.id;
-
-        await this.ensurePastoExists(id, usuarioId);
-
-        return this.repository.remove(id);
+        return this.update(id, { ativo: false }, req);
     }
 
     // ================================

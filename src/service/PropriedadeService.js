@@ -67,20 +67,31 @@ class PropriedadeService {
             await this.validateUniqueNome(parsedData.nome, usuarioId, id);
         }
 
+        // Validate deactivation against active herds
+        if (parsedData.ativo === false) {
+            const rebanhosAtivos = await this.repository.countRebanhosAtivos(id);
+            if (rebanhosAtivos > 0) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'ativo',
+                    details: [{ path: 'ativo', message: 'Não é possível inativar uma propriedade que contém rebanhos ativos.' }],
+                    customMessage: 'A propriedade ainda possui rebanhos vinculados a ela.',
+                });
+            }
+        }
+
         return this.repository.update(id, parsedData);
     }
 
     /**
-     * Exclui uma propriedade.
-     * Apenas o dono pode excluir sua propriedade.
-     * A exclusão em cascata remove todos os pastos, rebanhos, etc. relacionados.
+     * Arquiva (Soft-Delete) uma propriedade.
+     * Apenas o dono pode arquivar sua propriedade.
+     * O método redireciona para a atualização da flag 'ativo', que não permite arquivar
+     * caso haja rebanhos ativos registrados na propriedade.
      */
     async remove(id, req) {
-        const usuarioId = req.user.id;
-
-        await this.ensurePropriedadeExists(id, usuarioId);
-
-        return this.repository.remove(id);
+        return this.update(id, { ativo: false }, req);
     }
 
     // ================================

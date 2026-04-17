@@ -16,6 +16,7 @@ export const PropriedadeIdSchema = z
 export const PropriedadeQuerySchema = z.object({
     nome: z.string().optional(),
     localizacao: z.string().optional(),
+    ativo: z.string().transform(v => v === 'true').optional(),
     page: z.coerce.number().int().positive().optional().default(1),
     limit: z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();

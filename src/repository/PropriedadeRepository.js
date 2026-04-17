@@ -13,7 +13,10 @@ class PropriedadeRepository {
      * Sempre restrito ao usuarioId fornecido.
      */
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
-        const where = { usuarioId };
+        const where = {
+            usuarioId,
+            ativo: filters.ativo !== undefined ? filters.ativo : true,
+        };
 
         if (filters.nome) {
             where.nome = { contains: filters.nome, mode: 'insensitive' };
@@ -102,6 +105,7 @@ class PropriedadeRepository {
         const where = {
             nome: { equals: nome, mode: 'insensitive' },
             usuarioId,
+            ativo: true,
         };
         if (excludeId) {
             where.id = { not: excludeId };
@@ -171,6 +175,19 @@ class PropriedadeRepository {
                 id: true,
                 nome: true,
                 localizacao: true,
+            },
+        });
+    }
+
+    /**
+     * Conta a quantidade de rebanhos ativos associados a esta propriedade.
+     * Útil para validações de regra de negócio (não inativar caso haja rebanhos).
+     */
+    async countRebanhosAtivos(id) {
+        return this.prisma.rebanho.count({
+            where: {
+                propriedadeId: id,
+                ativo: true,
             },
         });
     }
