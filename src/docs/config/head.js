@@ -99,7 +99,7 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 },
                 {
                     name: "Propriedades",
-                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard (em breve)"
+                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard"
                 },
                 {
                     name: "Pastagens",
