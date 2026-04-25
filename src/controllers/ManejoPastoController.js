@@ -47,7 +47,7 @@ class ManejoPastoController {
 
         const totalDocs = data?.totalDocs ?? data?.docs?.length ?? 0;
         if (totalDocs === 0) {
-            const hasFilters = query && (query.pastoId || query.propriedadeId || query.tipoManejo);
+            const hasFilters = query && (query.pastoId || query.propriedadeId || query.tipoManejoId);
             const message = hasFilters
                 ? 'Nenhum manejo de pasto encontrado com os filtros informados.'
                 : 'Nenhum manejo de pasto cadastrado.';

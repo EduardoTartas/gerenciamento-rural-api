@@ -1,7 +1,6 @@
 // src/utils/validators/schemas/zod/querys/ManejoPastoQuerySchema.js
 
 import { z } from 'zod/v4';
-import { TIPOS_MANEJO_PASTO } from '../ManejoPastoSchema.js';
 
 /**
  * Valida o parâmetro de caminho (ID) como um UUID para manejo de pasto.
@@ -12,16 +11,16 @@ export const ManejoPastoIdSchema = z
 
 /**
  * Valida os parâmetros de consulta (query) para listagem de manejos de pasto.
- * Suporta filtragem por pastoId, tipoManejo e propriedadeId.
+ * tipoManejoId agora é UUID (FK para catálogo global).
  */
 export const ManejoPastoQuerySchema = z.object({
-    pastoId: z.string().uuid('O ID do pasto deve ser um UUID válido.').optional(),
+    pastoId:      z.string().uuid('O ID do pasto deve ser um UUID válido.').optional(),
     propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
-    tipoManejo: z.enum(TIPOS_MANEJO_PASTO).optional(),
-    dataInicio: z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
-    dataFim: z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
-    page: z.coerce.number().int().positive().optional().default(1),
-    limit: z.coerce.number().int().positive().max(100).optional().default(10),
+    tipoManejoId: z.string().uuid('O ID do tipo de manejo deve ser um UUID válido.').optional(),
+    dataInicio:   z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
+    dataFim:      z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
+    page:         z.coerce.number().int().positive().optional().default(1),
+    limit:        z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();
 
 export { ManejoPastoIdSchema as default };

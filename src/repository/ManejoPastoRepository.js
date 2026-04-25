@@ -2,6 +2,23 @@
 
 import DbConnect from '../config/dbConnect.js';
 
+const MANEJO_SELECT = {
+    id: true,
+    pastoId: true,
+    tipoManejoId: true,
+    dataAtividade: true,
+    observacoes: true,
+    createdAt: true,
+    updatedAt: true,
+    tipoManejo: { select: { id: true, nome: true } },
+    pasto: {
+        select: {
+            id: true,
+            nome: true,
+            propriedade: { select: { id: true, nome: true } },
+        },
+    },
+};
 
 class ManejoPastoRepository {
     constructor() {
@@ -14,27 +31,18 @@ class ManejoPastoRepository {
      */
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
-            pasto: {
-                propriedade: { usuarioId },
-            },
+            pasto: { propriedade: { usuarioId } },
         };
 
-        if (filters.pastoId) {
-            where.pastoId = filters.pastoId;
-        }
+        if (filters.pastoId)      where.pastoId      = filters.pastoId;
+        if (filters.tipoManejoId) where.tipoManejoId = filters.tipoManejoId;
         if (filters.propriedadeId) {
-            where.pasto = {
-                ...where.pasto,
-                propriedadeId: filters.propriedadeId,
-            };
-        }
-        if (filters.tipoManejo) {
-            where.tipoManejo = filters.tipoManejo;
+            where.pasto = { ...where.pasto, propriedadeId: filters.propriedadeId };
         }
         if (filters.dataInicio || filters.dataFim) {
             where.dataAtividade = {};
             if (filters.dataInicio) where.dataAtividade.gte = filters.dataInicio;
-            if (filters.dataFim) where.dataAtividade.lte = filters.dataFim;
+            if (filters.dataFim)    where.dataAtividade.lte = filters.dataFim;
         }
 
         const [docs, totalDocs] = await Promise.all([
@@ -43,36 +51,12 @@ class ManejoPastoRepository {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { dataAtividade: 'desc' },
-                select: {
-                    id: true,
-                    pastoId: true,
-                    tipoManejo: true,
-                    dataAtividade: true,
-                    observacoes: true,
-                    pasto: {
-                        select: {
-                            id: true,
-                            nome: true,
-                            propriedade: {
-                                select: {
-                                    id: true,
-                                    nome: true,
-                                },
-                            },
-                        },
-                    },
-                },
+                select: MANEJO_SELECT,
             }),
             this.prisma.manejoPasto.count({ where }),
         ]);
 
-        return {
-            docs,
-            totalDocs,
-            page,
-            limit,
-            totalPages: Math.ceil(totalDocs / limit),
-        };
+        return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
     /**
@@ -80,92 +64,24 @@ class ManejoPastoRepository {
      * Restrito ao usuário autenticado via pasto -> propriedade.
      */
     async findById(id, usuarioId) {
-        const manejo = await this.prisma.manejoPasto.findFirst({
-            where: {
-                id,
-                pasto: {
-                    propriedade: { usuarioId },
-                },
-            },
-            select: {
-                id: true,
-                pastoId: true,
-                tipoManejo: true,
-                dataAtividade: true,
-                observacoes: true,
-                pasto: {
-                    select: {
-                        id: true,
-                        nome: true,
-                        propriedade: {
-                            select: {
-                                id: true,
-                                nome: true,
-                            },
-                        },
-                    },
-                },
-            },
+        return this.prisma.manejoPasto.findFirst({
+            where: { id, pasto: { propriedade: { usuarioId } } },
+            select: MANEJO_SELECT,
         });
-
-        return manejo;
     }
 
     /**
      * Cria um novo manejo de pasto.
      */
     async create(data) {
-        return this.prisma.manejoPasto.create({
-            data,
-            select: {
-                id: true,
-                pastoId: true,
-                tipoManejo: true,
-                dataAtividade: true,
-                observacoes: true,
-                pasto: {
-                    select: {
-                        id: true,
-                        nome: true,
-                        propriedade: {
-                            select: {
-                                id: true,
-                                nome: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        return this.prisma.manejoPasto.create({ data, select: MANEJO_SELECT });
     }
 
     /**
      * Atualiza um manejo de pasto por ID.
      */
     async update(id, data) {
-        return this.prisma.manejoPasto.update({
-            where: { id },
-            data,
-            select: {
-                id: true,
-                pastoId: true,
-                tipoManejo: true,
-                dataAtividade: true,
-                observacoes: true,
-                pasto: {
-                    select: {
-                        id: true,
-                        nome: true,
-                        propriedade: {
-                            select: {
-                                id: true,
-                                nome: true,
-                            },
-                        },
-                    },
-                },
-            },
-        });
+        return this.prisma.manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT });
     }
 
     /**
@@ -174,12 +90,7 @@ class ManejoPastoRepository {
     async remove(id) {
         return this.prisma.manejoPasto.delete({
             where: { id },
-            select: {
-                id: true,
-                pastoId: true,
-                tipoManejo: true,
-                dataAtividade: true,
-            },
+            select: { id: true, pastoId: true, tipoManejoId: true, dataAtividade: true },
         });
     }
 }
