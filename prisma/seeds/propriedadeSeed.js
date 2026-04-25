@@ -46,7 +46,7 @@ function gerarNomeFazenda(usados) {
  * Cria N propriedades para cada usuário.
  */
 export async function seedPropriedades(prisma, usuarios, quantidadePorUsuario = 2) {
-  console.log('🌱 Semeando propriedades...');
+  console.log('Semeando propriedades...');
 
   const created = [];
   const nomesUsados = new Set();

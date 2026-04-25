@@ -18,7 +18,7 @@ const OBSERVACOES_MOVIMENTACAO = [
  * Cria N movimentações por rebanho usando pastos da mesma propriedade.
  */
 export async function seedHistoricoMovimentacoes(prisma, rebanhos, pastos, quantidadePorRebanho = 2) {
-  console.log('🌱 Semeando histórico de movimentações...');
+  console.log('Semeando historico de movimentacoes...');
 
   // Organiza pastos por propriedade
   const pastosPorProp = {};
@@ -60,5 +60,5 @@ export async function seedHistoricoMovimentacoes(prisma, rebanhos, pastos, quant
     }
   }
 
-  console.log(`  ✅ ${count} movimentação(ões) registrada(s)`);
+  console.log(`  - ${count} movimentacao(oes) registrada(s)`);
 }
