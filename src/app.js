@@ -45,6 +45,8 @@ app.use(cors({
     origin: (origin, cb) => {
         // Permite requests sem Origin (apps mobile nativos, curl, Postman)
         if (!origin) return cb(null, true);
+        // Permite wildcard (*)
+        if (allowedOrigins.includes('*')) return cb(null, true);
         // Permite origens na whitelist
         if (allowedOrigins.includes(origin)) return cb(null, true);
         cb(new Error('Bloqueado pelo CORS'));
