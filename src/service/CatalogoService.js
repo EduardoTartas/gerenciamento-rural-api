@@ -1,11 +1,12 @@
 // src/service/CatalogoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import CatalogoRepository, { CATALOGO_ENTITIES } from '../repository/CatalogoRepository.js';
+import { catalogoRepository } from '../repository/index.js';
+import { CATALOGO_ENTITIES } from '../repository/CatalogoRepository.js';
 
 class CatalogoService {
     constructor() {
-        this.repository = new CatalogoRepository();
+        this.repository = catalogoRepository;
     }
 
     /**

@@ -67,8 +67,10 @@ class MovimentacaoRepository {
 
     /**
      * Cria a movimentação e atualiza rebanho e pastos em uma única transação.
+     * O count de rebanhos restantes no pasto de origem é feito DENTRO da transação
+     * para evitar race conditions.
      */
-    async createComTransacao({ rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes, rebanhosRestantesNoOrigem }) {
+    async createComTransacao({ rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes }) {
         return this.prisma.$transaction(async (tx) => {
             // 1. Cria o registro histórico
             const movimentacao = await tx.historicoMovimentacao.create({
@@ -88,12 +90,17 @@ class MovimentacaoRepository {
                 data: { status: 'Ocupado' },
             });
 
-            // 4. Pasto de origem → se não há mais rebanhos, volta para "Vazio"
-            if (pastoOrigemId && rebanhosRestantesNoOrigem === 0) {
-                await tx.pasto.update({
-                    where: { id: pastoOrigemId },
-                    data: { status: 'Vazio', dataUltimaSaida: dataMovimentacao },
+            // 4. Pasto de origem → conta rebanhos restantes dentro da transação
+            if (pastoOrigemId) {
+                const rebanhosRestantes = await tx.rebanho.count({
+                    where: { pastoAtualId: pastoOrigemId, ativo: true },
                 });
+                if (rebanhosRestantes === 0) {
+                    await tx.pasto.update({
+                        where: { id: pastoOrigemId },
+                        data: { status: 'Vazio', dataUltimaSaida: dataMovimentacao },
+                    });
+                }
             }
 
             return movimentacao;

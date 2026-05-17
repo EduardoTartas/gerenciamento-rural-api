@@ -1,7 +1,6 @@
 // src/repository/UserRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, messages } from '../utils/helpers/index.js';
 
 class UserRepository {
     constructor() {
@@ -50,10 +49,10 @@ class UserRepository {
     }
 
     /**
-     * Busca um usuário pelo ID. Lança erro se não encontrado.
+     * Busca um usuário pelo ID. Retorna null se não encontrado.
      */
     async findById(id) {
-        const user = await this.prisma.user.findUnique({
+        return this.prisma.user.findUnique({
             where: { id },
             select: {
                 id: true,
@@ -65,18 +64,6 @@ class UserRepository {
                 updatedAt: true,
             },
         });
-
-        if (!user) {
-            throw new CustomError({
-                statusCode: 404,
-                errorType: 'resourceNotFound',
-                field: 'User',
-                details: [],
-                customMessage: messages.error.resourceNotFound('User'),
-            });
-        }
-
-        return user;
     }
 
     /**
