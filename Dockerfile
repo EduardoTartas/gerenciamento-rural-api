@@ -38,4 +38,4 @@ COPY . .
 EXPOSE 6060
 
 # Comando padrão (pode ser sobrescrito pelo docker-compose)
-CMD ["sh", "-c", "node scripts/pre-migrate.mjs && exec node server.js"]
+CMD ["node", "server.js"]
