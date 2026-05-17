@@ -4,8 +4,11 @@ import rateLimit from 'express-rate-limit';
 import CommonResponse from '../utils/helpers/CommonResponse.js';
 import HttpStatusCodes from '../utils/helpers/HttpStatusCodes.js';
 
-// Helper para extrair IP do cliente considerando proxy
+// Helper para extrair IP do cliente considerando Cloudflare Tunnel e proxies
 function getClientIdentifier(req) {
+    // Cloudflare Tunnel injeta o IP real do cliente neste header
+    const cfIp = req.headers['cf-connecting-ip'];
+    if (cfIp) return cfIp.trim();
     const forwarded = req.headers['x-forwarded-for'];
     if (forwarded) return forwarded.split(',')[0].trim();
     return req.headers['x-real-ip'] || req.ip || req.socket.remoteAddress || 'unknown';

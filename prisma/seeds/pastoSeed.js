@@ -24,7 +24,7 @@ const STATUS_PASTO = ['Ocupado', 'Vazio', 'Descanso'];
  * Cria N pastos para cada propriedade com dados aleatórios realistas.
  */
 export async function seedPastos(prisma, propriedades, quantidadePorPropriedade = 3) {
-  console.log('🌱 Semeando pastos...');
+  console.log('Semeando pastos...');
 
   const created = [];
   const nomesUsadosPorProp = {};

@@ -31,7 +31,7 @@ class PastoController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await PastoQuerySchema.parseAsync(query);
+            req._parsedQuery = await PastoQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);

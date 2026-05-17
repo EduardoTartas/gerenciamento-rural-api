@@ -12,12 +12,16 @@ import CommonResponse from './utils/helpers/CommonResponse.js';
 import express from "express";
 import expressFileUpload from "express-fileupload";
 import compression from 'compression';
+import { strictRateLimit } from './middlewares/RateLimitMiddleware.js';
 
 const app = express();
 
 await DbConnect.connect();
 
 // Middlewares de segurança
+// Desabilita CSP para a rota do Swagger (que precisa de inline scripts/styles)
+// Aplica CSP restritiva para todas as outras rotas
+app.use('/docs', helmet({ contentSecurityPolicy: false }));
 app.use(helmet({
     contentSecurityPolicy: {
         directives: {
@@ -30,9 +34,21 @@ app.use(helmet({
     }
 }));
 
-// Habilitando CORS
+// Habilitando CORS — aceita requests sem Origin (mobile apps, Postman)
+// e whitelist de origens para ambientes web (Swagger UI, admin panel)
+const allowedOrigins = (process.env.CORS_ORIGIN || '')
+    .split(',')
+    .map(o => o.trim())
+    .filter(Boolean);
+
 app.use(cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: (origin, cb) => {
+        // Permite requests sem Origin (apps mobile nativos, curl, Postman)
+        if (!origin) return cb(null, true);
+        // Permite origens na whitelist
+        if (allowedOrigins.includes(origin)) return cb(null, true);
+        cb(new Error('Bloqueado pelo CORS'));
+    },
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     credentials: true,
 }));
@@ -40,14 +56,15 @@ app.use(cors({
 // Habilitando a compressão de respostas
 app.use(compression());
 
-// Configuração para o proxy confiar no cliente
-app.set('trust proxy', true);
+// Configuração de proxy para Cloudflare Tunnel
+// Confia em proxies locais (loopback) para ler corretamente X-Forwarded-For / CF-Connecting-IP
+app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
 
 // =============================================
 // BetterAuth handler — DEVE vir ANTES de express.json()
 // O BetterAuth faz seu próprio parsing do body
 // =============================================
-app.all('/api/auth/{*any}', toNodeHandler(auth));
+app.all('/api/auth/{*any}', strictRateLimit, toNodeHandler(auth));
 
 // Habilitando o uso de json pelo express (APÓS BetterAuth handler)
 app.use(express.json());

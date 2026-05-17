@@ -72,6 +72,70 @@ model verification {
   @@map("verifications")
 }
 
+// --- TABELAS DE CATÁLOGO GLOBAL ---
+// Tabelas compartilhadas entre todos os usuários (sem propriedadeId).
+// Gerenciadas via /catalogos/:entidade
+
+model raca {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rebanhos  rebanho[]
+
+  @@map("racas")
+}
+
+model sistemaProducao {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rebanhos  rebanho[]
+
+  @@map("sistemas_producao")
+}
+
+model regimeAlimentar {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  rebanhos  rebanho[]
+
+  @@map("regimes_alimentares")
+}
+
+model tipoManejoRebanho {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manejos   manejoRebanho[]
+
+  @@map("tipos_manejo_rebanho")
+}
+
+model tipoManejoPasto {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  manejos   manejoPasto[]
+
+  @@map("tipos_manejo_pasto")
+}
+
 // --- TABELAS DE ESTRUTURA E PROPRIEDADE ---
 
 model propriedade {
@@ -92,22 +156,22 @@ model propriedade {
 }
 
 model pasto {
-  id              String    @id @default(uuid())
+  id              String      @id @default(uuid())
   propriedadeId   String
   propriedade     propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
   nome            String
   extensaoHa      Decimal?
   tipoPastagem    String?
-  status          String    @default("Vazio") // Ocupado, Vazio, Descanso
+  status          String      @default("Vazio") // Ocupado, Vazio, Descanso
   dataUltimaSaida DateTime?
-  ativo           Boolean   @default(true)
-  createdAt       DateTime  @default(now())
-  updatedAt       DateTime  @updatedAt
+  ativo           Boolean     @default(true)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
 
-  rebanhos                rebanho[]
-  manejosPasto            manejoPasto[]
-  movimentacoesOrigem     historicoMovimentacao[] @relation("PastoOrigem")
-  movimentacoesDestino    historicoMovimentacao[] @relation("PastoDestino")
+  rebanhos             rebanho[]
+  manejosPasto         manejoPasto[]
+  movimentacoesOrigem  historicoMovimentacao[] @relation("PastoOrigem")
+  movimentacoesDestino historicoMovimentacao[] @relation("PastoDestino")
 
   @@map("pastos")
 }
@@ -115,23 +179,27 @@ model pasto {
 // --- TABELAS DE ANIMAIS E REBANHO ---
 
 model rebanho {
-  id                   String    @id @default(uuid())
-  propriedadeId        String
-  propriedade          propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
-  pastoAtualId         String?
-  pastoAtual           pasto?    @relation(fields: [pastoAtualId], references: [id], onDelete: SetNull)
-  nomeRebanho          String
-  quantidadeCabecas    Int?
-  categoria            String?   // Cria, Recria, Engorda
-  raca                 String?
-  pesoMedioAtual       Decimal?
+  id                    String            @id @default(uuid())
+  propriedadeId         String
+  propriedade           propriedade       @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  pastoAtualId          String?
+  pastoAtual            pasto?            @relation(fields: [pastoAtualId], references: [id], onDelete: SetNull)
+  racaId                String?
+  raca                  raca?             @relation(fields: [racaId], references: [id], onDelete: SetNull)
+  sistemaProducaoId     String?
+  sistemaProducao       sistemaProducao?  @relation(fields: [sistemaProducaoId], references: [id], onDelete: SetNull)
+  regimeAlimentarId     String?
+  regimeAlimentar       regimeAlimentar?  @relation(fields: [regimeAlimentarId], references: [id], onDelete: SetNull)
+  nomeRebanho           String
+  quantidadeCabecas     Int?
+  pesoMedioAtual        Decimal?
   dataEntradaPastoAtual DateTime?
-  ativo                Boolean   @default(true)
-  createdAt            DateTime  @default(now())
-  updatedAt            DateTime  @updatedAt
+  ativo                 Boolean           @default(true)
+  createdAt             DateTime          @default(now())
+  updatedAt             DateTime          @updatedAt
 
-  movimentacoes  historicoMovimentacao[]
-  manejos        manejoRebanho[]
+  movimentacoes historicoMovimentacao[]
+  manejos       manejoRebanho[]
 
   @@map("rebanhos")
 }
@@ -148,30 +216,37 @@ model historicoMovimentacao {
   pastoDestino     pasto?   @relation("PastoDestino", fields: [pastoDestinoId], references: [id], onDelete: SetNull)
   dataMovimentacao DateTime @default(now())
   observacoes      String?
+  createdAt        DateTime @default(now())
 
   @@map("historico_movimentacoes")
 }
 
 model manejoRebanho {
-  id               String   @id @default(uuid())
-  rebanhoId        String
-  rebanho          rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
-  tipoManejo       String   // Vacinação, Pesagem, Vermifugação
+  id                String            @id @default(uuid())
+  rebanhoId         String
+  rebanho           rebanho           @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  tipoManejoId      String
+  tipoManejo        tipoManejoRebanho @relation(fields: [tipoManejoId], references: [id])
   medicamentoVacina String?
-  pesoRegistrado   Decimal?
-  dataAtividade    DateTime
-  observacoes      String?
+  pesoRegistrado    Decimal?
+  dataAtividade     DateTime
+  observacoes       String?
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
 
   @@map("manejo_rebanhos")
 }
 
 model manejoPasto {
-  id            String   @id @default(uuid())
+  id            String          @id @default(uuid())
   pastoId       String
-  pasto         pasto    @relation(fields: [pastoId], references: [id], onDelete: Cascade)
-  tipoManejo    String   // Roçagem, Reforma de Cerca, Limpeza, etc.
+  pasto         pasto           @relation(fields: [pastoId], references: [id], onDelete: Cascade)
+  tipoManejoId  String
+  tipoManejo    tipoManejoPasto @relation(fields: [tipoManejoId], references: [id])
   dataAtividade DateTime
   observacoes   String?
+  createdAt     DateTime        @default(now())
+  updatedAt     DateTime        @updatedAt
 
   @@map("manejo_pastos")
 }

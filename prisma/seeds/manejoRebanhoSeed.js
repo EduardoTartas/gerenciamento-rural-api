@@ -41,21 +41,22 @@ const OBSERVACOES = {
  * Seed de manejos de rebanho (vacinações, pesagens, vermifugações).
  * Cria N manejos por rebanho com dados aleatórios.
  */
-export async function seedManejoRebanhos(prisma, rebanhos, quantidadePorRebanho = 3) {
-  console.log('🌱 Semeando manejos de rebanho...');
+export async function seedManejoRebanhos(prisma, rebanhos, catalogos, quantidadePorRebanho = 3) {
+  console.log('Semeando manejos de rebanho...');
 
   let count = 0;
 
   for (const rebanho of rebanhos) {
     for (let i = 0; i < quantidadePorRebanho; i++) {
-      const tipoManejo = faker.helpers.arrayElement(TIPOS_MANEJO);
+      const tipoManejoObj = faker.helpers.arrayElement(catalogos.manejosRebanho);
       const dataAtividade = faker.date.recent({ days: 120 });
-      const observacoes = faker.helpers.arrayElement(OBSERVACOES[tipoManejo]);
+      // Fallback pra observacoes caso não tenha mapeado pelo nome exatamente
+      const observacoes = OBSERVACOES[tipoManejoObj.nome] ? faker.helpers.arrayElement(OBSERVACOES[tipoManejoObj.nome]) : 'Manejo de rotina.';
 
       let medicamentoVacina = null;
       let pesoRegistrado = null;
 
-      switch (tipoManejo) {
+      switch (tipoManejoObj.nome) {
         case 'Vacinação':
           medicamentoVacina = faker.helpers.arrayElement(VACINAS);
           break;
@@ -70,7 +71,7 @@ export async function seedManejoRebanhos(prisma, rebanhos, quantidadePorRebanho 
       await prisma.manejoRebanho.create({
         data: {
           rebanhoId: rebanho.id,
-          tipoManejo,
+          tipoManejoId: tipoManejoObj.id,
           medicamentoVacina,
           pesoRegistrado,
           dataAtividade,
@@ -82,5 +83,5 @@ export async function seedManejoRebanhos(prisma, rebanhos, quantidadePorRebanho 
     }
   }
 
-  console.log(`  ✅ ${count} manejo(s) de rebanho registrado(s)`);
+  console.log(`  - ${count} manejo(s) de rebanho registrado(s)`);
 }

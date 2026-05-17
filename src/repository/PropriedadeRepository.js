@@ -1,7 +1,6 @@
 // src/repository/PropriedadeRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, messages } from '../utils/helpers/index.js';
 
 class PropriedadeRepository {
     constructor() {
@@ -60,11 +59,11 @@ class PropriedadeRepository {
     }
 
     /**
-     * Busca uma propriedade por ID. Lança erro se não encontrar.
+     * Busca uma propriedade por ID. Retorna null se não encontrar.
      * Restrito ao usuarioId para garantir a propriedade do recurso.
      */
     async findById(id, usuarioId) {
-        const propriedade = await this.prisma.propriedade.findFirst({
+        return this.prisma.propriedade.findFirst({
             where: { id, usuarioId },
             select: {
                 id: true,
@@ -83,18 +82,6 @@ class PropriedadeRepository {
                 },
             },
         });
-
-        if (!propriedade) {
-            throw new CustomError({
-                statusCode: 404,
-                errorType: 'resourceNotFound',
-                field: 'Propriedade',
-                details: [],
-                customMessage: messages.error.resourceNotFound('Propriedade'),
-            });
-        }
-
-        return propriedade;
     }
 
     /**
@@ -164,20 +151,6 @@ class PropriedadeRepository {
         });
     }
 
-    /**
-     * Remove uma propriedade por ID.
-     * A exclusão em cascata é gerenciada pelo schema do Prisma (onDelete: Cascade).
-     */
-    async remove(id) {
-        return this.prisma.propriedade.delete({
-            where: { id },
-            select: {
-                id: true,
-                nome: true,
-                localizacao: true,
-            },
-        });
-    }
 
     /**
      * Conta a quantidade de rebanhos ativos associados a esta propriedade.

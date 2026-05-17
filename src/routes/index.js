@@ -7,12 +7,17 @@ import swaggerJSDoc from 'swagger-jsdoc';
 import swaggerUI from 'swagger-ui-express';
 import getSwaggerOptions from '../docs/config/head.js';
 import DbConnect from '../config/dbConnect.js';
+import { authRateLimit } from '../middlewares/RateLimitMiddleware.js';
 
 // Importação de rotas
 import userRoutes from './userRoutes.js';
 import propriedadeRoutes from './propriedadeRoutes.js';
 import pastoRoutes from './pastoRoutes.js';
 import manejoPastoRoutes from './manejoPastoRoutes.js';
+import catalogoRoutes from './catalogoRoutes.js';
+import rebanhoRoutes from './rebanhoRoutes.js';
+import manejoRebanhoRoutes from './manejoRebanhoRoutes.js';
+import movimentacaoRoutes from './movimentacaoRoutes.js';
 
 dotenv.config();
 
@@ -64,13 +69,19 @@ const routes = (app) => {
         });
     });
 
-    // Registro de todas as rotas
+    // Registro de todas as rotas (com rate limiting geral para rotas autenticadas)
+    // IMPORTANTE: rotas específicas de /rebanhos/* devem vir ANTES de rebanhoRoutes
+    // para evitar que GET /rebanhos/:id capture /rebanhos/manejos e /rebanhos/movimentacoes
     app.use(
-        express.json(),
+        authRateLimit,
         userRoutes,
         propriedadeRoutes,
+        catalogoRoutes,
         manejoPastoRoutes,
         pastoRoutes,
+        manejoRebanhoRoutes,
+        movimentacaoRoutes,
+        rebanhoRoutes,
     );
 };
 

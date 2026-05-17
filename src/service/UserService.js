@@ -5,11 +5,14 @@ import {
     HttpStatusCodes,
     messages,
 } from '../utils/helpers/index.js';
-import UserRepository from '../repository/UserRepository.js';
+import { userRepository } from '../repository/index.js';
+import { auth } from '../config/auth.js';
+import DbConnect from '../config/dbConnect.js';
 
 class UserService {
     constructor() {
-        this.repository = new UserRepository();
+        this.repository = userRepository;
+        this.prisma = DbConnect.prisma;
     }
 
     /**
@@ -22,7 +25,7 @@ class UserService {
             return this.repository.findById(id);
         }
 
-        const { name, email, page = 1, limit = 10 } = req.query;
+        const { name, email, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (name) filters.name = name;
@@ -50,10 +53,24 @@ class UserService {
     /**
      * Exclui uma conta de usuário.
      * Somente o próprio usuário pode excluir sua conta.
+     * Revoga todas as sessões ativas antes de excluir.
      */
     async remove(id, req) {
         await this.ensureUserExists(id);
         this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
+
+        // Revoga todas as sessões ativas do usuário antes de deletar
+        const sessions = await this.prisma.session.findMany({
+            where: { userId: id },
+            select: { token: true },
+        });
+        for (const session of sessions) {
+            try {
+                await auth.api.revokeSession({ body: { token: session.token } });
+            } catch {
+                // Se a sessão já expirou ou não existe, ignora
+            }
+        }
 
         return this.repository.remove(id);
     }
