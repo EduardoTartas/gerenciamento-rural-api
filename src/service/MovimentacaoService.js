@@ -1,15 +1,13 @@
 // src/service/MovimentacaoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import MovimentacaoRepository from '../repository/MovimentacaoRepository.js';
-import RebanhoRepository from '../repository/RebanhoRepository.js';
-import PastoRepository from '../repository/PastoRepository.js';
+import { movimentacaoRepository, rebanhoRepository, pastoRepository } from '../repository/index.js';
 
 class MovimentacaoService {
     constructor() {
-        this.repository = new MovimentacaoRepository();
-        this.rebanhoRepository = new RebanhoRepository();
-        this.pastoRepository = new PastoRepository();
+        this.repository = movimentacaoRepository;
+        this.rebanhoRepository = rebanhoRepository;
+        this.pastoRepository = pastoRepository;
     }
 
     /**
@@ -23,7 +21,7 @@ class MovimentacaoService {
             return this.ensureMovimentacaoExists(id, usuarioId);
         }
 
-        const { rebanhoId, propriedadeId, pastoOrigemId, pastoDestinoId, dataInicio, dataFim, page = 1, limit = 10 } = req.query;
+        const { rebanhoId, propriedadeId, pastoOrigemId, pastoDestinoId, dataInicio, dataFim, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (rebanhoId)     filters.rebanhoId     = rebanhoId;
@@ -48,7 +46,7 @@ class MovimentacaoService {
      * 1. Rebanho deve existir, estar ativo e pertencer ao usuário.
      * 2. Pasto de destino deve existir, estar ativo e pertencer ao usuário.
      * 3. O pasto de destino não pode ser o mesmo que o pasto atual.
-     * 4. Toda a operação é executada em uma transação atômica.
+     * 4. Toda a operação é executada em uma transação atômica (count incluso).
      */
     async create(parsedData, req) {
         const usuarioId = req.user.id;
@@ -103,19 +101,13 @@ class MovimentacaoService {
         const pastoOrigemId = rebanho.pastoAtualId ?? null;
         const dataMovimentacao = parsedData.dataMovimentacao ?? new Date();
 
-        // Conta rebanhos restantes no pasto de origem (excluindo o que está sendo movido)
-        let rebanhosRestantesNoOrigem = 0;
-        if (pastoOrigemId) {
-            rebanhosRestantesNoOrigem = await this.rebanhoRepository.countAtivosNoPasto(pastoOrigemId) - 1;
-        }
-
+        // Count agora é feito DENTRO da transação para evitar race condition
         return this.repository.createComTransacao({
             rebanhoId: parsedData.rebanhoId,
             pastoOrigemId,
             pastoDestinoId: parsedData.pastoDestinoId,
             dataMovimentacao,
             observacoes: parsedData.observacoes ?? null,
-            rebanhosRestantesNoOrigem,
         });
     }
 

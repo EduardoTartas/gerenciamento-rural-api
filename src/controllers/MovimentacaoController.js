@@ -22,7 +22,7 @@ class MovimentacaoController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await MovimentacaoQuerySchema.parseAsync(query);
+            req._parsedQuery = await MovimentacaoQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);

@@ -30,7 +30,7 @@ class UserController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await UserQuerySchema.parseAsync(query);
+            req._parsedQuery = await UserQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);

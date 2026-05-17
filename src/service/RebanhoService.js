@@ -1,16 +1,14 @@
 // src/service/RebanhoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import RebanhoRepository from '../repository/RebanhoRepository.js';
-import PastoRepository from '../repository/PastoRepository.js';
-import PropriedadeRepository from '../repository/PropriedadeRepository.js';
+import { rebanhoRepository, pastoRepository, propriedadeRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 
 class RebanhoService {
     constructor() {
-        this.repository = new RebanhoRepository();
-        this.pastoRepository = new PastoRepository();
-        this.propriedadeRepository = new PropriedadeRepository();
+        this.repository = rebanhoRepository;
+        this.pastoRepository = pastoRepository;
+        this.propriedadeRepository = propriedadeRepository;
         this.prisma = DbConnect.prisma;
     }
 
@@ -29,7 +27,7 @@ class RebanhoService {
             nomeRebanho, propriedadeId, pastoAtualId, racaId,
             sistemaProducaoId, regimeAlimentarId,
             ativo, page = 1, limit = 10,
-        } = req.query;
+        } = req._parsedQuery ?? req.query;
 
         const filters = {};
         if (nomeRebanho)      filters.nomeRebanho      = nomeRebanho;
@@ -38,7 +36,8 @@ class RebanhoService {
         if (racaId)           filters.racaId           = racaId;
         if (sistemaProducaoId) filters.sistemaProducaoId = sistemaProducaoId;
         if (regimeAlimentarId) filters.regimeAlimentarId = regimeAlimentarId;
-        if (ativo !== undefined) filters.ativo         = ativo;
+        // ativo vem como boolean do Zod (_parsedQuery) ou string do req.query
+        if (ativo !== undefined) filters.ativo         = typeof ativo === 'boolean' ? ativo : ativo === 'true';
 
         return this.repository.list(
             usuarioId,
@@ -52,6 +51,7 @@ class RebanhoService {
      * Cria um novo rebanho.
      * Regras: propriedade ativa, nome único por propriedade (entre ativos),
      *         pasto ativo (se informado) e pertence à mesma propriedade.
+     * Toda a operação é executada em uma transação atômica.
      */
     async create(parsedData, req) {
         const usuarioId = req.user.id;
@@ -68,8 +68,6 @@ class RebanhoService {
         }
 
         await this.validateUniqueNome(parsedData.nomeRebanho, parsedData.propriedadeId);
-
-        let dataEntradaPastoAtual = parsedData.dataEntradaPastoAtual;
 
         // Validação obrigatória do pasto
         const pasto = await this.ensurePastoExists(parsedData.pastoAtualId, usuarioId);
@@ -94,17 +92,19 @@ class RebanhoService {
             });
         }
 
-        if (!dataEntradaPastoAtual) {
-            dataEntradaPastoAtual = new Date();
-        }
+        const dataEntradaPastoAtual = parsedData.dataEntradaPastoAtual || new Date();
 
-        // Atualiza status do pasto para "Ocupado"
-        await this.prisma.pasto.update({
-            where: { id: parsedData.pastoAtualId },
-            data: { status: 'Ocupado' },
+        // Transação atômica: cria rebanho + atualiza status do pasto
+        return this.prisma.$transaction(async (tx) => {
+            await tx.pasto.update({
+                where: { id: parsedData.pastoAtualId },
+                data: { status: 'Ocupado' },
+            });
+
+            return tx.rebanho.create({
+                data: { ...parsedData, dataEntradaPastoAtual },
+            });
         });
-
-        return this.repository.create({ ...parsedData, dataEntradaPastoAtual });
     }
 
     /**
@@ -128,9 +128,9 @@ class RebanhoService {
             });
         }
 
-        // Não permite reativar via PATCH simples (deve usar fluxo correto)
+        // Inativação: redireciona para remove(), passando o rebanho já carregado
         if (parsedData.ativo === false) {
-            return this.remove(id, req);
+            return this._inativar(rebanho);
         }
 
         return this.repository.update(id, parsedData);
@@ -139,32 +139,47 @@ class RebanhoService {
     /**
      * Inativa (Soft-Delete) um rebanho.
      * Desvincula do pasto atual e atualiza o status do pasto se necessário.
+     * Executado em uma transação atômica.
      */
     async remove(id, req) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
+        return this._inativar(rebanho);
+    }
 
+    /**
+     * Lógica interna de inativação, recebe o rebanho já carregado para evitar query duplicada.
+     * Usa transação atômica para garantir consistência.
+     */
+    async _inativar(rebanho) {
         const pastoAnteriorId = rebanho.pastoAtualId;
 
-        // Inativa o rebanho e desvincula do pasto
-        const resultado = await this.repository.update(id, {
-            ativo: false,
-            pastoAtualId: null,
-            dataEntradaPastoAtual: null,
-        });
+        return this.prisma.$transaction(async (tx) => {
+            // Inativa o rebanho e desvincula do pasto
+            const resultado = await tx.rebanho.update({
+                where: { id: rebanho.id },
+                data: {
+                    ativo: false,
+                    pastoAtualId: null,
+                    dataEntradaPastoAtual: null,
+                },
+            });
 
-        // Se havia pasto vinculado, verifica se ainda há outros rebanhos
-        if (pastoAnteriorId) {
-            const rebanhosRestantes = await this.repository.countAtivosNoPasto(pastoAnteriorId);
-            if (rebanhosRestantes === 0) {
-                await this.prisma.pasto.update({
-                    where: { id: pastoAnteriorId },
-                    data: { status: 'Vazio', dataUltimaSaida: new Date() },
+            // Se havia pasto vinculado, verifica se ainda há outros rebanhos
+            if (pastoAnteriorId) {
+                const rebanhosRestantes = await tx.rebanho.count({
+                    where: { pastoAtualId: pastoAnteriorId, ativo: true },
                 });
+                if (rebanhosRestantes === 0) {
+                    await tx.pasto.update({
+                        where: { id: pastoAnteriorId },
+                        data: { status: 'Vazio', dataUltimaSaida: new Date() },
+                    });
+                }
             }
-        }
 
-        return resultado;
+            return resultado;
+        });
     }
 
     // ================================

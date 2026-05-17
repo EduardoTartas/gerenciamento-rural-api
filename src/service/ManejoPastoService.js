@@ -5,14 +5,13 @@ import {
     HttpStatusCodes,
     messages,
 } from '../utils/helpers/index.js';
-import ManejoPastoRepository from '../repository/ManejoPastoRepository.js';
-import PastoRepository from '../repository/PastoRepository.js';
+import { manejoPastoRepository, pastoRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 
 class ManejoPastoService {
     constructor() {
-        this.repository = new ManejoPastoRepository();
-        this.pastoRepository = new PastoRepository();
+        this.repository = manejoPastoRepository;
+        this.pastoRepository = pastoRepository;
         this.prisma = DbConnect.prisma;
     }
 

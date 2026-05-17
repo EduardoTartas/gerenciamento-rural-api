@@ -24,7 +24,7 @@ class RebanhoController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await RebanhoQuerySchema.parseAsync(query);
+            req._parsedQuery = await RebanhoQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);

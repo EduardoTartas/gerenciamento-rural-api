@@ -1,14 +1,13 @@
 // src/service/ManejoRebanhoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import ManejoRebanhoRepository from '../repository/ManejoRebanhoRepository.js';
-import RebanhoRepository from '../repository/RebanhoRepository.js';
+import { manejoRebanhoRepository, rebanhoRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 
 class ManejoRebanhoService {
     constructor() {
-        this.repository = new ManejoRebanhoRepository();
-        this.rebanhoRepository = new RebanhoRepository();
+        this.repository = manejoRebanhoRepository;
+        this.rebanhoRepository = rebanhoRepository;
         this.prisma = DbConnect.prisma;
     }
 
@@ -20,7 +19,7 @@ class ManejoRebanhoService {
             return this.ensureManejoExists(id, usuarioId);
         }
 
-        const { rebanhoId, tipoManejoId, propriedadeId, dataInicio, dataFim, page = 1, limit = 10 } = req.query;
+        const { rebanhoId, tipoManejoId, propriedadeId, dataInicio, dataFim, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (rebanhoId)    filters.rebanhoId    = rebanhoId;
