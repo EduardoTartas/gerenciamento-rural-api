@@ -1,0 +1,19 @@
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-pasto-livre
+  namespace: pasto-livre
+  annotations:
+    kubernetes.io/ingress.class: traefik
+spec:
+  rules:
+  - host: pastolivre.eduardotartas.dpdns.org
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: gerenciamento-rural-api-service
+            port:
+              number: 80

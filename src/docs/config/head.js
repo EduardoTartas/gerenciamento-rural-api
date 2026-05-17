@@ -3,7 +3,7 @@
 // Obtém as URLs do servidor para a documentação de acordo com o ambiente atual
 const getServersInCorrectOrder = () => {
     const defaultDevUrl = "http://localhost:6060";
-    const defaultProdUrl = `${defaultDevUrl}/prod`;
+    const defaultProdUrl = "https://pastolivre.eduardotartas.dpdns.org";
 
     const devUrl = {
         url: process.env.SWAGGER_DEV_URL || defaultDevUrl,
