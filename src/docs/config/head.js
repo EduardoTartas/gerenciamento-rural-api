@@ -32,6 +32,14 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const manejoPastoPaths = (await import(new URL("../paths/manejoPasto.js",
         import.meta.url).href + t)).default;
+    const catalogoPaths = (await import(new URL("../paths/catalogo.js",
+        import.meta.url).href + t)).default;
+    const rebanhoPaths = (await import(new URL("../paths/rebanho.js",
+        import.meta.url).href + t)).default;
+    const manejoRebanhoPaths = (await import(new URL("../paths/manejoRebanho.js",
+        import.meta.url).href + t)).default;
+    const movimentacaoPaths = (await import(new URL("../paths/movimentacao.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -43,6 +51,14 @@ const getSwaggerOptions = async () => {
     const pastoSchemas = (await import(new URL("../schemas/pastoSchema.js",
         import.meta.url).href + t)).default;
     const manejoPastoSchemas = (await import(new URL("../schemas/manejoPastoSchema.js",
+        import.meta.url).href + t)).default;
+    const catalogoSchemas = (await import(new URL("../schemas/catalogoSchema.js",
+        import.meta.url).href + t)).default;
+    const rebanhoSchemas = (await import(new URL("../schemas/rebanhoSchema.js",
+        import.meta.url).href + t)).default;
+    const manejoRebanhoSchemas = (await import(new URL("../schemas/manejoRebanhoSchema.js",
+        import.meta.url).href + t)).default;
+    const movimentacaoSchemas = (await import(new URL("../schemas/movimentacaoSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -110,12 +126,20 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     description: "Registro de atividades de manejo realizadas nos pastos (roçagem, adubação, calagem, etc.)"
                 },
                 {
-                    name: "Rebanhos (Lotes)",
-                    description: "Criação de lotes, movimentação entre pastos e linha do tempo sanitária (em breve)"
+                    name: "Catálogos Globais",
+                    description: "Tabelas de apoio compartilhadas: Raças, Categorias, Sistemas de Produção, Regimes Alimentares e Tipos de Manejo"
                 },
                 {
-                    name: "Inventário",
-                    description: "Entradas de insumos, unidades de medida e saldo disponível (em breve)"
+                    name: "Rebanhos",
+                    description: "Cadastro e gestão de lotes/rebanhos, com soft-delete e atualização automática de status dos pastos"
+                },
+                {
+                    name: "Manejos de Rebanho",
+                    description: "Registro de atividades sanitárias: vacinação, pesagem, vermifugação, etc."
+                },
+                {
+                    name: "Movimentações",
+                    description: "Histórico imutável de transferências de rebanhos entre pastos (log transacional)"
                 }
             ],
             paths: {
@@ -124,6 +148,10 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                 ...propriedadePaths,
                 ...pastoPaths,
                 ...manejoPastoPaths,
+                ...catalogoPaths,
+                ...rebanhoPaths,
+                ...manejoRebanhoPaths,
+                ...movimentacaoPaths,
             },
             components: {
                 securitySchemes: {
@@ -139,6 +167,10 @@ Após o login, os cookies de sessão são definidos automaticamente. Para testes
                     ...propriedadeSchemas,
                     ...pastoSchemas,
                     ...manejoPastoSchemas,
+                    ...catalogoSchemas,
+                    ...rebanhoSchemas,
+                    ...manejoRebanhoSchemas,
+                    ...movimentacaoSchemas,
                 }
             },
             security: [{

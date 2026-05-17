@@ -5,11 +5,11 @@ import {
     HttpStatusCodes,
     messages,
 } from '../utils/helpers/index.js';
-import PropriedadeRepository from '../repository/PropriedadeRepository.js';
+import { propriedadeRepository } from '../repository/index.js';
 
 class PropriedadeService {
     constructor() {
-        this.repository = new PropriedadeRepository();
+        this.repository = propriedadeRepository;
     }
 
     /**
@@ -24,7 +24,7 @@ class PropriedadeService {
             return this.repository.findById(id, usuarioId);
         }
 
-        const { nome, localizacao, page = 1, limit = 10 } = req.query;
+        const { nome, localizacao, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;

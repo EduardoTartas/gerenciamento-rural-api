@@ -58,21 +58,21 @@ const OBSERVACOES = {
  * Seed de manejos de pasto.
  * Cria N manejos por pasto com dados aleatórios.
  */
-export async function seedManejoPastos(prisma, pastos, quantidadePorPasto = 2) {
-  console.log('🌱 Semeando manejos de pasto...');
+export async function seedManejoPastos(prisma, pastos, catalogos, quantidadePorPasto = 2) {
+  console.log('Semeando manejos de pasto...');
 
   let count = 0;
 
   for (const pasto of pastos) {
     for (let i = 0; i < quantidadePorPasto; i++) {
-      const tipoManejo = faker.helpers.arrayElement(TIPOS_MANEJO_PASTO);
+      const tipoManejoObj = faker.helpers.arrayElement(catalogos.manejosPasto);
       const dataAtividade = faker.date.recent({ days: 120 });
-      const observacoes = faker.helpers.arrayElement(OBSERVACOES[tipoManejo]);
+      const observacoes = OBSERVACOES[tipoManejoObj.nome] ? faker.helpers.arrayElement(OBSERVACOES[tipoManejoObj.nome]) : 'Manejo de rotina.';
 
       await prisma.manejoPasto.create({
         data: {
           pastoId: pasto.id,
-          tipoManejo,
+          tipoManejoId: tipoManejoObj.id,
           dataAtividade,
           observacoes,
         },
@@ -82,5 +82,5 @@ export async function seedManejoPastos(prisma, pastos, quantidadePorPasto = 2) {
     }
   }
 
-  console.log(`  ✅ ${count} manejo(s) de pasto registrado(s)`);
+  console.log(`  - ${count} manejo(s) de pasto registrado(s)`);
 }

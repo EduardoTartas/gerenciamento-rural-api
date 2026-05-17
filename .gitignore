@@ -145,3 +145,5 @@ minio-data/
 /src/generated/prisma
 
 /context
+
+/scripts

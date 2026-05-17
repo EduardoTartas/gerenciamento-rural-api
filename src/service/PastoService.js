@@ -5,13 +5,12 @@ import {
     HttpStatusCodes,
     messages,
 } from '../utils/helpers/index.js';
-import PastoRepository from '../repository/PastoRepository.js';
-import PropriedadeRepository from '../repository/PropriedadeRepository.js';
+import { pastoRepository, propriedadeRepository } from '../repository/index.js';
 
 class PastoService {
     constructor() {
-        this.repository = new PastoRepository();
-        this.propriedadeRepository = new PropriedadeRepository();
+        this.repository = pastoRepository;
+        this.propriedadeRepository = propriedadeRepository;
     }
 
     /**
@@ -26,7 +25,7 @@ class PastoService {
             return this.ensurePastoExists(id, usuarioId);
         }
 
-        const { nome, propriedadeId, status, tipoPastagem, ativo, page = 1, limit = 10 } = req.query;
+        const { nome, propriedadeId, status, tipoPastagem, ativo, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;

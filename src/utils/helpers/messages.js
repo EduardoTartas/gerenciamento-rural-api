@@ -2,7 +2,7 @@
 
 const messages = {
     info: {
-        welcome: "Bem-vindo ao App de Delivery!",
+        welcome: "Bem-vindo ao Pasto Livre!",
     },
 
     success: {
