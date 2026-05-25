@@ -2,9 +2,10 @@
 
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
+import { emailOTP } from 'better-auth/plugins';
 import DbConnect from './dbConnect.js';
 import nodemailer from 'nodemailer';
-import { resetPasswordTemplate } from '../utils/templates/index.js';
+import { resetPasswordTemplate, resetPasswordOTPTemplate } from '../utils/templates/index.js';
 import logger from '../utils/logger.js';
 
 // Configura o transporter do Nodemailer usando as variáveis SMTP do .env
@@ -41,6 +42,28 @@ export const auth = betterAuth({
     trustedOrigins: [
         process.env.BETTER_AUTH_URL || 'http://localhost:6060',
         ...corsOrigins,
+    ],
+    plugins: [
+        emailOTP({
+            async sendVerificationOTP({ email, otp, type }) {
+                if (type === "forget-password") {
+                    try {
+                        await transporter.sendMail({
+                            from: process.env.SMTP_FROM || process.env.SMTP_USER,
+                            to: email,
+                            subject: 'Pasto Livre — Código de Redefinição de Senha',
+                            html: resetPasswordOTPTemplate(otp),
+                        });
+                        logger.info(`E-mail com código OTP enviado para ${email}`);
+                    } catch (err) {
+                        logger.error('Falha ao enviar código OTP', {
+                            to: email,
+                            error: err.message,
+                        });
+                    }
+                }
+            }
+        })
     ],
     emailAndPassword: {
         enabled: true,
