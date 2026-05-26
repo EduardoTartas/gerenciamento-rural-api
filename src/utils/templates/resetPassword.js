@@ -36,7 +36,7 @@ export function resetPasswordTemplate(userName, resetUrl) {
                     <tr>
                         <td style="padding:40px;">
                             <h2 style="color:#1E293B;margin:0 0 16px;font-size:22px;">
-                                Olá, \${userName}!
+                                Olá, ${userName}!
                             </h2>
                             <p style="color:#64748B;font-size:16px;line-height:1.6;margin:0 0 24px;">
                                 Recebemos uma solicitação para redefinir a senha da sua conta. 
@@ -47,7 +47,7 @@ export function resetPasswordTemplate(userName, resetUrl) {
                             <table width="100%" cellpadding="0" cellspacing="0">
                                 <tr>
                                     <td align="center" style="padding:8px 0 32px;">
-                                        <a href="\${resetUrl}" 
+                                        <a href="${resetUrl}" 
                                            style="display:inline-block;background:linear-gradient(135deg,#317B3B,#5EAA65);color:#FFFFFF;text-decoration:none;padding:14px 40px;border-radius:8px;font-size:16px;font-weight:600;letter-spacing:0.3px;">
                                             Redefinir Minha Senha
                                         </a>
@@ -59,7 +59,7 @@ export function resetPasswordTemplate(userName, resetUrl) {
                                 Se o botão não funcionar, copie e cole o link abaixo no seu navegador:
                             </p>
                             <p style="color:#317B3B;font-size:13px;word-break:break-all;background-color:#E8F5E9;padding:12px 16px;border-radius:6px;border:1px solid #D4F5D6;margin:0 0 24px;">
-                                \${resetUrl}
+                                ${resetUrl}
                             </p>
 
                             <hr style="border:none;border-top:1px solid #E2E8F0;margin:24px 0;" />
@@ -75,7 +75,7 @@ export function resetPasswordTemplate(userName, resetUrl) {
                     <tr>
                         <td style="background-color:#F1F5F9;padding:24px 40px;text-align:center;border-top:1px solid #E2E8F0;">
                             <p style="color:#94A3B8;font-size:12px;margin:0;">
-                                © \${new Date().getFullYear()} Pasto Livre — Gerenciamento Rural
+                                © ${new Date().getFullYear()} Pasto Livre — Gerenciamento Rural
                             </p>
                             <p style="color:#94A3B8;font-size:11px;margin:8px 0 0;">
                                 Este é um e-mail automático. Por favor, não responda.
@@ -87,11 +87,11 @@ export function resetPasswordTemplate(userName, resetUrl) {
         </tr>
     </table>
 </body>
-</html>\`.trim();
+</html>`.trim();
 }
 
 export function resetPasswordOTPTemplate(otp) {
-    return \`
+    return `
 <!DOCTYPE html>
 <html lang="pt-BR">
 <head>
@@ -132,7 +132,7 @@ export function resetPasswordOTPTemplate(otp) {
                                 <tr>
                                     <td align="center" style="padding:8px 0 32px;">
                                         <div style="display:inline-block;background-color:#E8F5E9;color:#317B3B;padding:16px 40px;border-radius:8px;font-size:32px;font-weight:700;letter-spacing:8px;border:2px dashed #5EAA65;">
-                                            \${otp}
+                                            ${otp}
                                         </div>
                                     </td>
                                 </tr>
@@ -151,7 +151,7 @@ export function resetPasswordOTPTemplate(otp) {
                     <tr>
                         <td style="background-color:#F1F5F9;padding:24px 40px;text-align:center;border-top:1px solid #E2E8F0;">
                             <p style="color:#94A3B8;font-size:12px;margin:0;">
-                                © \${new Date().getFullYear()} Pasto Livre — Gerenciamento Rural
+                                © ${new Date().getFullYear()} Pasto Livre — Gerenciamento Rural
                             </p>
                             <p style="color:#94A3B8;font-size:11px;margin:8px 0 0;">
                                 Este é um e-mail automático. Por favor, não responda.
@@ -163,7 +163,7 @@ export function resetPasswordOTPTemplate(otp) {
         </tr>
     </table>
 </body>
-</html>\`.trim();
+</html>`.trim();
 }
 
 export default { resetPasswordTemplate, resetPasswordOTPTemplate };
