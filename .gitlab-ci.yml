@@ -10,7 +10,7 @@ variables:
 lint_kubernetes_yaml:
   stage: lint
   image:
-    name: ghcr.io/yannh/kubeconform:latest
+    name: ghcr.io/yannh/kubeconform:latest-alpine
     entrypoint: [""]
   tags:
     - k3s-runner
