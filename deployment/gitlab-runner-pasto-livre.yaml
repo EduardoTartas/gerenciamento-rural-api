@@ -1,19 +1,19 @@
 apiVersion: apps/v1
 kind: Deployment
 metadata:
-  name: gitlab-runner
-  namespace: pasto-livre
+  name: gitlab-runner-pasto-livre
+  namespace: tools
 spec:
   replicas: 1
   selector:
     matchLabels:
-      app: gitlab-runner
+      app: gitlab-runner-pasto-livre
   template:
     metadata:
       labels:
-        app: gitlab-runner
+        app: gitlab-runner-pasto-livre
     spec:
-      serviceAccountName: gitlab-runner-sa
+      serviceAccountName: gitlab-runner-pasto-livre-sa
       containers:
       - name: gitlab-runner
         image: gitlab/gitlab-runner:latest
@@ -33,8 +33,8 @@ spec:
             --token "$RUNNER_TOKEN" \
             --executor "kubernetes" \
             --docker-image alpine:latest \
-            --kubernetes-namespace "pasto-livre" \
+            --kubernetes-namespace "tools" \
             --kubernetes-helper-image "gitlab/gitlab-runner-helper:arm64-latest" \
-            --kubernetes-service-account "gitlab-runner-sa"
+            --kubernetes-service-account "gitlab-runner-pasto-livre-sa"
           
           gitlab-runner run
