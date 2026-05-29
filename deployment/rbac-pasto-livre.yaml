@@ -50,7 +50,7 @@ metadata:
   namespace: tools
 subjects:
   - kind: ServiceAccount
-    name: gitlab-runner-sa
+    name: gitlab-runner-pasto-livre-sa
     namespace: tools
 roleRef:
   kind: Role
