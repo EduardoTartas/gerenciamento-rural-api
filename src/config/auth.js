@@ -67,6 +67,18 @@ export const auth = betterAuth({
     ],
     emailAndPassword: {
         enabled: true,
+        minPasswordLength: 8,
+        maxPasswordLength: 32,
+        password: {
+            validator: (password) => {
+                if (!/^(?=.*[A-Z])(?=.*\d).*$/.test(password)) {
+                    return {
+                        error: "A senha deve conter pelo menos 1 número e 1 letra maiúscula.",
+                    };
+                }
+                return true;
+            }
+        },
         async sendResetPassword({ user, url }) {
             try {
                 await transporter.sendMail({

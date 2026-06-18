@@ -1,10 +1,21 @@
 stages:
+  - lint
   - build
   - deploy
 
 variables:
   DOCKER_IMAGE: eduardotartas/gerenciamento-rural-api:$CI_COMMIT_SHORT_SHA
-  KUBERNETES_NAMESPACE: "pasto-livre"
+  KUBERNETES_NAMESPACE: "pasto-livre-prod"
+
+lint_kubernetes_yaml:
+  stage: lint
+  image:
+    name: ghcr.io/yannh/kubeconform:latest-alpine
+    entrypoint: [""]
+  tags:
+    - k3s-runner
+  script:
+    - /kubeconform -summary -verbose -strict deployment/
 
 build_job:
   stage: build
@@ -25,7 +36,7 @@ deploy_job:
   tags:
     - k3s-runner
   script:
-    - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n pasto-livre
-    - kubectl rollout status deployment/gerenciamento-rural-api -n pasto-livre
+    - kubectl set image deployment/gerenciamento-rural-api gerenciamento-rural-api=$DOCKER_IMAGE -n $KUBERNETES_NAMESPACE
+    - kubectl rollout status deployment/gerenciamento-rural-api -n $KUBERNETES_NAMESPACE
   only:
     - main

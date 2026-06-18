@@ -4,7 +4,7 @@ apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: postgres-pvc
-  namespace: pasto-livre
+  namespace: pasto-livre-prod
 spec:
   accessModes: [ReadWriteOnce]
   resources:
@@ -14,11 +14,12 @@ spec:
 ---
 # BANCO DE DADOS (POSTGRESQL)
 apiVersion: apps/v1
-kind: Deployment
+kind: StatefulSet
 metadata:
   name: postgres-db
-  namespace: pasto-livre
+  namespace: pasto-livre-prod
 spec:
+  serviceName: "postgresql-pasto-livre"
   selector:
     matchLabels:
       app: postgres-db
@@ -49,7 +50,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: postgresql-pasto-livre
-  namespace: pasto-livre
+  namespace: pasto-livre-prod
 spec:
   selector:
     app: postgres-db
@@ -63,7 +64,7 @@ apiVersion: apps/v1
 kind: Deployment
 metadata:
   name: gerenciamento-rural-api
-  namespace: pasto-livre
+  namespace: pasto-livre-prod
 spec:
   replicas: 1
   selector:
@@ -74,18 +75,26 @@ spec:
       labels:
         app: gerenciamento-rural-api
     spec:
-      imagePullSecrets:
-        - name: dockerhub-key
       containers:
       - name: gerenciamento-rural-api
         image: eduardotartas/gerenciamento-rural-api:latest
-        imagePullPolicy: Always
+        imagePullPolicy: IfNotPresent
         command: ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]
         ports:
         - containerPort: 6060
         envFrom:
         - secretRef:
             name: api-pasto-livre-secrets
+        livenessProbe:
+          tcpSocket:
+            port: 6060
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        readinessProbe:
+          tcpSocket:
+            port: 6060
+          initialDelaySeconds: 5
+          periodSeconds: 10
 
 ---
 # SERVIÇO DA API
@@ -93,7 +102,7 @@ apiVersion: v1
 kind: Service
 metadata:
   name: gerenciamento-rural-api-service
-  namespace: pasto-livre
+  namespace: pasto-livre-prod
 spec:
   selector:
     app: gerenciamento-rural-api

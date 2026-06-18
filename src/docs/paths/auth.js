@@ -142,7 +142,7 @@ const authRoutes = {
         }
     },
 
-    "/api/auth/forget-password": {
+    "/api/auth/request-password-reset": {
         post: {
             tags: ["Auth"],
             summary: "Solicita a recuperação de senha via e-mail",
