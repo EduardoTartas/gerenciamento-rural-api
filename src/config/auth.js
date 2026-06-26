@@ -2,7 +2,7 @@
 
 import { betterAuth } from 'better-auth';
 import { prismaAdapter } from 'better-auth/adapters/prisma';
-import { emailOTP } from 'better-auth/plugins';
+import { emailOTP, bearer } from 'better-auth/plugins';
 import DbConnect from './dbConnect.js';
 import nodemailer from 'nodemailer';
 import { resetPasswordTemplate, resetPasswordOTPTemplate } from '../utils/templates/index.js';
@@ -44,6 +44,7 @@ export const auth = betterAuth({
         ...corsOrigins,
     ],
     plugins: [
+        bearer(),
         emailOTP({
             async sendVerificationOTP({ email, otp, type }) {
                 if (type === "forget-password") {
