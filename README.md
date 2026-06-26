@@ -1,93 +1,99 @@
-# gerenciamento-rural-api
+# ☁️ Pasto Livre — Backend API & Sincronização Central
 
+![Node.js](https://img.shields.io/badge/Node.js-ES%20Modules%20v20%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-v5.2-000000?style=for-the-badge&logo=express&logoColor=white)
+![Prisma ORM](https://img.shields.io/badge/Prisma%20ORM-v7.5-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
+Este repositório contém o código-fonte da API RESTful de alta performance do ecossistema **Pasto Livre**, responsável pela persistência central em nuvem, cálculo algorítmico de autonomia de insumos e reconciliação bidirecional de eventos disparados por dispositivos móveis em modo offline.
 
-## Getting started
+> 🌿 **Documentação Integrada**: Para compreender a visão global do ecossistema, consulte o **[README Principal do Produto](../README.md)** e as diretrizes de design no **[Guia de Identidade Visual](../IDENTIDADE_VISUAL.md)**.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 🏛️ Arquitetura do Servidor & Orquestração
 
-## Add your files
+A API foi projetada de forma modular utilizando **Node.js (ESM)**, estruturada para desacoplar rotas, validações estritas de esquema (`Zod`) e acesso ao banco de dados relacional (`Prisma`).
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```text
+gerenciamento-rural-api/
+├── prisma/                      # Camada de Dados ORM
+│   ├── schema.prisma            # Definição declarativa do PostgreSQL (Tabelas e Relações)
+│   └── seeds/                   # Populadores iniciais de propriedades e insumos de teste
+│
+├── src/                         # Código-fonte da aplicação
+│   ├── controllers/             # Controladores de endpoints REST
+│   ├── middlewares/             # Validação Zod, Autenticação Better-Auth e Rate Limiting
+│   ├── routes/                  # Definição de rotas da API (/propriedades, /pastos, /sync)
+│   ├── services/                # Regras de negócio e motor preditivo de autonomia
+│   └── app.js                   # Configuração central do Express, CORS e Helmet
+│
+├── documentacao/                # Specs OpenAPI / Swagger exportadas
+├── Dockerfile                   # Configuração de build de imagem de produção
+├── docker-compose.yml           # Orquestração de contêineres de produção
+└── docker-compose.dev.yml       # Orquestração com live-reload para desenvolvimento
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api.git
-git branch -M main
-git push -uf origin main
+
+---
+
+## 🔄 Reconciliação Offline-First (`log_sincronizacao`)
+
+Como os terminais em campo operam desconectados (persistindo em SQLite), a API dispõe de um endpoint dedicado de sincronização em lotes (*Batch Sync*). 
+
+Cada transação disparada pelo aplicativo móvel carrega um UUID gerado localmente e um carimbo de data/hora (`data_local`). O backend processa a fila e registra a auditoria na tabela `log_sincronizacao`, garantindo a idoneidade do histórico de vida do gado e das rotações de pastagem sem duplicidade de registros.
+
+---
+
+## 📜 Catálogo de Scripts NPM (`package.json`)
+
+| Script Comando | Execução | Descrição Operacional |
+| :--- | :--- | :--- |
+| `npm run dev` | Docker Compose Dev | Sobe o PostgreSQL e a API em contêineres com *hot-reload* ativado (`--force-recreate`). |
+| `npm run dev:local`| Nodemon Local | Inicia o servidor Node.js diretamente no host local monitorando `server.js`. |
+| `npm run start:docker`| Docker Prod | Constrói e levanta o ambiente otimizado de produção. |
+| `npm run prisma:studio`| Prisma GUI | Abre a interface visual web para inspeção direta das tabelas no banco de dados. |
+| `npm run prisma:migrate`| SQL Migration | Executa as migrações pendentes no PostgreSQL (`update-schema`). |
+| `npm run prisma:seed` | Data Seeder | Injeta massa de dados inicial de teste no banco relacional. |
+
+---
+
+## 🛠️ Guia Rápido de Configuração (Docker)
+
+### 1. Variáveis de Ambiente
+Crie o arquivo de ambiente a partir do modelo pré-configurado:
+```bash
+cp .env.example .env
+```
+> *Nota: O `.env.example` já traz as credenciais padrão de conexão para o contêiner do PostgreSQL na porta `5432`.*
+
+### 2. Levantando o Ambiente de Desenvolvimento
+Com o Docker em execução no host, execute o comando orquestrador:
+```bash
+npm run dev
 ```
 
-## Integrate with your tools
+O terminal exibirá a inicialização dos serviços:
+* 🌐 **API REST Central**: `http://localhost:3000`
+* 📚 **Documentação Swagger UI**: `http://localhost:3000/api-docs` (quando habilitado)
+* 🗄️ **Banco PostgreSQL**: `localhost:5432`
 
-* [Set up project integrations](https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api/-/settings/integrations)
+### 3. Acessando o Visualizador do Banco (Prisma Studio)
+Em um terminal secundário, abra o painel administrativo de dados:
+```bash
+npm run prisma:studio
+```
 
-## Collaborate with your team
+---
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+## 🛡️ Segurança & Observabilidade
 
-## Test and Deploy
+* **Segurança de Cabeçalhos**: Proteção ativa contra vetores comuns via `helmet: ^8.1.0`.
+* **Controle de Tráfego**: Prevenção contra abusos e ataques de negação de serviço via `express-rate-limit`.
+* **Autenticação Moderna**: Gestão de sessões e perfis através do `better-auth`.
+* **Logs Rotativos**: Auditoria estruturada gravada diariamente em disco via `winston` e `winston-daily-rotate-file`.
 
-Use the built-in continuous integration in GitLab.
+---
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
-
-***
-
-# Editing this README
-
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
-
-## Suggestions for a good README
-
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
-
-## Name
-Choose a self-explaining name for your project.
-
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
-
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
-
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
-
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
-
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
-
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
-
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
-
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
-
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
-
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
-
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
-
-## License
-For open source projects, say how it is licensed.
-
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+<p align="center">
+  <em>Motor robusto de persistência para o campo brasileiro.</em> ☁️ 🐂
+</p>

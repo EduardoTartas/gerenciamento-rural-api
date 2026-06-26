@@ -44,6 +44,11 @@ export const PropriedadeCreateSchema = z
       .transform(formatLocalizacao)
       .optional()
       .nullable(),
+    areaTotalHa: z
+      .number()
+      .positive('A área total deve ser um número positivo.')
+      .optional()
+      .nullable(),
   })
   .strict();
 
@@ -62,6 +67,11 @@ export const PropriedadeUpdateSchema = z
       .max(200, 'A localização deve ter no máximo 200 caracteres.')
       .regex(localizacaoRegex, localizacaoErrorMessage)
       .transform(formatLocalizacao)
+      .optional()
+      .nullable(),
+    areaTotalHa: z
+      .number()
+      .positive('A área total deve ser um número positivo.')
       .optional()
       .nullable(),
     ativo: z.boolean().optional(),

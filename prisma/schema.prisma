@@ -144,6 +144,7 @@ model propriedade {
   usuario     user     @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   nome        String
   localizacao String?
+  areaTotalHa Decimal?
   ativo       Boolean  @default(true)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
