@@ -37,5 +37,5 @@ COPY . .
 # Expõe a porta padrão da API
 EXPOSE 6060
 
-# Comando padrão (pode ser sobrescrito pelo docker-compose)
-CMD ["node", "server.js"]
+# Comando padrão com sincronização automática do schema do banco
+CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node server.js"]
