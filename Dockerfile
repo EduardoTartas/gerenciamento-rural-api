@@ -37,5 +37,5 @@ COPY . .
 # Expõe a porta padrão da API
 EXPOSE 6060
 
-# Comando padrão com sincronização automática do schema do banco
-CMD ["sh", "-c", "npx prisma db push --accept-data-loss && node server.js"]
+# Comando padrão para aplicar migrações e iniciar o servidor
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]

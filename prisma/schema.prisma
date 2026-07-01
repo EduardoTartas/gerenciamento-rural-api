@@ -152,7 +152,6 @@ model propriedade {
   pastos   pasto[]
   rebanhos rebanho[]
 
-  @@unique([usuarioId, nome])
   @@map("propriedades")
 }
 
