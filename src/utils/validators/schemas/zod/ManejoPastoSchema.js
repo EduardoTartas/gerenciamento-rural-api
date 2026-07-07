@@ -8,6 +8,10 @@ import { z } from 'zod/v4';
  */
 export const ManejoPastoCreateSchema = z
     .object({
+        id: z
+            .string()
+            .uuid('O ID deve ser um UUID válido.')
+            .optional(),
         pastoId: z
             .string()
             .uuid('O ID do pasto deve ser um UUID válido.'),

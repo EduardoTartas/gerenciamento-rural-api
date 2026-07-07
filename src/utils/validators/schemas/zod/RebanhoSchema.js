@@ -8,6 +8,7 @@ const uuidOpcional = z.string().uuid().optional().nullable();
  * Schema para criar um novo rebanho.
  */
 export const RebanhoCreateSchema = z.object({
+    id:                   uuidOpcional,
     propriedadeId:        z.string().uuid('O ID da propriedade deve ser um UUID válido.'),
     nomeRebanho:          z.string().min(2, 'O nome deve ter pelo menos 2 caracteres.').max(150, 'O nome deve ter no máximo 150 caracteres.'),
     quantidadeCabecas:    z.number().int().positive('A quantidade de cabeças deve ser um número inteiro positivo.').optional().nullable(),
