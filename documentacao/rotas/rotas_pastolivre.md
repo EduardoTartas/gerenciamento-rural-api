@@ -44,7 +44,12 @@ Gerenciamento de Fazendas, Sítios e Arrendamentos rurais do produtor.
 **Caso de Uso:** Listar todas as propriedades do usuário logado.
 **Regras de Negócio:**
 - **Paginação e Filtros:** Suporta `page`, `limit`, busca por `nome` e `localizacao`.
-- **Filtro Inteligente:** Retorna por padrão apenas propriedades ATIVAS (`ativo: true`). Para visualizar o arquivo morto, deve-se passar a query `?ativo=false`.
+- **Filtro Inteligente:** Retorna por padrão apenas propriedades ATIVAS (`ativo: true`).
+
+> ⚠️ **Divergência conhecida:** o filtro `?ativo=false` está definido no schema de query mas
+> não é aplicado — o `PropriedadeController.list` valida a query sem atribuí-la a
+> `req._parsedQuery`, e o `PropriedadeService.list` não repassa `ativo` aos filtros. Na
+> prática, não há como listar propriedades arquivadas por esta rota.
 
 ### 2.3 GET /propriedades/:id
 **Caso de Uso:** Obter detalhes de uma Propriedade específica.
@@ -122,3 +127,182 @@ Gerenciamento de eventos operacionais aplicados a um espaço físico (ex: Aduba�
 **Caso de Uso:** Apagar definitivamente um log de manejo lançado por engano.
 **Regras de Negócio:**
 - **Hard-Delete (Exclusão Real):** Como os Manejos são entradas de livro-caixa operacional que não possuem dependências, a exclusão remove a linha definitivamente do banco para evitar lixo de dados.
+
+> ⚠️ **Divergência conhecida:** o filtro por período (`dataInicio` / `dataFim`) documentado
+> em 4.2 não funciona. O `ManejoPastoController` valida a query sem atribuir
+> `req._parsedQuery`, e o `ManejoPastoService.list` lê `req.query` cru — as datas chegam ao
+> Prisma como texto, onde é esperado um `DateTime`.
+
+---
+
+## 5. /rebanhos
+Gerenciamento dos lotes de gado da propriedade.
+
+### 5.1 POST /rebanhos
+**Caso de Uso:** Cadastrar um novo lote de gado.
+**Regras de Negócio:**
+- **Campos obrigatórios:** `propriedadeId`, `nomeRebanho`, `pastoAtualId`.
+- **Campos opcionais:** `quantidadeCabecas`, `pesoMedioAtual`, `dataEntradaPastoAtual`, `racaId`, `sistemaProducaoId`, `regimeAlimentarId`, e `id` (UUID gerado pelo cliente offline).
+- **Propriedade Ativa:** Bloqueia a criação em propriedade inativa.
+- **Nome Único:** O `nomeRebanho` deve ser exclusivo entre os rebanhos *ativos* da mesma propriedade.
+- **Pasto Válido:** O pasto informado deve existir, estar ativo e pertencer à **mesma propriedade** do rebanho.
+- **Transação Atômica:** A criação do rebanho e a mudança do pasto para o status `Ocupado` ocorrem na mesma transação.
+
+### 5.2 GET /rebanhos
+**Caso de Uso:** Listar os lotes do produtor.
+**Regras de Negócio:**
+- Retorna por padrão apenas rebanhos `ativo: true`.
+- Filtros: `nomeRebanho`, `propriedadeId`, `pastoAtualId`, `racaId`, `sistemaProducaoId`, `regimeAlimentarId`, `ativo`, além de `page` e `limit`.
+- Cada item traz os objetos aninhados `propriedade`, `pastoAtual`, `raca`, `sistemaProducao` e `regimeAlimentar`.
+
+### 5.3 GET /rebanhos/:id
+**Caso de Uso:** Obter detalhes de um lote específico.
+
+### 5.4 PATCH /rebanhos/:id
+**Caso de Uso:** Corrigir dados do lote (nome, contagem de cabeças, peso médio, catálogos).
+**Regras de Negócio:**
+- **Troca de Pasto Proibida:** Qualquer tentativa de alterar `pastoAtualId` retorna erro 400. A mudança de pasto só é permitida pela rota de movimentação, para preservar o histórico.
+- Enviar `ativo: false` redireciona internamente para a inativação descrita em 5.5.
+
+### 5.5 DELETE /rebanhos/:id
+**Caso de Uso:** Inativar um lote (venda, abate ou encerramento).
+**Regras de Negócio:**
+- **Soft-Delete:** Marca `ativo: false`, desvincula do pasto (`pastoAtualId: null`) e limpa `dataEntradaPastoAtual`.
+- **Liberação do Pasto:** Se o pasto de origem ficar sem nenhum rebanho ativo, seu status volta para `Vazio` e `dataUltimaSaida` é preenchida.
+- Toda a operação é executada em transação atômica.
+
+---
+
+## 6. /rebanhos/movimentacoes
+Registro histórico da transferência de lotes entre pastos. **Recurso imutável**: aceita apenas criação e consulta — não há PATCH nem DELETE, para garantir a rastreabilidade zootécnica.
+
+### 6.1 POST /rebanhos/movimentacoes
+**Caso de Uso:** Registrar a transferência de um lote para outro pasto.
+**Regras de Negócio:**
+- **Campos:** `rebanhoId`, `pastoDestinoId`, e opcionalmente `dataMovimentacao` e `observacoes`.
+- O `pastoOrigemId` é preenchido automaticamente com o pasto atual do rebanho.
+- **Rebanho Ativo:** Não é possível movimentar um lote inativo.
+- **Destino Válido:** O pasto de destino deve existir, estar ativo, e pertencer à mesma propriedade do rebanho.
+- **Destino Diferente da Origem:** Bloqueia a movimentação se o lote já estiver no pasto informado.
+- **Data Não Futura:** `dataMovimentacao` não pode ser posterior ao momento atual.
+- **Transação Atômica:** Cria o histórico, atualiza o pasto atual do rebanho, marca o destino como `Ocupado` e, caso a origem fique vazia, marca-a como `Vazio` com `dataUltimaSaida`. A contagem de rebanhos restantes é feita dentro da transação, evitando condição de corrida.
+
+### 6.2 GET /rebanhos/movimentacoes
+**Caso de Uso:** Consultar a linha do tempo de movimentações.
+**Regras de Negócio:**
+- Ordenado por `dataMovimentacao` decrescente.
+- Filtros: `rebanhoId`, `propriedadeId`, `pastoOrigemId`, `pastoDestinoId`, `dataInicio`, `dataFim`, `page`, `limit`.
+
+### 6.3 GET /rebanhos/movimentacoes/:id
+**Caso de Uso:** Detalhar um registro específico de movimentação.
+
+---
+
+## 7. /rebanhos/manejos
+Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugação, pesagem).
+
+### 7.1 POST /rebanhos/manejos
+**Caso de Uso:** Registrar um manejo aplicado ao rebanho.
+**Regras de Negócio:**
+- **Campos:** `rebanhoId`, `tipoManejoId`, `dataAtividade`; opcionalmente `medicamentoVacina`, `pesoRegistrado` e `observacoes`.
+- **Rebanho Ativo:** Bloqueia o registro em lote inativo.
+- **Tipo Válido:** O `tipoManejoId` deve referenciar um item ativo do catálogo `tipos-manejo-rebanho`.
+- **Data Não Futura:** `dataAtividade` não pode ser posterior ao momento atual.
+- **Efeito de Pesagem:** Se `pesoRegistrado` for informado, o campo `pesoMedioAtual` do rebanho é atualizado com esse valor.
+
+> ⚠️ **Limitação conhecida:** a atualização do peso não compara `dataAtividade` com a última
+> pesagem registrada, e ocorre fora da transação de criação do manejo. Uma pesagem
+> retroativa sincronizada tardiamente sobrescreve o peso atual do lote.
+
+### 7.2 GET /rebanhos/manejos
+**Caso de Uso:** Consultar o histórico sanitário de um lote.
+**Regras de Negócio:**
+- Filtros: `rebanhoId`, `tipoManejoId`, `propriedadeId`, `dataInicio`, `dataFim`, `page`, `limit`.
+
+### 7.3 GET /rebanhos/manejos/:id
+**Caso de Uso:** Detalhar um manejo específico.
+
+### 7.4 PATCH /rebanhos/manejos/:id
+**Caso de Uso:** Corrigir um lançamento (tipo, data, medicamento, peso, observações).
+
+### 7.5 DELETE /rebanhos/manejos/:id
+**Caso de Uso:** Remover um manejo lançado por engano.
+**Regras de Negócio:**
+- **Hard-Delete:** a linha é removida definitivamente do banco.
+
+---
+
+## 8. /catalogos/:entidade
+Tabelas de referência **compartilhadas entre todos os usuários** da plataforma — não pertencem a nenhuma propriedade.
+
+**Entidades disponíveis em `:entidade`:**
+`racas` · `sistemas-producao` · `regimes-alimentares` · `tipos-manejo-rebanho` · `tipos-manejo-pasto`
+
+Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
+
+### 8.1 GET /catalogos/:entidade
+**Caso de Uso:** Popular os campos de seleção do aplicativo.
+**Regras de Negócio:**
+- Retorna por padrão apenas itens `ativo: true`, ordenados por nome.
+- Filtros: `nome`, `ativo`, `page`, `limit`.
+
+### 8.2 GET /catalogos/:entidade/:id
+**Caso de Uso:** Detalhar um item do catálogo.
+
+### 8.3 POST /catalogos/:entidade
+**Caso de Uso:** Cadastrar um novo item de catálogo.
+**Regras de Negócio:**
+- **Campo:** apenas `nome` (2 a 100 caracteres).
+- **Nome Único:** validado globalmente, sem diferenciar maiúsculas de minúsculas.
+
+### 8.4 PATCH /catalogos/:entidade/:id
+**Caso de Uso:** Corrigir o nome ou reativar um item de catálogo.
+
+### 8.5 DELETE /catalogos/:entidade/:id
+**Caso de Uso:** Arquivar um item de catálogo.
+**Regras de Negócio:**
+- **Soft-Delete:** marca `ativo: false`.
+- **Trava de Dependência:** bloqueia a operação (409) se houver registros vinculados — por exemplo, uma raça em uso por algum rebanho.
+
+> 🔴 **Pendência de segurança:** estas rotas exigem apenas autenticação, sem verificação de
+> papel. Como os catálogos são globais, qualquer usuário autenticado pode renomear ou
+> arquivar itens usados por todos os demais. É necessário restringir a escrita a um perfil
+> administrativo ou remover os métodos de escrita.
+
+---
+
+## 9. /usuarios
+Gerenciamento do perfil do usuário autenticado.
+
+### 9.1 GET /usuarios e GET /usuarios/:id
+**Caso de Uso:** Consultar dados de usuário.
+
+> 🔴 **Pendência de segurança:** estas rotas não aplicam nenhum escopo — qualquer usuário
+> autenticado lista nome, e-mail e identificador de **todos** os cadastrados na plataforma,
+> com filtro por e-mail. Contradiz o isolamento multi-tenant declarado neste documento. As
+> rotas não são consumidas pelo aplicativo; a recomendação é removê-las ou restringi-las ao
+> próprio usuário.
+
+### 9.2 PATCH /usuarios/:id
+**Caso de Uso:** Atualizar nome, e-mail ou imagem do perfil.
+**Regras de Negócio:**
+- **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário).
+- **E-mail Único:** validado contra os demais cadastros.
+
+### 9.3 DELETE /usuarios/:id
+**Caso de Uso:** Excluir a conta.
+**Regras de Negócio:**
+- **Ação Própria:** somente o próprio usuário pode excluir sua conta.
+- **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
+- **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
+
+---
+
+## 10. Rotas Operacionais
+
+### 10.1 GET /health
+**Caso de Uso:** Verificação de saúde para orquestração (Kubernetes) e monitoramento.
+**Resposta:** `200` com `{ status, database, timestamp, uptime }` quando a consulta ao banco responde; `503` caso contrário. Não exige autenticação.
+
+### 10.2 GET /docs
+**Caso de Uso:** Documentação interativa Swagger UI. A rota `/` redireciona para cá.
