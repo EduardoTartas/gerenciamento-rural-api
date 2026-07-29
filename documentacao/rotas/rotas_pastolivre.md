@@ -161,8 +161,9 @@ Gerenciamento dos lotes de gado da propriedade.
 ### 5.4 PATCH /rebanhos/:id
 **Caso de Uso:** Corrigir dados do lote (nome, contagem de cabeças, peso médio, catálogos).
 **Regras de Negócio:**
-- **Troca de Pasto Proibida:** Qualquer tentativa de alterar `pastoAtualId` retorna erro 400. A mudança de pasto só é permitida pela rota de movimentação, para preservar o histórico.
+- **Troca de Pasto Proibida:** Qualquer tentativa de alterar `pastoAtualId` em um rebanho já ativo retorna erro 400. A mudança de pasto só é permitida pela rota de movimentação, para preservar o histórico.
 - Enviar `ativo: false` redireciona internamente para a inativação descrita em 5.5.
+- **Reativação exige pasto:** enviar `ativo: true` em um rebanho inativo exige `pastoAtualId` no corpo (pasto ativo, da mesma propriedade). Sem isso, retorna 400 — evita reativar um lote sem pasto vinculado, estado que a criação já proíbe. A reativação roda em transação atômica e marca o pasto como `Ocupado`.
 
 ### 5.5 DELETE /rebanhos/:id
 **Caso de Uso:** Inativar um lote (venda, abate ou encerramento).
@@ -249,39 +250,25 @@ Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
 ### 8.2 GET /catalogos/:entidade/:id
 **Caso de Uso:** Detalhar um item do catálogo.
 
-### 8.3 POST /catalogos/:entidade
-**Caso de Uso:** Cadastrar um novo item de catálogo.
-**Regras de Negócio:**
-- **Campo:** apenas `nome` (2 a 100 caracteres).
-- **Nome Único:** validado globalmente, sem diferenciar maiúsculas de minúsculas.
-
-### 8.4 PATCH /catalogos/:entidade/:id
-**Caso de Uso:** Corrigir o nome ou reativar um item de catálogo.
-
-### 8.5 DELETE /catalogos/:entidade/:id
-**Caso de Uso:** Arquivar um item de catálogo.
-**Regras de Negócio:**
-- **Soft-Delete:** marca `ativo: false`.
-- **Trava de Dependência:** bloqueia a operação (409) se houver registros vinculados — por exemplo, uma raça em uso por algum rebanho.
-
-> 🔴 **Pendência de segurança:** estas rotas exigem apenas autenticação, sem verificação de
-> papel. Como os catálogos são globais, qualquer usuário autenticado pode renomear ou
-> arquivar itens usados por todos os demais. É necessário restringir a escrita a um perfil
-> administrativo ou remover os métodos de escrita.
+Catálogos são somente leitura via API — mantidos por seed (`prisma/seeds`). As rotas
+`POST`/`PATCH`/`DELETE` de `/catalogos/:entidade` foram removidas: como não existe perfil
+administrativo no sistema, qualquer usuário autenticado poderia renomear ou arquivar itens
+usados por todos os demais.
 
 ---
 
 ## 9. /usuarios
 Gerenciamento do perfil do usuário autenticado.
 
-### 9.1 GET /usuarios e GET /usuarios/:id
-**Caso de Uso:** Consultar dados de usuário.
+### 9.1 GET /usuarios/:id
+**Caso de Uso:** Consultar os próprios dados de usuário.
+**Regras de Negócio:**
+- **Ação Própria:** somente o próprio usuário pode consultar seus dados (403 caso contrário).
+- **Não Encontrado:** 404 se o ID não existir.
 
-> 🔴 **Pendência de segurança:** estas rotas não aplicam nenhum escopo — qualquer usuário
-> autenticado lista nome, e-mail e identificador de **todos** os cadastrados na plataforma,
-> com filtro por e-mail. Contradiz o isolamento multi-tenant declarado neste documento. As
-> rotas não são consumidas pelo aplicativo; a recomendação é removê-las ou restringi-las ao
-> próprio usuário.
+> A rota `GET /usuarios` (listagem de todos os usuários da plataforma) foi removida — não
+> era consumida pelo aplicativo e violava o isolamento multi-tenant declarado neste
+> documento.
 
 ### 9.2 PATCH /usuarios/:id
 **Caso de Uso:** Atualizar nome, e-mail ou imagem do perfil.
