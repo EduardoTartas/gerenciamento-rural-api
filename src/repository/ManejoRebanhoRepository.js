@@ -68,6 +68,34 @@ class ManejoRebanhoRepository {
         return this.prisma.manejoRebanho.create({ data, select: MANEJO_SELECT });
     }
 
+    /**
+     * Cria o manejo e, se for uma pesagem, atualiza rebanho.pesoMedioAtual dentro da
+     * mesma transação — mas só se este manejo for a pesagem mais recente do rebanho.
+     * Evita que uma pesagem retroativa sobrescreva um peso mais atual já registrado.
+     */
+    async createComAtualizacaoPeso(data) {
+        return this.prisma.$transaction(async (tx) => {
+            const manejo = await tx.manejoRebanho.create({ data, select: MANEJO_SELECT });
+
+            if (data.pesoRegistrado != null) {
+                const pesagemMaisRecente = await tx.manejoRebanho.findFirst({
+                    where: { rebanhoId: data.rebanhoId, pesoRegistrado: { not: null } },
+                    orderBy: [{ dataAtividade: 'desc' }, { createdAt: 'desc' }],
+                    select: { id: true, pesoRegistrado: true },
+                });
+
+                if (pesagemMaisRecente?.id === manejo.id) {
+                    await tx.rebanho.update({
+                        where: { id: data.rebanhoId },
+                        data: { pesoMedioAtual: pesagemMaisRecente.pesoRegistrado },
+                    });
+                }
+            }
+
+            return manejo;
+        });
+    }
+
     async update(id, data) {
         return this.prisma.manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT });
     }
