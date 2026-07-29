@@ -100,7 +100,7 @@ class CatalogoService {
         if (dependentes > 0) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
+                errorType: 'conflict',
                 field: config.label,
                 details: [{ path: 'id', message: `Este(a) ${config.label} está vinculado(a) a ${dependentes} registro(s) e não pode ser excluído(a).` }],
                 customMessage: `Não é possível excluir: ${config.label} possui registros dependentes.`,
@@ -119,7 +119,7 @@ class CatalogoService {
         if (existing) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
+                errorType: 'conflict',
                 field: 'nome',
                 details: [{ path: 'nome', message: `Já existe um(a) ${config.label} com este nome.` }],
                 customMessage: `Já existe um(a) ${config.label} com este nome.`,
