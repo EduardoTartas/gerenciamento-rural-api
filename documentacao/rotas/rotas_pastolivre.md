@@ -250,33 +250,47 @@ Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
 ### 8.2 GET /catalogos/:entidade/:id
 **Caso de Uso:** Detalhar um item do catálogo.
 
-Catálogos são somente leitura via API — mantidos por seed (`prisma/seeds`). As rotas
-`POST`/`PATCH`/`DELETE` de `/catalogos/:entidade` foram removidas: como não existe perfil
-administrativo no sistema, qualquer usuário autenticado poderia renomear ou arquivar itens
-usados por todos os demais.
+### 8.3 POST /catalogos/:entidade
+**Caso de Uso:** Cadastrar um novo item de catálogo. **Somente admin.**
+**Regras de Negócio:**
+- **Perfil Administrativo:** exige `admin: true` no usuário autenticado (403 caso contrário).
+- **Campo:** apenas `nome` (2 a 100 caracteres).
+- **Nome Único:** validado globalmente, sem diferenciar maiúsculas de minúsculas.
+
+### 8.4 PATCH /catalogos/:entidade/:id
+**Caso de Uso:** Corrigir o nome ou reativar um item de catálogo. **Somente admin.**
+
+### 8.5 DELETE /catalogos/:entidade/:id
+**Caso de Uso:** Arquivar um item de catálogo. **Somente admin.**
+**Regras de Negócio:**
+- **Soft-Delete:** marca `ativo: false`.
+- **Trava de Dependência:** bloqueia a operação (409) se houver registros vinculados — por exemplo, uma raça em uso por algum rebanho.
 
 ---
 
 ## 9. /usuarios
-Gerenciamento do perfil do usuário autenticado.
+Gerenciamento de usuários. Perfil próprio para usuário comum; leitura completa para admin.
 
-### 9.1 GET /usuarios/:id
-**Caso de Uso:** Consultar os próprios dados de usuário.
+### 9.1 GET /usuarios
+**Caso de Uso:** Listar todos os usuários da plataforma. **Somente admin.**
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode consultar seus dados (403 caso contrário).
+- **Perfil Administrativo:** exige `admin: true` no usuário autenticado (403 caso contrário).
+- Filtros: `name`, `email`, `page`, `limit`.
+
+### 9.2 GET /usuarios/:id
+**Caso de Uso:** Consultar dados de um usuário.
+**Regras de Negócio:**
+- **Admin:** pode consultar qualquer ID.
+- **Usuário comum:** só pode consultar o próprio ID (403 caso contrário).
 - **Não Encontrado:** 404 se o ID não existir.
 
-> A rota `GET /usuarios` (listagem de todos os usuários da plataforma) foi removida — não
-> era consumida pelo aplicativo e violava o isolamento multi-tenant declarado neste
-> documento.
-
-### 9.2 PATCH /usuarios/:id
+### 9.3 PATCH /usuarios/:id
 **Caso de Uso:** Atualizar nome, e-mail ou imagem do perfil.
 **Regras de Negócio:**
 - **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário).
 - **E-mail Único:** validado contra os demais cadastros.
 
-### 9.3 DELETE /usuarios/:id
+### 9.4 DELETE /usuarios/:id
 **Caso de Uso:** Excluir a conta.
 **Regras de Negócio:**
 - **Ação Própria:** somente o próprio usuário pode excluir sua conta.

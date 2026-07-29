@@ -2,7 +2,10 @@
 
 import UserService from '../service/UserService.js';
 import { UserUpdateSchema } from '../utils/validators/schemas/zod/UserSchema.js';
-import { UserIdSchema } from '../utils/validators/schemas/zod/querys/UserQuerySchema.js';
+import {
+    UserQuerySchema,
+    UserIdSchema,
+} from '../utils/validators/schemas/zod/querys/UserQuerySchema.js';
 import {
     CommonResponse,
     CustomError,
@@ -15,20 +18,38 @@ class UserController {
     }
 
     /**
-     * GET /users/:id
+     * GET /usuarios (somente admin)
+     * GET /usuarios/:id (admin vê qualquer um; usuário comum só a si mesmo)
      */
     async list(req, res) {
         const { id } = req.params;
-        UserIdSchema.parse(id);
+
+        if (id) {
+            UserIdSchema.parse(id);
+        }
+
+        const query = req?.query;
+        if (query && Object.keys(query).length !== 0) {
+            req._parsedQuery = await UserQuerySchema.parseAsync(query);
+        }
 
         const data = await this.service.list(req);
 
-        return CommonResponse.success(
-            res,
-            data,
-            HttpStatusCodes.OK.code,
-            'Usuário encontrado com sucesso.',
-        );
+        if (id) {
+            return CommonResponse.success(
+                res,
+                data,
+                HttpStatusCodes.OK.code,
+                'Usuário encontrado com sucesso.',
+            );
+        }
+
+        const totalDocs = data?.totalDocs ?? data?.docs?.length ?? 0;
+        const message = totalDocs === 0
+            ? 'Nenhum usuário registrado.'
+            : `${totalDocs} usuário(s) encontrado(s).`;
+
+        return CommonResponse.success(res, data, HttpStatusCodes.OK.code, message);
     }
 
     /**

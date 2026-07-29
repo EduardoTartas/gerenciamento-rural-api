@@ -16,16 +16,27 @@ class UserService {
     }
 
     /**
-     * Busca um usuário por ID. Restrito ao próprio usuário autenticado —
-     * não existe endpoint para listar usuários da plataforma.
+     * GET /usuarios/:id — admin pode consultar qualquer usuário; usuário comum,
+     * só a si mesmo. GET /usuarios (sem id, listagem geral) é restrito a admin
+     * pela rota (AdminMiddleware); aqui listamos com os filtros informados.
      */
     async list(req) {
         const { id } = req.params;
 
-        const user = await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'consultar os dados de outro usuário');
+        if (id) {
+            const user = await this.ensureUserExists(id);
+            if (!req.user.admin) {
+                this.ensureSelfAction(req.user.id, id, 'consultar os dados de outro usuário');
+            }
+            return user;
+        }
 
-        return user;
+        const { name, email, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const filters = {};
+        if (name) filters.name = name;
+        if (email) filters.email = email;
+
+        return this.repository.list(filters, parseInt(page, 10), Math.min(parseInt(limit, 10) || 10, 100));
     }
 
     /**
