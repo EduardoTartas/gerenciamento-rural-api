@@ -21,7 +21,7 @@ class PropriedadeService {
         const usuarioId = req.user.id;
 
         if (id) {
-            return this.repository.findById(id, usuarioId);
+            return this.ensurePropriedadeExists(id, usuarioId);
         }
 
         const { nome, localizacao, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
@@ -106,7 +106,7 @@ class PropriedadeService {
         if (existing) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
+                errorType: 'conflict',
                 field: 'nome',
                 details: [{ path: 'nome', message: 'Já existe uma propriedade com este nome.' }],
                 customMessage: 'Já existe uma propriedade com este nome para este usuário.',
