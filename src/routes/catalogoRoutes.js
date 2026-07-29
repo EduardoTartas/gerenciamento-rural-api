@@ -14,12 +14,13 @@ const catalogoController = new CatalogoController();
  * Entidades disponíveis em :entidade:
  *   racas, sistemas-producao,
  *   regimes-alimentares, tipos-manejo-rebanho, tipos-manejo-pasto
+ *
+ * Somente leitura: catálogos são compartilhados entre todos os usuários e mantidos
+ * via seed (prisma/seeds). Não existe perfil administrativo no sistema — escrever
+ * aqui exigiria um usuário autenticado qualquer alterar dado usado por todos.
  */
 router
     .get('/catalogos/:entidade',        AuthMiddleware, asyncWrapper(catalogoController.list.bind(catalogoController)))
-    .get('/catalogos/:entidade/:id',    AuthMiddleware, asyncWrapper(catalogoController.list.bind(catalogoController)))
-    .post('/catalogos/:entidade',       AuthMiddleware, asyncWrapper(catalogoController.create.bind(catalogoController)))
-    .patch('/catalogos/:entidade/:id',  AuthMiddleware, asyncWrapper(catalogoController.update.bind(catalogoController)))
-    .delete('/catalogos/:entidade/:id', AuthMiddleware, asyncWrapper(catalogoController.remove.bind(catalogoController)));
+    .get('/catalogos/:entidade/:id',    AuthMiddleware, asyncWrapper(catalogoController.list.bind(catalogoController)));
 
 export default router;

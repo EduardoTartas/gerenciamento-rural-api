@@ -60,30 +60,6 @@ const catalogoRoutes = {
                 404: commonResponses[404](),
                 500: commonResponses[500]()
             }
-        },
-        post: {
-            tags: ["Catálogos Globais"],
-            summary: "Cria um novo item de catálogo global",
-            description: `
-            + Cria um novo item no catálogo especificado em **:entidade**.
-            + Entidades: ${entidadesDisponiveis}
-            + O nome deve ser único (case-insensitive) dentro do catálogo.
-            `,
-            security: [{ bearerAuth: [] }],
-            parameters: [{
-                name: "entidade", in: "path", required: true,
-                schema: { type: "string", enum: entidadesDisponiveis.split(" | ") }, description: "Nome da entidade de catálogo"
-            }],
-            requestBody: {
-                content: { "application/json": { schema: { $ref: "#/components/schemas/CatalogoCreate" } } }
-            },
-            responses: {
-                201: commonResponses[201]("#/components/schemas/CatalogoItem"),
-                400: commonResponses[400](),
-                401: commonResponses[401](),
-                409: commonResponses[409](),
-                500: commonResponses[500]()
-            }
         }
     },
 
@@ -101,43 +77,6 @@ const catalogoRoutes = {
                 400: commonResponses[400](),
                 401: commonResponses[401](),
                 404: commonResponses[404](),
-                500: commonResponses[500]()
-            }
-        },
-        patch: {
-            tags: ["Catálogos Globais"],
-            summary: "Atualiza um item de catálogo",
-            security: [{ bearerAuth: [] }],
-            parameters: [
-                { name: "entidade", in: "path", required: true, schema: { type: "string", enum: entidadesDisponiveis.split(" | ") }, description: "Nome da entidade de catálogo" },
-                { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }
-            ],
-            requestBody: {
-                content: { "application/json": { schema: { $ref: "#/components/schemas/CatalogoPatch" } } }
-            },
-            responses: {
-                200: commonResponses[200]("#/components/schemas/CatalogoItem"),
-                400: commonResponses[400](),
-                401: commonResponses[401](),
-                404: commonResponses[404](),
-                409: commonResponses[409](),
-                500: commonResponses[500]()
-            }
-        },
-        delete: {
-            tags: ["Catálogos Globais"],
-            summary: "Remove (inativa) um item de catálogo",
-            description: "Soft-delete. Falha com 409 se o item estiver vinculado a rebanhos ou manejos.",
-            security: [{ bearerAuth: [] }],
-            parameters: [
-                { name: "entidade", in: "path", required: true, schema: { type: "string", enum: entidadesDisponiveis.split(" | ") }, description: "Nome da entidade de catálogo" },
-                { name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" } }
-            ],
-            responses: {
-                200: commonResponses[200](),
-                401: commonResponses[401](),
-                404: commonResponses[404](),
-                409: commonResponses[409](),
                 500: commonResponses[500]()
             }
         }
