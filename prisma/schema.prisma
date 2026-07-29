@@ -177,7 +177,7 @@ model pasto {
   nome            String
   extensaoHa      Decimal?
   tipoPastagem    String?
-  status          String      @default("Vazio") // Ocupado, Vazio, Descanso
+  status          String      @default("Vazio") // Enum validado em application: Ocupado | Vazio | Descanso
   dataUltimaSaida DateTime?
   ativo           Boolean     @default(true)
   createdAt       DateTime    @default(now())

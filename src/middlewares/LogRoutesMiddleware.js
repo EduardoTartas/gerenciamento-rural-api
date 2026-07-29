@@ -1,5 +1,7 @@
 // src/middlewares/LogRoutesMiddleware.js
 
+import logger from '../utils/logger.js';
+
 const logRoutes = async (req, res, next) => {
     try {
         const timestamp = new Date().toISOString();
@@ -8,9 +10,9 @@ const logRoutes = async (req, res, next) => {
             req.socket.remoteAddress ||
             null;
 
-        console.log(timestamp + " " + ip + " " + req.method + " " + req.protocol + "://" + req.get("host") + req.originalUrl);
+        logger.info(`${timestamp} ${ip} ${req.method} ${req.protocol}://${req.get("host")}${req.originalUrl}`);
     } catch (e) {
-        console.log("Erro ao fazer o log", e);
+        logger.error('Erro ao fazer o log', { error: e.message });
     }
     next();
 };
