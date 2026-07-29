@@ -16,22 +16,16 @@ class UserService {
     }
 
     /**
-     * Lista usuários com paginação e filtros.
+     * Busca um usuário por ID. Restrito ao próprio usuário autenticado —
+     * não existe endpoint para listar usuários da plataforma.
      */
     async list(req) {
         const { id } = req.params;
 
-        if (id) {
-            return this.repository.findById(id);
-        }
+        const user = await this.ensureUserExists(id);
+        this.ensureSelfAction(req.user.id, id, 'consultar os dados de outro usuário');
 
-        const { name, email, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
-        const filters = {};
-
-        if (name) filters.name = name;
-        if (email) filters.email = email;
-
-        return this.repository.list(filters, parseInt(page, 10), Math.min(parseInt(limit, 10) || 10, 100));
+        return user;
     }
 
     /**
@@ -86,8 +80,8 @@ class UserService {
         const existing = await this.repository.findByEmail(email, excludeId);
         if (existing) {
             throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
+                statusCode: HttpStatusCodes.CONFLICT.code,
+                errorType: 'conflict',
                 field: 'email',
                 details: [{ path: 'email', message: 'E-mail já está em uso.' }],
                 customMessage: 'E-mail já cadastrado.',

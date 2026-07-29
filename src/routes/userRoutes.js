@@ -10,7 +10,6 @@ const router = express.Router();
 const userController = new UserController();
 
 router
-    .get('/usuarios', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
     .get('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
     .patch('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.update.bind(userController)))
     .delete('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.remove.bind(userController)));

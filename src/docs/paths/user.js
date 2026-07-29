@@ -1,65 +1,14 @@
 // src/docs/paths/user.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
-import userSchemas from "../schemas/userSchema.js";
-import { generateParameters } from "./utils/generateParameters.js";
 
 const userRoutes = {
-    "/usuarios": {
-        get: {
-            tags: ["Usuários"],
-            summary: "Lista todos os usuários registrados",
-            description: `
-            + Caso de uso: Permite que um usuário autenticado liste todos os usuários no sistema com filtros opcionais.
-
-            + Função de Negócio:
-                - Retorna uma lista paginada de usuários.
-                + Aceita parâmetros de consulta opcionais:
-                    • **name**: filtrar por nome (correspondência parcial, não sensível a maiúsculas e minúsculas).
-                    • **email**: filtrar por e-mail (correspondência parcial, não sensível a maiúsculas e minúsculas).
-                    • **page**: número da página (padrão: 1).
-                    • **limit**: registros por página (padrão: 10, máximo: 100).
-
-            + Regras de Negócio:
-                - Requer uma sessão autenticada válida (baseada em cookie via BetterAuth).
-                - Retorna resultados paginados com metadados totalDocs, totalPages.
-
-            + Resultado Esperado:
-                - HTTP 200 OK com **UserPaginatedList** contendo array de documentos e informações de paginação.
-            `,
-            security: [{ bearerAuth: [] }],
-            parameters: [
-                ...generateParameters(userSchemas.UserFilter),
-                {
-                    name: "limit",
-                    in: "query",
-                    schema: { type: "integer", default: 10, maximum: 100 },
-                    required: false,
-                    description: "Número de registros por página (máx 100)"
-                },
-                {
-                    name: "page",
-                    in: "query",
-                    schema: { type: "integer", default: 1 },
-                    required: false,
-                    description: "Número da página"
-                }
-            ],
-            responses: {
-                200: commonResponses[200]("#/components/schemas/UserPaginatedList"),
-                400: commonResponses[400](),
-                401: commonResponses[401](),
-                500: commonResponses[500]()
-            }
-        }
-    },
-
     "/usuarios/{id}": {
         get: {
             tags: ["Usuários"],
-            summary: "Obtém detalhes de um usuário específico",
+            summary: "Obtém detalhes do próprio usuário",
             description: `
-            + Caso de uso: Recuperar informações detalhadas sobre um usuário específico.
+            + Caso de uso: Recuperar informações detalhadas do usuário autenticado.
 
             + Função de Negócio:
                 - Retorna todos os dados de perfil para o ID de usuário fornecido.
@@ -69,6 +18,7 @@ const userRoutes = {
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
                 - O ID deve estar no formato UUID válido.
+                - Um usuário só pode consultar seu próprio ID (aplicação de ação própria). Consultar outro ID retorna 403.
                 - Retorna 404 se o usuário não for encontrado.
 
             + Resultado Esperado:
@@ -86,6 +36,7 @@ const userRoutes = {
                 200: commonResponses[200]("#/components/schemas/UserDetails"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
                 404: commonResponses[404](),
                 500: commonResponses[500]()
             }
@@ -131,6 +82,7 @@ const userRoutes = {
                 401: commonResponses[401](),
                 403: commonResponses[403](),
                 404: commonResponses[404](),
+                409: commonResponses[409](),
                 500: commonResponses[500]()
             }
         },

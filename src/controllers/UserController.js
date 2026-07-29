@@ -2,10 +2,7 @@
 
 import UserService from '../service/UserService.js';
 import { UserUpdateSchema } from '../utils/validators/schemas/zod/UserSchema.js';
-import {
-    UserQuerySchema,
-    UserIdSchema,
-} from '../utils/validators/schemas/zod/querys/UserQuerySchema.js';
+import { UserIdSchema } from '../utils/validators/schemas/zod/querys/UserQuerySchema.js';
 import {
     CommonResponse,
     CustomError,
@@ -18,51 +15,19 @@ class UserController {
     }
 
     /**
-     * GET /users
      * GET /users/:id
      */
     async list(req, res) {
         const { id } = req.params;
-
-        if (id) {
-            UserIdSchema.parse(id);
-        }
-
-        const query = req?.query;
-        if (query && Object.keys(query).length !== 0) {
-            req._parsedQuery = await UserQuerySchema.parseAsync(query);
-        }
+        UserIdSchema.parse(id);
 
         const data = await this.service.list(req);
-
-        if (id) {
-            return CommonResponse.success(
-                res,
-                data,
-                HttpStatusCodes.OK.code,
-                'Usuário encontrado com sucesso.',
-            );
-        }
-
-        const totalDocs = data?.totalDocs ?? data?.docs?.length ?? 0;
-        if (totalDocs === 0) {
-            const hasFilters = query && (query.name || query.email);
-            const message = hasFilters
-                ? 'Nenhum usuário encontrado com os filtros informados.'
-                : 'Nenhum usuário registrado.';
-            return CommonResponse.success(
-                res,
-                data,
-                HttpStatusCodes.OK.code,
-                message,
-            );
-        }
 
         return CommonResponse.success(
             res,
             data,
             HttpStatusCodes.OK.code,
-            `${totalDocs} usuário(s) encontrado(s).`,
+            'Usuário encontrado com sucesso.',
         );
     }
 
