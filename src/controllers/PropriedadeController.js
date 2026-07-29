@@ -31,7 +31,7 @@ class PropriedadeController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await PropriedadeQuerySchema.parseAsync(query);
+            req._parsedQuery = await PropriedadeQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);
