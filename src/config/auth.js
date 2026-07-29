@@ -43,6 +43,16 @@ export const auth = betterAuth({
         process.env.BETTER_AUTH_URL || 'http://localhost:6060',
         ...corsOrigins,
     ],
+    user: {
+        additionalFields: {
+            admin: {
+                type: 'boolean',
+                required: false,
+                defaultValue: false,
+                input: false, // impede que o próprio usuário se promova a admin no cadastro/atualização
+            },
+        },
+    },
     plugins: [
         bearer(),
         emailOTP({
