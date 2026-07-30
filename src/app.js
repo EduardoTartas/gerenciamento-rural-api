@@ -19,9 +19,9 @@ const app = express();
 await DbConnect.connect();
 
 // Middlewares de segurança
-// CSP restritiva em todas as rotas menos /docs (Swagger precisa de scripts/styles inline)
+// CSP restritiva em todas as rotas menos /v1/docs (Swagger precisa de scripts/styles inline)
 app.use((req, res, next) => {
-    if (req.path.startsWith('/docs')) {
+    if (req.path.startsWith('/v1/docs') || req.path.startsWith('/docs')) {
         return helmet({ contentSecurityPolicy: false })(req, res, next);
     }
     helmet({
