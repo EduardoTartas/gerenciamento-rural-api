@@ -19,20 +19,23 @@ const app = express();
 await DbConnect.connect();
 
 // Middlewares de segurança
-// Desabilita CSP para a rota do Swagger (que precisa de inline scripts/styles)
-// Aplica CSP restritiva para todas as outras rotas
-app.use('/docs', helmet({ contentSecurityPolicy: false }));
-app.use(helmet({
-    contentSecurityPolicy: {
-        directives: {
-            defaultSrc: ["'self'"],
-            imgSrc: ["'self'", "data:", "blob:"],
-            scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
-            styleSrc: ["'self'", "'unsafe-inline'"],
-            fontSrc: ["'self'", "data:"],
-        }
+// CSP restritiva em todas as rotas menos /v1/docs (Swagger precisa de scripts/styles inline)
+app.use((req, res, next) => {
+    if (req.path.startsWith('/v1/docs') || req.path.startsWith('/docs')) {
+        return helmet({ contentSecurityPolicy: false })(req, res, next);
     }
-}));
+    helmet({
+        contentSecurityPolicy: {
+            directives: {
+                defaultSrc: ["'self'"],
+                imgSrc: ["'self'", "data:", "blob:"],
+                scriptSrc: ["'self'", "'unsafe-inline'", "https://static.cloudflareinsights.com"],
+                styleSrc: ["'self'", "'unsafe-inline'"],
+                fontSrc: ["'self'", "data:"],
+            }
+        }
+    })(req, res, next);
+});
 
 // Habilitando CORS — aceita requests sem Origin (mobile apps, Postman)
 // e whitelist de origens para ambientes web (Swagger UI, admin panel)

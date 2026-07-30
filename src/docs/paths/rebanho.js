@@ -103,6 +103,7 @@ const rebanhoRoutes = {
             description: `
             + Atualiza campos do rebanho como nome, quantidade de cabeças, peso médio e referências aos catálogos.
             + Para **mover o rebanho entre pastos**, utilize a rota **POST /rebanhos/movimentacoes** que garante o histórico e a consistência dos status dos pastos.
+            + Enviar \`ativo: true\` em um rebanho inativo (reativação) exige \`pastoAtualId\` no corpo — um pasto ativo, da mesma propriedade. Sem isso, retorna 400.
             + Pelo menos um campo deve ser fornecido.
             `,
             security: [{ bearerAuth: [] }],

@@ -109,7 +109,7 @@ const authSchemas = {
         description: "Esquema para resposta de verificação de sessão"
     },
 
-    ForgetPasswordRequest: {
+    RequestPasswordResetOTPRequest: {
         type: "object",
         properties: {
             email: {
@@ -117,40 +117,41 @@ const authSchemas = {
                 format: "email",
                 description: "E-mail registrado para recuperação de senha",
                 example: "joao.silva@email.com"
-            },
-            redirectTo: {
-                type: "string",
-                description: "URL para redirecionar o usuário após clicar no link de recuperação (opcional)",
-                example: "https://myapp.com/reset-password"
             }
         },
         required: ["email"],
-        description: "Esquema para solicitação de recuperação de senha",
+        description: "Esquema para solicitação de código OTP de recuperação de senha",
         example: {
-            email: "joao.silva@email.com",
-            redirectTo: "https://myapp.com/reset-password"
+            email: "joao.silva@email.com"
         }
     },
 
-    ResetPasswordRequest: {
+    ResetPasswordOTPRequest: {
         type: "object",
         properties: {
-            newPassword: {
+            email: {
                 type: "string",
-                description: "Nova senha (mínimo de 8 caracteres)",
-                example: "NovaSenha@456"
+                format: "email",
+                description: "E-mail do usuário que solicitou a recuperação",
+                example: "joao.silva@email.com"
             },
-            token: {
+            otp: {
                 type: "string",
-                description: "Token de recuperação recebido por e-mail",
-                example: "eyJhbGciOiJIUzI1NiIsInR5..."
+                description: "Código de 6 dígitos recebido por e-mail",
+                example: "482913"
+            },
+            password: {
+                type: "string",
+                description: "Nova senha (8 a 32 caracteres, 1 maiúscula, 1 dígito)",
+                example: "NovaSenha@456"
             }
         },
-        required: ["newPassword", "token"],
-        description: "Esquema para redefinição de senha com token de recuperação",
+        required: ["email", "otp", "password"],
+        description: "Esquema para redefinição de senha com código OTP",
         example: {
-            newPassword: "NovaSenha@456",
-            token: "eyJhbGciOiJIUzI1NiIsInR5..."
+            email: "joao.silva@email.com",
+            otp: "482913",
+            password: "NovaSenha@456"
         }
     },
 

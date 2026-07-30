@@ -31,7 +31,7 @@ class ManejoPastoController {
 
         const query = req?.query;
         if (query && Object.keys(query).length !== 0) {
-            await ManejoPastoQuerySchema.parseAsync(query);
+            req._parsedQuery = await ManejoPastoQuerySchema.parseAsync(query);
         }
 
         const data = await this.service.list(req);

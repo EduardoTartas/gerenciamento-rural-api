@@ -118,7 +118,9 @@ class RebanhoService {
             await this.validateUniqueNome(parsedData.nomeRebanho, rebanho.propriedadeId, id);
         }
 
-        if (parsedData.pastoAtualId !== undefined && parsedData.pastoAtualId !== rebanho.pastoAtualId) {
+        const isReativacao = parsedData.ativo === true && !rebanho.ativo;
+
+        if (!isReativacao && parsedData.pastoAtualId !== undefined && parsedData.pastoAtualId !== rebanho.pastoAtualId) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
@@ -131,6 +133,12 @@ class RebanhoService {
         // Inativação: redireciona para remove(), passando o rebanho já carregado
         if (parsedData.ativo === false) {
             return this._inativar(rebanho);
+        }
+
+        // Reativação: exige pasto ativo na mesma propriedade, igual à criação —
+        // impede que um rebanho volte a ficar ativo sem pasto vinculado
+        if (isReativacao) {
+            return this._reativar(rebanho, parsedData, usuarioId);
         }
 
         return this.repository.update(id, parsedData);
@@ -182,6 +190,61 @@ class RebanhoService {
         });
     }
 
+    /**
+     * Reativa um rebanho inativo. Exige pastoAtualId no corpo — o rebanho fica sem
+     * pasto ao ser inativado, e reativar sem vínculo criaria um lote ativo sem pasto,
+     * estado que create() já proíbe. Valida pasto ativo e da mesma propriedade.
+     * Transação atômica: reativa rebanho + marca pasto como Ocupado.
+     */
+    async _reativar(rebanho, parsedData, usuarioId) {
+        if (!parsedData.pastoAtualId) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'pastoAtualId',
+                details: [{ path: 'pastoAtualId', message: 'Informe o pasto atual para reativar o rebanho.' }],
+                customMessage: 'É necessário informar um pasto para reativar o rebanho.',
+            });
+        }
+
+        const pasto = await this.ensurePastoExists(parsedData.pastoAtualId, usuarioId);
+
+        if (!pasto.ativo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'pastoAtualId',
+                details: [{ path: 'pastoAtualId', message: 'Não é possível vincular um rebanho a um pasto inativo.' }],
+                customMessage: 'Pasto está inativo.',
+            });
+        }
+
+        if (pasto.propriedadeId !== rebanho.propriedadeId) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'pastoAtualId',
+                details: [{ path: 'pastoAtualId', message: 'O pasto informado não pertence à mesma propriedade do rebanho.' }],
+                customMessage: 'Pasto não pertence à propriedade do rebanho.',
+            });
+        }
+
+        const { pastoAtualId, ativo, ...resto } = parsedData;
+        const dataEntradaPastoAtual = resto.dataEntradaPastoAtual || new Date();
+
+        return this.prisma.$transaction(async (tx) => {
+            await tx.pasto.update({
+                where: { id: pastoAtualId },
+                data: { status: 'Ocupado' },
+            });
+
+            return tx.rebanho.update({
+                where: { id: rebanho.id },
+                data: { ...resto, ativo: true, pastoAtualId, dataEntradaPastoAtual },
+            });
+        });
+    }
+
     // ================================
     // MÉTODOS UTILITÁRIOS
     // ================================
@@ -191,7 +254,7 @@ class RebanhoService {
         if (existing) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
+                errorType: 'conflict',
                 field: 'nomeRebanho',
                 details: [{ path: 'nomeRebanho', message: 'Já existe um rebanho ativo com este nome nesta propriedade.' }],
                 customMessage: 'Já existe um rebanho com este nome nesta propriedade.',

@@ -34,7 +34,7 @@ export const authRateLimit = rateLimit({
         return CommonResponse.error(
             res,
             HttpStatusCodes.TOO_MANY_REQUESTS.code,
-            'validationError',
+            'rateLimit',
             'rate_limit',
             [{
                 path: 'rate_limit',
@@ -51,7 +51,7 @@ export const authRateLimit = rateLimit({
 // Rate limiter mais restritivo para operações sensíveis (login, etc.)
 export const strictRateLimit = rateLimit({
     windowMs: 5 * 60 * 1000,
-    max: 50,
+    max: 8,
     message: {
         message: 'Muitas tentativas. Tente novamente em 5 minutos.',
         data: null,
@@ -68,7 +68,7 @@ export const strictRateLimit = rateLimit({
         return CommonResponse.error(
             res,
             HttpStatusCodes.TOO_MANY_REQUESTS.code,
-            'validationError',
+            'rateLimit',
             'rate_limit',
             [{
                 path: 'rate_limit',
@@ -99,7 +99,7 @@ export const publicRateLimit = rateLimit({
         return CommonResponse.error(
             res,
             HttpStatusCodes.TOO_MANY_REQUESTS.code,
-            'validationError',
+            'rateLimit',
             'rate_limit',
             [{
                 path: 'rate_limit',

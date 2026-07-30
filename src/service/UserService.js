@@ -16,18 +16,23 @@ class UserService {
     }
 
     /**
-     * Lista usuários com paginação e filtros.
+     * GET /usuarios/:id — admin pode consultar qualquer usuário; usuário comum,
+     * só a si mesmo. GET /usuarios (sem id, listagem geral) é restrito a admin
+     * pela rota (AdminMiddleware); aqui listamos com os filtros informados.
      */
     async list(req) {
         const { id } = req.params;
 
         if (id) {
-            return this.repository.findById(id);
+            const user = await this.ensureUserExists(id);
+            if (!req.user.admin) {
+                this.ensureSelfAction(req.user.id, id, 'consultar os dados de outro usuário');
+            }
+            return user;
         }
 
         const { name, email, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
-
         if (name) filters.name = name;
         if (email) filters.email = email;
 
@@ -86,8 +91,8 @@ class UserService {
         const existing = await this.repository.findByEmail(email, excludeId);
         if (existing) {
             throw new CustomError({
-                statusCode: HttpStatusCodes.BAD_REQUEST.code,
-                errorType: 'validationError',
+                statusCode: HttpStatusCodes.CONFLICT.code,
+                errorType: 'conflict',
                 field: 'email',
                 details: [{ path: 'email', message: 'E-mail já está em uso.' }],
                 customMessage: 'E-mail já cadastrado.',

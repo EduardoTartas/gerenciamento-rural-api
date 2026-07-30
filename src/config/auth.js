@@ -5,7 +5,7 @@ import { prismaAdapter } from 'better-auth/adapters/prisma';
 import { emailOTP, bearer } from 'better-auth/plugins';
 import DbConnect from './dbConnect.js';
 import nodemailer from 'nodemailer';
-import { resetPasswordTemplate, resetPasswordOTPTemplate } from '../utils/templates/index.js';
+import { resetPasswordOTPTemplate } from '../utils/templates/index.js';
 import logger from '../utils/logger.js';
 
 // Configura o transporter do Nodemailer usando as variáveis SMTP do .env
@@ -43,6 +43,16 @@ export const auth = betterAuth({
         process.env.BETTER_AUTH_URL || 'http://localhost:6060',
         ...corsOrigins,
     ],
+    user: {
+        additionalFields: {
+            admin: {
+                type: 'boolean',
+                required: false,
+                defaultValue: false,
+                input: false, // impede que o próprio usuário se promova a admin no cadastro/atualização
+            },
+        },
+    },
     plugins: [
         bearer(),
         emailOTP({
@@ -80,23 +90,10 @@ export const auth = betterAuth({
                 return true;
             }
         },
-        async sendResetPassword({ user, url }) {
-            try {
-                await transporter.sendMail({
-                    from: process.env.SMTP_FROM || process.env.SMTP_USER,
-                    to: user.email,
-                    subject: 'Pasto Livre — Redefinição de Senha',
-                    html: resetPasswordTemplate(user.name, url),
-                });
-                logger.info(`E-mail de redefinição de senha enviado para ${user.email}`);
-            } catch (err) {
-                logger.error('Falha ao enviar e-mail de redefinição de senha', {
-                    to: user.email,
-                    error: err.message,
-                });
-                // Não relança o erro para não expor falha interna ao cliente
-            }
-        },
+        // sendResetPassword não configurado de propósito: o app usa o fluxo por
+        // código OTP (plugin emailOTP acima), não o fluxo por link do BetterAuth.
+        // Sem esse callback, /api/auth/request-password-reset fica desabilitado
+        // (RESET_PASSWORD_DISABLED) em vez de existir sem uso.
     },
     session: {
         cookieCache: {

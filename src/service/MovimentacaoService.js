@@ -103,6 +103,7 @@ class MovimentacaoService {
 
         // Count agora é feito DENTRO da transação para evitar race condition
         return this.repository.createComTransacao({
+            id: parsedData.id,
             rebanhoId: parsedData.rebanhoId,
             pastoOrigemId,
             pastoDestinoId: parsedData.pastoDestinoId,

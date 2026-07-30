@@ -27,7 +27,7 @@ class ManejoPastoService {
             return this.ensureManejoExists(id, usuarioId);
         }
 
-        const { pastoId, propriedadeId, tipoManejoId, dataInicio, dataFim, page = 1, limit = 10 } = req.query;
+        const { pastoId, propriedadeId, tipoManejoId, dataInicio, dataFim, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (pastoId)       filters.pastoId       = pastoId;
