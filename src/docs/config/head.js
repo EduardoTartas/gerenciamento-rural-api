@@ -65,81 +65,103 @@ const getSwaggerOptions = async () => {
         swaggerDefinition: {
             openapi: "3.0.0",
             info: {
-                title: "Pasto Livre API - Gestão Rural",
+                title: "Pasto Livre API",
                 version: "1.0.0",
                 description: `
-### 📋 Visão Geral
-Documentação oficial da **Pasto Livre API** — um backend para gestão de propriedades rurais focado em operações pecuárias de pequeno e médio porte.
+## Visão Geral
 
-Esta API suporta o registro de múltiplas fazendas, manejo de pastagens, controle de rebanho, inventário de insumos e sincronização offline-first com o aplicativo móvel.
+Backend para gestão de propriedades rurais focado em pecuária de pequeno e médio porte. Suporta registro de múltiplas fazendas, manejo de pastagens, controle de rebanho e sincronização offline-first com o aplicativo móvel.
 
----
+## Autenticação
 
-### 🔐 Autenticação
-A autenticação é gerenciada pelo **BetterAuth** com cookies baseados em sessão.
+Sessões baseadas em cookies gerenciadas pelo BetterAuth. Após login, os cookies são definidos automaticamente.
 
-- **Cadastro**: \`POST /api/auth/sign-up/email\`
-- **Login**: \`POST /api/auth/sign-in/email\`
-- **Logout**: \`POST /api/auth/sign-out\`
-- **Obter Sessão**: \`GET /api/auth/get-session\`
+**Endpoints de autenticação:**
+- POST /api/auth/sign-up/email — Cadastro
+- POST /api/auth/sign-in/email — Login
+- POST /api/auth/sign-out — Logout
+- GET /api/auth/get-session — Verificar sessão ativa
 
-> 🔑 **Credenciais de teste (seed):**
-> - \`admin@admin.com\` / \`admin\`
-> - \`joao@pastoverde.com\` / \`Senha@123\`
-> - \`maria@pastoverde.com\` / \`Senha@456\`
+**Credenciais de teste:**
+- admin@admin.com / admin
+- joao@pastoverde.com / Senha@123
+- maria@pastoverde.com / Senha@456
 
-Após o login, os cookies de sessão são definidos automaticamente. Para testes na interface do Swagger, utilize o botão **Authorize** com um token Bearer ou certifique-se de que os cookies estão ativados.
+## Endpoints Versionados
 
----
+Todos os endpoints de negócio estão sob /v1. Documentação de regras e comportamento em https://github.com/gerenciamento-rural-tcc/gerenciamento-rural-api/blob/main/documentacao/rotas/rotas_pastolivre.md.
 
-### 🚀 Principais Funcionalidades
-- **Autenticação de Sessão BetterAuth**: Sessões seguras baseadas em cookies com persistência em PostgreSQL.
-- **Gerenciamento de Usuários**: CRUD de perfis com validação Zod e identificadores UUID.
-- **Recuperação de Senha**: Fluxos de esquecimento/redefinição de senha (serviço de e-mail pendente de configuração).
-- **Prisma ORM**: Acesso ao banco de dados com tipagem segura e PostgreSQL.
+## Convenções de Resposta
+
+Sucesso (2xx):
+\`\`\`json
+{
+  "message": "Descrição da ação realizada",
+  "data": { },
+  "errors": []
+}
+\`\`\`
+
+Erro (4xx/5xx):
+\`\`\`json
+{
+  "statusCode": 400,
+  "errorType": "validationError",
+  "field": "nome_do_campo",
+  "details": [ { "path": "campo", "message": "Motivo do erro" } ],
+  "customMessage": "Mensagem legível para o usuário",
+  "traceId": "identificador-único-da-requisição"
+}
+\`\`\`
+
+**Error types:** validationError, conflict, rateLimit, unauthorized, forbidden, resourceNotFound
+
+## Multi-tenancy
+
+Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados ao usuário autenticado. Não é possível acessar dados de outro usuário.
                 `,
                 contact: {
-                    name: "Equipe Pasto Livre",
-                    email: "contato@pastolivre.com"
+                    name: "Pasto Livre",
+                    url: "https://github.com/gerenciamento-rural-tcc/gerenciamento-rural-api"
                 },
             },
             servers: getServersInCorrectOrder(),
             tags: [
                 {
                     name: "Auth",
-                    description: "Fluxos de autenticação gerenciados pelo BetterAuth (cadastro, login, logout, recuperação de senha)"
+                    description: "Autenticação de sessão com BetterAuth"
                 },
                 {
                     name: "Usuários",
-                    description: "Gerenciamento de perfil de usuários (listar, visualizar, atualizar, excluir)"
+                    description: "Gestão de perfil (leitura restrita ao próprio usuário ou admin)"
                 },
                 {
                     name: "Propriedades",
-                    description: "Cadastro de fazendas, talhões, infraestrutura e alertas do dashboard"
+                    description: "Cadastro e gestão de fazendas"
                 },
                 {
                     name: "Pastagens",
-                    description: "Gerenciamento de pastagens, ocupação, descanso e histórico de intervenções"
+                    description: "Gestão de pastos, status de ocupação e descanso"
                 },
                 {
                     name: "Manejos de Pastagem",
-                    description: "Registro de atividades de manejo realizadas nos pastos (roçagem, adubação, calagem, etc.)"
+                    description: "Registro de intervenções em pastos (roçagem, adubação, calagem)"
                 },
                 {
                     name: "Catálogos Globais",
-                    description: "Tabelas de apoio compartilhadas: Raças, Categorias, Sistemas de Produção, Regimes Alimentares e Tipos de Manejo"
+                    description: "Tabelas de referência compartilhadas entre usuários (raças, sistemas de produção, regimes, tipos de manejo)"
                 },
                 {
                     name: "Rebanhos",
-                    description: "Cadastro e gestão de lotes/rebanhos, com soft-delete e atualização automática de status dos pastos"
+                    description: "Cadastro e gestão de lotes de gado"
                 },
                 {
                     name: "Manejos de Rebanho",
-                    description: "Registro de atividades sanitárias: vacinação, pesagem, vermifugação, etc."
+                    description: "Registro de atividades sanitárias e de pesagem"
                 },
                 {
                     name: "Movimentações",
-                    description: "Histórico imutável de transferências de rebanhos entre pastos (log transacional)"
+                    description: "Histórico imutável de transferências entre pastos"
                 }
             ],
             paths: {

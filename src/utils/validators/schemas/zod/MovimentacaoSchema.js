@@ -7,6 +7,7 @@ import { z } from 'zod/v4';
  * O pastoOrigemId é preenchido automaticamente pelo sistema (pasto atual do rebanho).
  */
 export const MovimentacaoCreateSchema = z.object({
+    id:              z.string().uuid('O ID deve ser um UUID válido.').optional(),
     rebanhoId:       z.string().uuid('O ID do rebanho deve ser um UUID válido.'),
     pastoDestinoId:  z.string().uuid('O ID do pasto de destino deve ser um UUID válido.'),
     dataMovimentacao: z.coerce.date({ error: 'A data da movimentação deve ser uma data válida.' })

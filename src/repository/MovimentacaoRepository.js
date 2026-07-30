@@ -70,11 +70,11 @@ class MovimentacaoRepository {
      * O count de rebanhos restantes no pasto de origem é feito DENTRO da transação
      * para evitar race conditions.
      */
-    async createComTransacao({ rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes }) {
+    async createComTransacao({ id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes }) {
         return this.prisma.$transaction(async (tx) => {
-            // 1. Cria o registro histórico
+            // 1. Cria o registro histórico, preservando o id gerado pelo cliente (offline-first)
             const movimentacao = await tx.historicoMovimentacao.create({
-                data: { rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
+                data: { id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
                 select: MOVIMENTACAO_SELECT,
             });
 

@@ -18,8 +18,8 @@ class UserController {
     }
 
     /**
-     * GET /users
-     * GET /users/:id
+     * GET /usuarios (somente admin)
+     * GET /usuarios/:id (admin vê qualquer um; usuário comum só a si mesmo)
      */
     async list(req, res) {
         const { id } = req.params;
@@ -45,25 +45,11 @@ class UserController {
         }
 
         const totalDocs = data?.totalDocs ?? data?.docs?.length ?? 0;
-        if (totalDocs === 0) {
-            const hasFilters = query && (query.name || query.email);
-            const message = hasFilters
-                ? 'Nenhum usuário encontrado com os filtros informados.'
-                : 'Nenhum usuário registrado.';
-            return CommonResponse.success(
-                res,
-                data,
-                HttpStatusCodes.OK.code,
-                message,
-            );
-        }
+        const message = totalDocs === 0
+            ? 'Nenhum usuário registrado.'
+            : `${totalDocs} usuário(s) encontrado(s).`;
 
-        return CommonResponse.success(
-            res,
-            data,
-            HttpStatusCodes.OK.code,
-            `${totalDocs} usuário(s) encontrado(s).`,
-        );
+        return CommonResponse.success(res, data, HttpStatusCodes.OK.code, message);
     }
 
     /**

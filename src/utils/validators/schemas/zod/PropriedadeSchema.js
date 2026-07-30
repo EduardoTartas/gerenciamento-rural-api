@@ -33,6 +33,17 @@ const localizacaoErrorMessage = 'A localização deve seguir o formato "Cidade,U
  */
 export const PropriedadeCreateSchema = z
   .object({
+    /**
+     * ID opcional gerado pelo cliente (Offline-First).
+     * Quando o app mobile cria uma propriedade sem internet, ele gera um UUID v4
+     * localmente para uso imediato. Ao sincronizar, este ID é enviado ao servidor
+     * para que o registro tenha o mesmo identificador em ambas as camadas.
+     * Se não for fornecido, o servidor gera automaticamente via Prisma.
+     */
+    id: z
+      .string()
+      .uuid('O id deve ser um UUID válido.')
+      .optional(),
     nome: z
       .string()
       .min(2, 'O nome deve ter pelo menos 2 caracteres.')
@@ -42,6 +53,11 @@ export const PropriedadeCreateSchema = z
       .max(200, 'A localização deve ter no máximo 200 caracteres.')
       .regex(localizacaoRegex, localizacaoErrorMessage)
       .transform(formatLocalizacao)
+      .optional()
+      .nullable(),
+    areaTotalHa: z
+      .number()
+      .positive('A área total deve ser um número positivo.')
       .optional()
       .nullable(),
   })
@@ -62,6 +78,11 @@ export const PropriedadeUpdateSchema = z
       .max(200, 'A localização deve ter no máximo 200 caracteres.')
       .regex(localizacaoRegex, localizacaoErrorMessage)
       .transform(formatLocalizacao)
+      .optional()
+      .nullable(),
+    areaTotalHa: z
+      .number()
+      .positive('A área total deve ser um número positivo.')
       .optional()
       .nullable(),
     ativo: z.boolean().optional(),

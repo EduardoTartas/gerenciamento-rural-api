@@ -12,6 +12,10 @@ const statusEnum = ['Ocupado', 'Vazio', 'Descanso'];
  */
 export const PastoCreateSchema = z
   .object({
+    id: z
+      .string()
+      .uuid('O id deve ser um UUID válido.')
+      .optional(),
     propriedadeId: z
       .string()
       .uuid('O ID da propriedade deve ser um UUID válido.'),

@@ -53,16 +53,10 @@ class ManejoRebanhoService {
         // Valida que o tipo de manejo existe e está ativo
         await this.ensureTipoManejoExists(parsedData.tipoManejoId);
 
-        const manejo = await this.repository.create(parsedData);
-
-        // Regra especial: Pesagem → atualiza pesoMedioAtual do rebanho
-        if (parsedData.pesoRegistrado != null) {
-            await this.rebanhoRepository.update(parsedData.rebanhoId, {
-                pesoMedioAtual: parsedData.pesoRegistrado,
-            });
-        }
-
-        return manejo;
+        // Regra especial: Pesagem → atualiza pesoMedioAtual do rebanho, dentro de uma
+        // transação e só quando esta pesagem é a mais recente (evita que um lançamento
+        // retroativo sobrescreva um peso mais atual).
+        return this.repository.createComAtualizacaoPeso(parsedData);
     }
 
     async update(id, parsedData, req) {

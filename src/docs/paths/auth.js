@@ -142,32 +142,30 @@ const authRoutes = {
         }
     },
 
-    "/api/auth/request-password-reset": {
+    "/api/auth/email-otp/request-password-reset": {
         post: {
             tags: ["Auth"],
-            summary: "Solicita a recuperação de senha via e-mail",
+            summary: "Solicita código OTP de recuperação de senha",
             description: `
-            + Caso de uso: Recuperação de senha quando o usuário esqueceu suas credenciais.
+            + Caso de uso: Recuperação de senha quando o usuário esqueceu suas credenciais. Fluxo usado pelo aplicativo (sem link, sem redirect).
 
             + Função de Negócio:
-                - Gera um token de recuperação e o armazena na tabela de verificações.
+                - Gera um código numérico de 6 dígitos e envia por e-mail (plugin emailOTP do BetterAuth).
                 + Recebe no corpo da requisição:
                     - **email**: endereço de e-mail registrado.
-                    - **redirectTo** (opcional): URL para redirecionar após clicar no link de recuperação.
 
             + Regras de Negócio:
-                - O e-mail deve estar cadastrado no sistema.
-                - Um token de recuperação temporário é gerado com tempo de expiração.
-                - **NOTA**: O envio de e-mail ainda não está configurado (TODO). O token é gerado e armazenado, mas nenhum e-mail é disparado.
+                - O código expira em 5 minutos.
+                - Resposta idêntica independente de o e-mail existir ou não, para não vazar quais e-mails estão cadastrados.
 
             + Resultado Esperado:
-                - HTTP 200 OK com confirmação de sucesso.
+                - HTTP 200 OK com confirmação de envio.
             `,
             requestBody: {
                 content: {
                     "application/json": {
                         schema: {
-                            "$ref": "#/components/schemas/ForgetPasswordRequest"
+                            "$ref": "#/components/schemas/RequestPasswordResetOTPRequest"
                         }
                     }
                 }
@@ -175,29 +173,28 @@ const authRoutes = {
             responses: {
                 200: commonResponses[200]("#/components/schemas/MessageResponse"),
                 400: commonResponses[400](),
-                404: commonResponses[404](),
                 500: commonResponses[500]()
             }
         }
     },
 
-    "/api/auth/reset-password": {
+    "/api/auth/email-otp/reset-password": {
         post: {
             tags: ["Auth"],
-            summary: "Redefine a senha utilizando o token de recuperação",
+            summary: "Redefine a senha utilizando o código OTP",
             description: `
-            + Caso de uso: Redefinição de senha utilizando um token recebido por e-mail.
+            + Caso de uso: Conclusão da recuperação de senha com o código recebido por e-mail.
 
             + Função de Negócio:
-                - Permite que o usuário defina uma nova senha usando um token de recuperação válido.
+                - Valida o código OTP e define a nova senha do usuário.
                 + Recebe no corpo da requisição:
-                    - **newPassword**: a nova senha a ser definida.
-                    - **token**: o token de recuperação recebido por e-mail.
+                    - **email**: e-mail do usuário que solicitou a recuperação.
+                    - **otp**: código de 6 dígitos recebido por e-mail.
+                    - **password**: nova senha (8 a 32 caracteres, 1 maiúscula, 1 dígito).
 
             + Regras de Negócio:
-                - O token de recuperação deve ser válido e não expirado.
-                - A nova senha é criptografada automaticamente pelo BetterAuth.
-                - Após a redefinição, o token é invalidado.
+                - O código deve ser válido e não expirado.
+                - Após o uso, o código é invalidado (uso único).
 
             + Resultado Esperado:
                 - HTTP 200 OK com confirmação de sucesso.
@@ -206,7 +203,7 @@ const authRoutes = {
                 content: {
                     "application/json": {
                         schema: {
-                            "$ref": "#/components/schemas/ResetPasswordRequest"
+                            "$ref": "#/components/schemas/ResetPasswordOTPRequest"
                         }
                     }
                 }
@@ -214,7 +211,6 @@ const authRoutes = {
             responses: {
                 200: commonResponses[200]("#/components/schemas/MessageResponse"),
                 400: commonResponses[400](),
-                401: commonResponses[401](),
                 500: commonResponses[500]()
             }
         }

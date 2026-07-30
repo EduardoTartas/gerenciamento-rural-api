@@ -134,7 +134,7 @@ class PastoService {
         if (existing) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
-                errorType: 'validationError',
+                errorType: 'conflict',
                 field: 'nome',
                 details: [{ path: 'nome', message: 'Já existe uma pastagem com este nome nesta propriedade.' }],
                 customMessage: 'Já existe uma pastagem com este nome nesta propriedade.',

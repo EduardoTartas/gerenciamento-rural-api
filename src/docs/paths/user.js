@@ -8,9 +8,9 @@ const userRoutes = {
     "/usuarios": {
         get: {
             tags: ["Usuários"],
-            summary: "Lista todos os usuários registrados",
+            summary: "Lista todos os usuários registrados (somente admin)",
             description: `
-            + Caso de uso: Permite que um usuário autenticado liste todos os usuários no sistema com filtros opcionais.
+            + Caso de uso: Permite que um administrador liste todos os usuários no sistema com filtros opcionais.
 
             + Função de Negócio:
                 - Retorna uma lista paginada de usuários.
@@ -22,6 +22,7 @@ const userRoutes = {
 
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida (baseada em cookie via BetterAuth).
+                - Exige perfil administrativo (\`admin: true\`). Usuário comum recebe 403.
                 - Retorna resultados paginados com metadados totalDocs, totalPages.
 
             + Resultado Esperado:
@@ -49,6 +50,7 @@ const userRoutes = {
                 200: commonResponses[200]("#/components/schemas/UserPaginatedList"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
                 500: commonResponses[500]()
             }
         }
@@ -57,9 +59,9 @@ const userRoutes = {
     "/usuarios/{id}": {
         get: {
             tags: ["Usuários"],
-            summary: "Obtém detalhes de um usuário específico",
+            summary: "Obtém detalhes de um usuário",
             description: `
-            + Caso de uso: Recuperar informações detalhadas sobre um usuário específico.
+            + Caso de uso: Recuperar informações detalhadas de um usuário.
 
             + Função de Negócio:
                 - Retorna todos os dados de perfil para o ID de usuário fornecido.
@@ -69,6 +71,7 @@ const userRoutes = {
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
                 - O ID deve estar no formato UUID válido.
+                - Usuário com perfil administrativo pode consultar qualquer ID. Usuário comum só pode consultar o próprio ID — consultar outro retorna 403.
                 - Retorna 404 se o usuário não for encontrado.
 
             + Resultado Esperado:
@@ -86,6 +89,7 @@ const userRoutes = {
                 200: commonResponses[200]("#/components/schemas/UserDetails"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
+                403: commonResponses[403](),
                 404: commonResponses[404](),
                 500: commonResponses[500]()
             }
@@ -131,6 +135,7 @@ const userRoutes = {
                 401: commonResponses[401](),
                 403: commonResponses[403](),
                 404: commonResponses[404](),
+                409: commonResponses[409](),
                 500: commonResponses[500]()
             }
         },

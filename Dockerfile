@@ -37,5 +37,5 @@ COPY . .
 # Expõe a porta padrão da API
 EXPOSE 6060
 
-# Comando padrão (pode ser sobrescrito pelo docker-compose)
-CMD ["node", "server.js"]
+# Comando padrão para aplicar migrações e iniciar o servidor
+CMD ["sh", "-c", "npx prisma migrate deploy && exec node server.js"]

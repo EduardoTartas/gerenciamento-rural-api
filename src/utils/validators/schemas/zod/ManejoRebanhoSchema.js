@@ -3,6 +3,7 @@
 import { z } from 'zod/v4';
 
 export const ManejoRebanhoCreateSchema = z.object({
+    id:               z.string().uuid('O ID deve ser um UUID válido.').optional(),
     rebanhoId:        z.string().uuid('O ID do rebanho deve ser um UUID válido.'),
     tipoManejoId:     z.string().uuid('O ID do tipo de manejo deve ser um UUID válido.'),
     dataAtividade:    z.coerce.date({ error: 'A data da atividade deve ser uma data válida.' })

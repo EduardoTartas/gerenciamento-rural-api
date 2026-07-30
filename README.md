@@ -1,93 +1,190 @@
-# gerenciamento-rural-api
+# ☁️ Pasto Livre — API REST
 
+![Node.js](https://img.shields.io/badge/Node.js-ES%20Modules%20v20%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
+![Express](https://img.shields.io/badge/Express-v5.2-000000?style=for-the-badge&logo=express&logoColor=white)
+![Prisma ORM](https://img.shields.io/badge/Prisma%20ORM-v7.5-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
+![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
+Backend do ecossistema **Pasto Livre**, responsável pela persistência central em nuvem e
+pelo atendimento das requisições do aplicativo móvel, que opera em modo offline-first.
 
-## Getting started
+> 🌿 Para a visão geral do produto, consulte o
+> **[README principal](../README.md)**. As diretrizes de interface estão no
+> **[Guia de Identidade Visual](../IDENTIDADE_VISUAL.md)**.
 
-To make it easy for you to get started with GitLab, here's a list of recommended next steps.
+---
 
-Already a pro? Just edit this README.md and make it your own. Want to make it easy? [Use the template at the bottom](#editing-this-readme)!
+## 🏛️ Arquitetura
 
-## Add your files
+API modular em **Node.js (ESM)**, organizada em camadas com responsabilidades estritas:
 
-* [Create](https://docs.gitlab.com/user/project/repository/web_editor/#create-a-file) or [upload](https://docs.gitlab.com/user/project/repository/web_editor/#upload-a-file) files
-* [Add files using the command line](https://docs.gitlab.com/topics/git/add_files/#add-files-to-a-git-repository) or push an existing Git repository with the following command:
-
+```text
+routes/ → controllers/ → service/ → repository/ → Prisma → PostgreSQL
 ```
-cd existing_repo
-git remote add origin https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api.git
-git branch -M main
-git push -uf origin main
+
+| Camada | Responsabilidade |
+| :--- | :--- |
+| `routes/` | Definição de caminhos, autenticação e wrapper assíncrono |
+| `controllers/` | Validação de entrada (Zod) e formatação da resposta |
+| `service/` | Regras de negócio, validações cruzadas e transações |
+| `repository/` | Consultas Prisma com `select` explícito |
+
+```text
+gerenciamento-rural-api/
+├── prisma/
+│   ├── schema.prisma            # Modelo de dados declarativo
+│   ├── migrations/              # Histórico versionado de migrações SQL
+│   └── seeds/                   # Populadores de catálogos e dados de teste
+│
+├── src/
+│   ├── app.js                   # Express, CORS, Helmet, compressão, BetterAuth
+│   ├── config/                  # Conexão Prisma (dbConnect) e BetterAuth (auth)
+│   ├── routes/                  # Rotas por domínio + Swagger + health check
+│   ├── controllers/             # Controladores REST
+│   ├── service/                 # Regras de negócio
+│   ├── repository/              # Acesso a dados
+│   ├── middlewares/             # Autenticação, rate limiting, logs, asyncWrapper
+│   ├── docs/                    # Definições OpenAPI (paths e schemas)
+│   └── utils/
+│       ├── helpers/             # CommonResponse, CustomError, errorHandler
+│       ├── validators/          # Schemas Zod de corpo e de query
+│       └── templates/           # Templates HTML de e-mail
+│
+├── documentacao/rotas/          # Regras de negócio por endpoint
+├── deployment/                  # Manifests Kubernetes e diagrama de infraestrutura
+├── Dockerfile                   # Build multi-estágio de produção
+├── docker-compose.dev.yml       # Ambiente de desenvolvimento com hot-reload
+└── docker-compose.yml           # Ambiente de produção
 ```
 
-## Integrate with your tools
+---
 
-* [Set up project integrations](https://gitlab.com/gerenciamento-rural-tcc/gerenciamento-rural-api/-/settings/integrations)
+## 📡 Recursos disponíveis
 
-## Collaborate with your team
+| Recurso | Endpoints |
+| :--- | :--- |
+| Autenticação | `/api/auth/*` (BetterAuth: cadastro, login, sessão, OTP de redefinição) |
+| Usuários | `GET · PATCH · DELETE /usuarios` |
+| Propriedades | `GET · POST · PATCH · DELETE /propriedades` |
+| Pastagens | `GET · POST · PATCH · DELETE /pastagens` |
+| Manejos de pasto | `GET · POST · PATCH · DELETE /pastagens/manejos` |
+| Rebanhos | `GET · POST · PATCH · DELETE /rebanhos` |
+| Movimentações | `GET · POST /rebanhos/movimentacoes` (imutáveis: sem PATCH/DELETE) |
+| Manejos de rebanho | `GET · POST · PATCH · DELETE /rebanhos/manejos` |
+| Catálogos globais | `GET · POST · PATCH · DELETE /catalogos/:entidade` |
+| Operacional | `GET /health` · `GET /docs` |
 
-* [Invite team members and collaborators](https://docs.gitlab.com/user/project/members/)
-* [Create a new merge request](https://docs.gitlab.com/user/project/merge_requests/creating_merge_requests/)
-* [Automatically close issues from merge requests](https://docs.gitlab.com/user/project/issues/managing_issues/#closing-issues-automatically)
-* [Enable merge request approvals](https://docs.gitlab.com/user/project/merge_requests/approvals/)
-* [Set auto-merge](https://docs.gitlab.com/user/project/merge_requests/auto_merge/)
+As regras de negócio de cada endpoint estão detalhadas em
+[`documentacao/rotas/rotas_pastolivre.md`](documentacao/rotas/rotas_pastolivre.md).
 
-## Test and Deploy
+### Padrão de resposta
 
-Use the built-in continuous integration in GitLab.
+Todas as respostas usam o mesmo envelope:
 
-* [Get started with GitLab CI/CD](https://docs.gitlab.com/ci/quick_start/)
-* [Analyze your code for known vulnerabilities with Static Application Security Testing (SAST)](https://docs.gitlab.com/user/application_security/sast/)
-* [Deploy to Kubernetes, Amazon EC2, or Amazon ECS using Auto Deploy](https://docs.gitlab.com/topics/autodevops/requirements/)
-* [Use pull-based deployments for improved Kubernetes management](https://docs.gitlab.com/user/clusters/agent/)
-* [Set up protected environments](https://docs.gitlab.com/ci/environments/protected_environments/)
+```json
+{
+  "message": "3 pastagem(ns) encontrada(s).",
+  "data": { "docs": [], "totalDocs": 3, "page": 1, "limit": 10, "totalPages": 1 },
+  "errors": []
+}
+```
 
-***
+Listagens são **paginadas**, com `limit` padrão de `10` e teto de `100`. Clientes devem
+informar `page` e `limit` explicitamente quando esperarem mais de dez registros.
 
-# Editing this README
+### Isolamento de dados
 
-When you're ready to make this README your own, just edit this file and use the handy template below (or feel free to structure it however you want - this is just a starting point!). Thanks to [makeareadme.com](https://www.makeareadme.com/) for this template.
+Todo recurso do domínio rural é escopado ao usuário autenticado, direta ou indiretamente
+pela cadeia `propriedade → pasto → rebanho → evento`. Um produtor nunca acessa dados de
+outro.
 
-## Suggestions for a good README
+### Suporte a offline-first
 
-Every project is different, so consider which of these sections apply to yours. The sections used in the template are suggestions for most open source projects. Also keep in mind that while a README can be too long and detailed, too long is better than too short. If you think your README is too long, consider utilizing another form of documentation rather than cutting out information.
+Os schemas de criação aceitam um campo `id` opcional (UUID). O aplicativo gera o
+identificador no dispositivo ao criar um registro sem conexão e o envia ao sincronizar, de
+modo que o mesmo registro tenha o mesmo ID no celular e no servidor.
 
-## Name
-Choose a self-explaining name for your project.
+---
 
-## Description
-Let people know what your project can do specifically. Provide context and add a link to any reference visitors might be unfamiliar with. A list of Features or a Background subsection can also be added here. If there are alternatives to your project, this is a good place to list differentiating factors.
+## 📜 Scripts NPM
 
-## Badges
-On some READMEs, you may see small images that convey metadata, such as whether or not all the tests are passing for the project. You can use Shields to add some to your README. Many services also have instructions for adding a badge.
+| Script | Descrição |
+| :--- | :--- |
+| `npm run dev` | Sobe API e PostgreSQL em contêineres, com hot-reload |
+| `npm run dev:local` | Inicia o servidor via nodemon no host (requer PostgreSQL ativo) |
+| `npm start` | Executa `node server.js` |
+| `npm run start:docker` | Sobe o ambiente de produção |
+| `npm run prisma:migrate` | Aplica migrações pendentes |
+| `npm run prisma:seed` | Popula catálogos e dados de teste |
+| `npm run prisma:studio` | Abre a interface visual do banco |
 
-## Visuals
-Depending on what you are making, it can be a good idea to include screenshots or even a video (you'll frequently see GIFs rather than actual videos). Tools like ttygif can help, but check out Asciinema for a more sophisticated method.
+> Não há suíte de testes automatizados configurada neste repositório.
 
-## Installation
-Within a particular ecosystem, there may be a common way of installing things, such as using Yarn, NuGet, or Homebrew. However, consider the possibility that whoever is reading your README is a novice and would like more guidance. Listing specific steps helps remove ambiguity and gets people to using your project as quickly as possible. If it only runs in a specific context like a particular programming language version or operating system or has dependencies that have to be installed manually, also add a Requirements subsection.
+---
 
-## Usage
-Use examples liberally, and show the expected output if you can. It's helpful to have inline the smallest example of usage that you can demonstrate, while providing links to more sophisticated examples if they are too long to reasonably include in the README.
+## 🛠️ Configuração
 
-## Support
-Tell people where they can go to for help. It can be any combination of an issue tracker, a chat room, an email address, etc.
+### 1. Variáveis de ambiente
 
-## Roadmap
-If you have ideas for releases in the future, it is a good idea to list them in the README.
+```bash
+cp .env.example .env
+```
 
-## Contributing
-State if you are open to contributions and what your requirements are for accepting them.
+O arquivo `.env.example` traz as credenciais padrão de conexão com o contêiner do
+PostgreSQL. As variáveis relevantes incluem `DATABASE_URL`, `APP_PORT`, `CORS_ORIGIN`,
+`BETTER_AUTH_URL` e as credenciais SMTP usadas no envio do código de redefinição de senha.
 
-For people who want to make changes to your project, it's helpful to have some documentation on how to get started. Perhaps there is a script that they should run or some environment variables that they need to set. Make these steps explicit. These instructions could also be useful to your future self.
+### 2. Subindo o ambiente
 
-You can also document commands to lint the code or run tests. These steps help to ensure high code quality and reduce the likelihood that the changes inadvertently break something. Having instructions for running tests is especially helpful if it requires external setup, such as starting a Selenium server for testing in a browser.
+Com o Docker em execução:
 
-## Authors and acknowledgment
-Show your appreciation to those who have contributed to the project.
+```bash
+npm run dev
+```
 
-## License
-For open source projects, say how it is licensed.
+* 🌐 **API**: `http://localhost:6060`
+* 📚 **Swagger UI**: `http://localhost:6060/docs`
+* ❤️ **Health check**: `http://localhost:6060/health`
+* 🗄️ **PostgreSQL**: `localhost:5433` (mapeado da porta 5432 do contêiner)
 
-## Project status
-If you have run out of energy or time for your project, put a note at the top of the README saying that development has slowed down or stopped completely. Someone may choose to fork your project or volunteer to step in as a maintainer or owner, allowing your project to keep going. You can also make an explicit request for maintainers.
+O contêiner aplica `prisma migrate deploy` automaticamente no boot.
+
+### 3. Inspecionando o banco
+
+```bash
+npm run prisma:studio
+```
+
+---
+
+## 🛡️ Segurança e observabilidade
+
+* **Cabeçalhos de segurança** via `helmet`, com Content Security Policy restritiva
+* **Rate limiting** com `express-rate-limit`: limite geral nas rotas autenticadas e limite
+  mais estrito nas rotas de autenticação
+* **Autenticação** com `better-auth` — sessões com cookie e plugin `bearer` para o cliente
+  móvel; senhas com política de 8 a 32 caracteres, exigindo maiúscula e dígito
+* **Redefinição de senha por OTP** enviado por e-mail (`nodemailer`)
+* **Compressão** de respostas com `compression`, relevante em conexões de baixa largura
+* **Logs estruturados** com `winston` e rotação diária (`winston-daily-rotate-file`)
+* **Tratamento centralizado de erros** normalizando códigos do Prisma, do Zod e do
+  BetterAuth para o envelope padrão, com identificador de rastreio e ocultação de stack
+  trace em produção
+* **Encerramento gracioso** em `SIGINT`/`SIGTERM`, fechando o pool de conexões
+
+---
+
+## 🚢 Implantação
+
+Produção roda em cluster **K3s** na Oracle Cloud (ARM64), exposto por **Cloudflare Tunnel**
+— sem portas abertas na máquina. O pipeline do GitLab CI valida os manifests com
+`kubeconform`, constrói a imagem com Kaniko e atualiza o Deployment via `kubectl`.
+
+Detalhes e diagrama completo em
+[`deployment/infrastructure_diagram.md`](deployment/infrastructure_diagram.md).
+
+---
+
+<p align="center">
+  <em>Backend do Pasto Livre.</em> ☁️ 🐂
+</p>

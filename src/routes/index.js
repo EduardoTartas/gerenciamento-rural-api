@@ -36,11 +36,11 @@ const routes = (app) => {
     }
 
     app.get('/', (req, res) => {
-        res.redirect('/docs');
+        res.redirect('/v1/docs');
     });
 
     // Middleware para impedir que o Cloudflare faça cache da documentação
-    app.use('/docs', (req, res, next) => {
+    app.use('/v1/docs', (req, res, next) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
         res.setHeader('Expires', '0');
@@ -70,15 +70,15 @@ const routes = (app) => {
     });
 
     // Registro de todas as rotas (com rate limiting geral para rotas autenticadas)
-    // IMPORTANTE: rotas específicas de /rebanhos/* devem vir ANTES de rebanhoRoutes
-    // para evitar que GET /rebanhos/:id capture /rebanhos/manejos e /rebanhos/movimentacoes
-    app.use(
+    // Ordem: rotas específicas ANTES de rotas genéricas (/:id), caso contrário
+    // GET /rebanhos/:id captura /rebanhos/manejos e /rebanhos/movimentacoes
+    app.use('/v1',
         authRateLimit,
         userRoutes,
         propriedadeRoutes,
         catalogoRoutes,
-        manejoPastoRoutes,
         pastoRoutes,
+        manejoPastoRoutes,
         manejoRebanhoRoutes,
         movimentacaoRoutes,
         rebanhoRoutes,
