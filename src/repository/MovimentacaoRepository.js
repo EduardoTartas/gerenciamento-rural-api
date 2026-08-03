@@ -90,7 +90,10 @@ class MovimentacaoRepository {
                 data: { status: 'Ocupado' },
             });
 
-            // 4. Pasto de origem → conta rebanhos restantes dentro da transação
+            // 4. Pasto de origem → conta rebanhos restantes dentro da transação.
+            //    Ao esvaziar, o pasto entra em Descanso e `dataUltimaSaida` passa
+            //    a ser o marco zero da rebrota. `Vazio` fica reservado ao pasto
+            //    recém-cadastrado, que nunca recebeu lote.
             if (pastoOrigemId) {
                 const rebanhosRestantes = await tx.rebanho.count({
                     where: { pastoAtualId: pastoOrigemId, ativo: true },
@@ -98,7 +101,7 @@ class MovimentacaoRepository {
                 if (rebanhosRestantes === 0) {
                     await tx.pasto.update({
                         where: { id: pastoOrigemId },
-                        data: { status: 'Vazio', dataUltimaSaida: dataMovimentacao },
+                        data: { status: 'Descanso', dataUltimaSaida: dataMovimentacao },
                     });
                 }
             }

@@ -18,6 +18,9 @@ export const RebanhoCreateSchema = z.object({
     racaId:               uuidOpcional,
     sistemaProducaoId:    uuidOpcional,
     regimeAlimentarId:    uuidOpcional,
+    // Mesma regra da movimentação: o pasto inicial precisa estar livre, salvo
+    // consentimento explícito. Não é coluna — o service remove antes do Prisma.
+    permitirLotacaoConjunta: z.boolean().optional().default(false),
 }).strict();
 
 /**

@@ -92,6 +92,27 @@ class RebanhoService {
             });
         }
 
+        // Lotação conjunta: por padrão o pasto inicial precisa estar livre.
+        // Conta os rebanhos ativos em vez de confiar no campo `status`, que é
+        // cache e pode estar defasado.
+        const { permitirLotacaoConjunta = false, ...dadosRebanho } = parsedData;
+
+        if (!permitirLotacaoConjunta) {
+            const ocupantes = await this.repository.countAtivosNoPasto(parsedData.pastoAtualId);
+            if (ocupantes > 0) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'pastoAtualId',
+                    details: [{
+                        path: 'pastoAtualId',
+                        message: 'O pasto informado já tem outro lote. Envie permitirLotacaoConjunta para juntar os lotes.',
+                    }],
+                    customMessage: 'O pasto informado já está ocupado por outro lote.',
+                });
+            }
+        }
+
         const dataEntradaPastoAtual = parsedData.dataEntradaPastoAtual || new Date();
 
         // Transação atômica: cria rebanho + atualiza status do pasto
@@ -102,7 +123,7 @@ class RebanhoService {
             });
 
             return tx.rebanho.create({
-                data: { ...parsedData, dataEntradaPastoAtual },
+                data: { ...dadosRebanho, dataEntradaPastoAtual },
             });
         });
     }
@@ -179,9 +200,11 @@ class RebanhoService {
                     where: { pastoAtualId: pastoAnteriorId, ativo: true },
                 });
                 if (rebanhosRestantes === 0) {
+                    // Esvaziou: entra em Descanso, com `dataUltimaSaida` como
+                    // marco zero da rebrota (mesma regra da movimentação).
                     await tx.pasto.update({
                         where: { id: pastoAnteriorId },
-                        data: { status: 'Vazio', dataUltimaSaida: new Date() },
+                        data: { status: 'Descanso', dataUltimaSaida: new Date() },
                     });
                 }
             }
