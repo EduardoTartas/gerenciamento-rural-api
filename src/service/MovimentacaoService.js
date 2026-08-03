@@ -98,10 +98,33 @@ class MovimentacaoService {
             });
         }
 
+        // Lotação conjunta: por padrão o destino precisa estar livre.
+        // A contagem real de rebanhos ativos é usada em vez do campo `status`,
+        // que é um cache e pode estar defasado após falhas de sincronização.
+        if (!parsedData.permitirLotacaoConjunta) {
+            const ocupantes = await this.rebanhoRepository.countAtivosNoPasto(
+                parsedData.pastoDestinoId,
+                { excluirRebanhoId: parsedData.rebanhoId },
+            );
+            if (ocupantes > 0) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'pastoDestinoId',
+                    details: [{
+                        path: 'pastoDestinoId',
+                        message: 'O pasto de destino já tem outro lote. Envie permitirLotacaoConjunta para juntar os lotes.',
+                    }],
+                    customMessage: 'O pasto de destino já está ocupado por outro lote.',
+                });
+            }
+        }
+
         const pastoOrigemId = rebanho.pastoAtualId ?? null;
         const dataMovimentacao = parsedData.dataMovimentacao ?? new Date();
 
-        // Count agora é feito DENTRO da transação para evitar race condition
+        // Campo a campo de propósito: `permitirLotacaoConjunta` é regra de
+        // negócio, não coluna — não pode vazar para o Prisma.
         return this.repository.createComTransacao({
             id: parsedData.id,
             rebanhoId: parsedData.rebanhoId,
