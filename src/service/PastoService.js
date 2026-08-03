@@ -107,7 +107,26 @@ class PastoService {
             }
         }
 
-        // TODO: Implementar lógica de cálculo de Taxa de Lotação (cabeças/ha) e capacidade de suporte em endpoints futuros (Dashboards).
+        // TODO(lotacao): taxa de lotação e capacidade de suporte.
+        //
+        // Hoje nada relaciona `rebanho.quantidadeCabecas` com `pasto.extensaoHa`,
+        // então é possível cadastrar 300 cabeças em 2 ha sem nenhum aviso — e
+        // superlotação é o erro de manejo que mais degrada pastagem.
+        //
+        // Esboço da regra, quando for implementada:
+        //   1. UA (unidade animal) = 450 kg de peso vivo.
+        //      UA do lote = (quantidadeCabecas * pesoMedioAtual) / 450.
+        //   2. Taxa de lotação = UA / extensaoHa.
+        //   3. Capacidade de suporte varia com forrageira, solo e época do ano;
+        //      não dá para fixar um número único no código. Começar com um teto
+        //      configurável por propriedade (padrão de referência: 2 UA/ha em
+        //      pastagem tropical bem manejada).
+        //   4. Ultrapassar o teto deve **avisar**, não bloquear: o produtor pode
+        //      estar em manejo de transição, e travar o cadastro faria ele
+        //      registrar dado errado para contornar o sistema.
+        //
+        // Depende de `pesoMedioAtual` preenchido — hoje é opcional. Sem ele,
+        // cair para um valor por categoria animal ou omitir o cálculo.
 
         return this.repository.update(id, parsedData);
     }
