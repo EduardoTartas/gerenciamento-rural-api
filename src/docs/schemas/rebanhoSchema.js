@@ -63,6 +63,7 @@ const rebanhoSchemas = {
             racaId:               { type: "string", format: "uuid", nullable: true, description: "UUID da raça (catálogo global)" },
             sistemaProducaoId:    { type: "string", format: "uuid", nullable: true, description: "UUID do sistema de produção (catálogo global)" },
             regimeAlimentarId:    { type: "string", format: "uuid", nullable: true, description: "UUID do regime alimentar (catálogo global)" },
+            permitirLotacaoConjunta: { type: "boolean", default: false, description: "Autoriza criar o lote em um pasto que já tem outro lote ativo. Sem isso, pasto ocupado retorna 400." },
         },
         required: ["propriedadeId", "nomeRebanho", "pastoAtualId"],
         example: {
