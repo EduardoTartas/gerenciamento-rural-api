@@ -103,10 +103,15 @@ class RebanhoRepository {
 
     /**
      * Conta rebanhos ativos em um pasto.
-     * Usado para atualizar o status do pasto após movimentação/inativação.
+     *
+     * Usado para atualizar o status do pasto após movimentação/inativação e para
+     * checar lotação conjunta. Em `excluirRebanhoId` informe o lote que está
+     * sendo movido, para que ele não conte como ocupante de si mesmo.
      */
-    async countAtivosNoPasto(pastoId) {
-        return this.prisma.rebanho.count({ where: { pastoAtualId: pastoId, ativo: true } });
+    async countAtivosNoPasto(pastoId, { excluirRebanhoId = null } = {}) {
+        const where = { pastoAtualId: pastoId, ativo: true };
+        if (excluirRebanhoId) where.id = { not: excluirRebanhoId };
+        return this.prisma.rebanho.count({ where });
     }
 }
 

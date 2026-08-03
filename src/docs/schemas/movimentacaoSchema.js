@@ -74,9 +74,10 @@ const movimentacaoSchemas = {
             pastoDestinoId:  { type: "string", format: "uuid", description: "UUID do pasto de destino (obrigatório)", example: "c3d4e5f6-a7b8-9012-cdef-123456789012" },
             dataMovimentacao: { type: "string", format: "date-time", description: "Data/hora da movimentação (opcional, padrão: agora). Não pode ser no futuro.", example: "2026-04-20T08:00:00.000Z" },
             observacoes:     { type: "string", nullable: true, description: "Observações adicionais (máx 500 caracteres)", example: "Transferência para pasto de engorda" },
+            permitirLotacaoConjunta: { type: "boolean", default: false, description: "Autoriza mover para um pasto que já tem outro lote ativo. Sem isso, destino ocupado retorna 400." },
         },
         required: ["rebanhoId", "pastoDestinoId"],
-        description: "O pastoOrigemId é preenchido automaticamente pelo sistema com o pasto atual do rebanho.",
+        description: "O pastoOrigemId é preenchido automaticamente pelo sistema com o pasto atual do rebanho. Por padrão o destino precisa estar livre de outros lotes ativos.",
         example: {
             rebanhoId: "d4e5f6a7-b8c9-0123-def0-123456789012",
             pastoDestinoId: "c3d4e5f6-a7b8-9012-cdef-123456789012",

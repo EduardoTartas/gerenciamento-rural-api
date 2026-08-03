@@ -89,6 +89,24 @@ Gerenciamento das subdivisões vitais da propriedade: Piquetes, Pastos e Inverna
 ### 3.3 GET /pastagens/:id
 **Caso de Uso:** Obter detalhes do pasto com listagem contendo cálculos de extensão e status.
 
+> **Ciclo de status do pasto**
+>
+> | Status | Significado |
+> | :--- | :--- |
+> | `Vazio` | Recém-cadastrado, nunca recebeu lote. |
+> | `Ocupado` | Tem ao menos um rebanho ativo. |
+> | `Descanso` | Esvaziou e está em rebrota desde `dataUltimaSaida`. |
+>
+> A transição é automática: ao sair o último lote — por movimentação (6.1) ou
+> inativação de rebanho (5.5) — o pasto passa a `Descanso` e `dataUltimaSaida`
+> vira o marco zero da rebrota. Ao receber lote, volta a `Ocupado` e a contagem
+> é descartada; ela recomeça do zero na próxima saída.
+>
+> Os dias de descanso **não são persistidos**: são derivados de `dataUltimaSaida`
+> na leitura, o que dispensa job agendado e nunca fica defasado. O período de
+> referência (30 dias) é alvo visual do aplicativo — a API não bloqueia a entrada
+> antes do prazo, porque quem conhece a chuva e o estágio do capim é o produtor.
+
 ### 3.4 PATCH /pastagens/:id
 **Caso de Uso:** Atualizar dados do Pasto (área, tipo de capim e status).
 **Regras de Negócio:**
@@ -146,6 +164,7 @@ Gerenciamento dos lotes de gado da propriedade.
 - **Propriedade Ativa:** Bloqueia a criação em propriedade inativa.
 - **Nome Único:** O `nomeRebanho` deve ser exclusivo entre os rebanhos *ativos* da mesma propriedade.
 - **Pasto Válido:** O pasto informado deve existir, estar ativo e pertencer à **mesma propriedade** do rebanho.
+- **Pasto Livre:** o pasto informado não pode ter outro rebanho ativo. Para juntar lotes de propósito, envie `permitirLotacaoConjunta: true`. A checagem conta os rebanhos ativos do pasto em vez de ler o campo `status`, que é cache e pode estar defasado após falha de sincronização.
 - **Transação Atômica:** A criação do rebanho e a mudança do pasto para o status `Ocupado` ocorrem na mesma transação.
 
 ### 5.2 GET /rebanhos
@@ -169,7 +188,7 @@ Gerenciamento dos lotes de gado da propriedade.
 **Caso de Uso:** Inativar um lote (venda, abate ou encerramento).
 **Regras de Negócio:**
 - **Soft-Delete:** Marca `ativo: false`, desvincula do pasto (`pastoAtualId: null`) e limpa `dataEntradaPastoAtual`.
-- **Liberação do Pasto:** Se o pasto de origem ficar sem nenhum rebanho ativo, seu status volta para `Vazio` e `dataUltimaSaida` é preenchida.
+- **Liberação do Pasto:** Se o pasto de origem ficar sem nenhum rebanho ativo, ele entra em `Descanso` e `dataUltimaSaida` é preenchida como marco zero da rebrota.
 - Toda a operação é executada em transação atômica.
 
 ---
@@ -180,13 +199,15 @@ Registro histórico da transferência de lotes entre pastos. **Recurso imutável
 ### 6.1 POST /rebanhos/movimentacoes
 **Caso de Uso:** Registrar a transferência de um lote para outro pasto.
 **Regras de Negócio:**
-- **Campos:** `rebanhoId`, `pastoDestinoId`, e opcionalmente `dataMovimentacao` e `observacoes`.
+- **Campos:** `rebanhoId`, `pastoDestinoId`, e opcionalmente `dataMovimentacao`, `observacoes` e `permitirLotacaoConjunta`.
 - O `pastoOrigemId` é preenchido automaticamente com o pasto atual do rebanho.
 - **Rebanho Ativo:** Não é possível movimentar um lote inativo.
 - **Destino Válido:** O pasto de destino deve existir, estar ativo, e pertencer à mesma propriedade do rebanho.
 - **Destino Diferente da Origem:** Bloqueia a movimentação se o lote já estiver no pasto informado.
+- **Destino Livre:** o destino não pode ter outro rebanho ativo. Para juntar lotes de propósito (desmama, formação de lote de venda), envie `permitirLotacaoConjunta: true`. A checagem conta os rebanhos ativos do destino, ignorando o próprio lote que está sendo movido, em vez de ler o campo `status` — que é cache e pode estar defasado.
+- **Descanso não bloqueia:** um pasto em `Descanso` pode receber lote. A decisão de interromper a rebrota é do produtor; o aplicativo apenas avisa antes de confirmar.
 - **Data Não Futura:** `dataMovimentacao` não pode ser posterior ao momento atual.
-- **Transação Atômica:** Cria o histórico, atualiza o pasto atual do rebanho, marca o destino como `Ocupado` e, caso a origem fique vazia, marca-a como `Vazio` com `dataUltimaSaida`. A contagem de rebanhos restantes é feita dentro da transação, evitando condição de corrida.
+- **Transação Atômica:** Cria o histórico, atualiza o pasto atual do rebanho, marca o destino como `Ocupado` e, caso a origem fique sem lotes, coloca-a em `Descanso` com `dataUltimaSaida`. A contagem de rebanhos restantes é feita dentro da transação, evitando condição de corrida.
 
 ### 6.2 GET /rebanhos/movimentacoes
 **Caso de Uso:** Consultar a linha do tempo de movimentações.
