@@ -1,6 +1,7 @@
 // src/repository/MovimentacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
 
 const MOVIMENTACAO_SELECT = {
     id: true,
@@ -119,6 +120,79 @@ class MovimentacaoRepository {
             }
 
             return movimentacao;
+        });
+    }
+
+    /** Movimentação ativa mais recente de um rebanho, ou `null`. */
+    async ultimaDoRebanho(rebanhoId) {
+        return this.prisma.historicoMovimentacao.findFirst({
+            where: { rebanhoId, ativo: true },
+            orderBy: [{ dataMovimentacao: 'desc' }, { createdAt: 'desc' }],
+        });
+    }
+
+    /**
+     * Reverte o efeito de uma movimentação, em transação.
+     *
+     * O `status` dos pastos é recalculado contando rebanhos ativos, nunca lendo
+     * o campo `status` — ele é cache e já esteve comprovadamente defasado.
+     *
+     * A checagem "isso ainda é a última movimentação do rebanho?" é refeita
+     * AQUI, com o cliente transacional (`tx`), e não apenas confiando no read
+     * que o service fez antes de abrir a transação. Entre aquele read e este
+     * ponto outra movimentação pode ter sido criada para o mesmo rebanho —
+     * sem reconferir dentro da transação, a reversão aplicaria efeitos sobre
+     * um estado que já mudou.
+     */
+    async desfazerComTransacao(movimentacao) {
+        const { id, rebanhoId, pastoOrigemId, pastoDestinoId } = movimentacao;
+
+        return this.prisma.$transaction(async (tx) => {
+            const ultima = await tx.historicoMovimentacao.findFirst({
+                where: { rebanhoId, ativo: true },
+                orderBy: [{ dataMovimentacao: 'desc' }, { createdAt: 'desc' }],
+            });
+            if (!ultima || ultima.id !== id) {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.CONFLICT.code,
+                    errorType: 'conflict',
+                    field: 'id',
+                    details: [{
+                        path: 'id',
+                        message: `Só a última movimentação pode ser desfeita. A última é ${ultima?.id ?? 'inexistente'}.`,
+                    }],
+                    customMessage: 'Só a última movimentação do lote pode ser desfeita.',
+                });
+            }
+
+            const desfeita = await tx.historicoMovimentacao.update({
+                where: { id },
+                data: { ativo: false },
+                select: MOVIMENTACAO_SELECT,
+            });
+
+            await tx.rebanho.update({
+                where: { id: rebanhoId },
+                data: {
+                    pastoAtualId: pastoOrigemId,
+                    dataEntradaPastoAtual: movimentacao.dataMovimentacao,
+                },
+            });
+
+            for (const pastoId of [pastoOrigemId, pastoDestinoId]) {
+                if (!pastoId) continue;
+                const ocupantes = await tx.rebanho.count({
+                    where: { pastoAtualId: pastoId, ativo: true },
+                });
+                await tx.pasto.update({
+                    where: { id: pastoId },
+                    data: ocupantes > 0
+                        ? { status: 'Ocupado' }
+                        : { status: 'Descanso', dataUltimaSaida: new Date() },
+                });
+            }
+
+            return desfeita;
         });
     }
 }

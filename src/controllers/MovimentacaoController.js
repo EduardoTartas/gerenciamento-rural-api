@@ -63,6 +63,24 @@ class MovimentacaoController {
 
         return CommonResponse.created(res, data, 'Movimentação registrada com sucesso.');
     }
+
+    /**
+     * Desfaz a última movimentação de um rebanho.
+     * DELETE /rebanhos/movimentacoes/:id
+     */
+    async remove(req, res) {
+        const { id } = req.params;
+        MovimentacaoIdSchema.parse(id);
+
+        const data = await this.service.remove(id, req);
+
+        return CommonResponse.success(
+            res,
+            data,
+            HttpStatusCodes.OK.code,
+            'Movimentação desfeita com sucesso.',
+        );
+    }
 }
 
 export default MovimentacaoController;

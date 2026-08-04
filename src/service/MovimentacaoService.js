@@ -136,6 +136,33 @@ class MovimentacaoService {
         });
     }
 
+    /**
+     * Desfaz a última movimentação de um rebanho.
+     *
+     * Só a última: desfazer uma do meio deixaria o histórico dizendo que o lote
+     * saiu de A para B e depois apareceu em C sem nunca ter ido para lá.
+     */
+    async remove(id, req) {
+        const usuarioId = req.user.id;
+        const movimentacao = await this.ensureMovimentacaoExists(id, usuarioId);
+
+        const ultima = await this.repository.ultimaDoRebanho(movimentacao.rebanhoId);
+        if (!ultima || ultima.id !== movimentacao.id) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.CONFLICT.code,
+                errorType: 'conflict',
+                field: 'id',
+                details: [{
+                    path: 'id',
+                    message: `Só a última movimentação pode ser desfeita. A última é ${ultima?.id ?? 'inexistente'}.`,
+                }],
+                customMessage: 'Só a última movimentação do lote pode ser desfeita.',
+            });
+        }
+
+        return this.repository.desfazerComTransacao(movimentacao);
+    }
+
     // ================================
     // MÉTODOS UTILITÁRIOS
     // ================================
