@@ -1,6 +1,7 @@
 // src/utils/helpers/CommonResponse.js
 
 import StatusService from './StatusService.js';
+import { descreverErro } from './tiposDeErro.js';
 
 class CommonResponse {
     constructor(message, data = null, errors = []) {
@@ -26,7 +27,10 @@ class CommonResponse {
     static error(res, code, errorType, field = null, errors = [], customMessage = null) {
         const errorMessage = customMessage || StatusService.getErrorMessage(errorType, field);
         const response = new CommonResponse(errorMessage, null, errors);
-        return res.status(code).json(response);
+        // `tipo` e `recuperavel` viajam no envelope para o cliente obedecer em
+        // vez de deduzir do código HTTP.
+        const { tipo, recuperavel } = descreverErro(errorType);
+        return res.status(code).json({ ...response.toJSON(), tipo, recuperavel });
     }
 
     static created(res, data, message = null) {
