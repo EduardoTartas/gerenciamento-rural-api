@@ -11,7 +11,10 @@
     "start:docker": "docker compose -f docker-compose.yml up --build",
     "prisma:studio": "docker compose -f docker-compose.dev.yml exec api npx prisma studio --browser none",
     "prisma:migrate": "docker compose -f docker-compose.dev.yml exec api npx prisma migrate dev --name update-schema",
-    "prisma:seed": "docker compose -f docker-compose.dev.yml exec api node prisma/seeds/index.js"
+    "prisma:seed": "docker compose -f docker-compose.dev.yml exec api node prisma/seeds/index.js",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "test:cov": "vitest run --coverage"
   },
   "repository": {
     "type": "git",
@@ -45,8 +48,10 @@
   },
   "devDependencies": {
     "@faker-js/faker": "^10.4.0",
+    "@vitest/coverage-v8": "^4.1.10",
     "dotenv": "^17.3.1",
     "nodemon": "^3.1.14",
-    "prisma": "^7.5.0"
+    "prisma": "^7.5.0",
+    "vitest": "^4.1.10"
   }
 }
