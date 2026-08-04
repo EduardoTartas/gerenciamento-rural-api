@@ -147,3 +147,6 @@ minio-data/
 /context
 
 /scripts
+
+# Workspace do subagent-driven-development (ledger, briefs, relatorios)
+.superpowers/
