@@ -163,6 +163,7 @@ model propriedade {
   rebanhos rebanho[]
 
   @@index([usuarioId])
+  @@index([usuarioId, updatedAt])
   @@map("propriedades")
 }
 
@@ -189,6 +190,7 @@ model pasto {
   movimentacoesDestino historicoMovimentacao[] @relation("PastoDestino")
 
   @@index([propriedadeId])
+  @@index([propriedadeId, updatedAt])
   @@map("pastos")
 }
 
@@ -221,6 +223,7 @@ model rebanho {
   manejos       manejoRebanho[]
 
   @@index([propriedadeId])
+  @@index([propriedadeId, updatedAt])
   @@index([pastoAtualId])
   @@index([racaId])
   @@index([sistemaProducaoId])
@@ -240,11 +243,14 @@ model historicoMovimentacao {
   pastoDestino     pasto?   @relation("PastoDestino", fields: [pastoDestinoId], references: [id], onDelete: SetNull)
   dataMovimentacao DateTime @default(now())
   observacoes      String?
+  ativo            Boolean  @default(true)
   createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
 
   @@index([rebanhoId])
   @@index([pastoOrigemId])
   @@index([pastoDestinoId])
+  @@index([rebanhoId, updatedAt])
   @@map("historico_movimentacoes")
 }
 
@@ -258,11 +264,13 @@ model manejoRebanho {
   pesoRegistrado    Decimal?
   dataAtividade     DateTime
   observacoes       String?
+  ativo             Boolean           @default(true)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
   @@index([rebanhoId])
   @@index([tipoManejoId])
+  @@index([rebanhoId, updatedAt])
   @@map("manejo_rebanhos")
 }
 
@@ -274,10 +282,33 @@ model manejoPasto {
   tipoManejo    tipoManejoPasto @relation(fields: [tipoManejoId], references: [id])
   dataAtividade DateTime
   observacoes   String?
+  ativo         Boolean         @default(true)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
   @@index([pastoId])
   @@index([tipoManejoId])
+  @@index([pastoId, updatedAt])
   @@map("manejo_pastos")
+}
+
+/// Mutações já aplicadas pelo endpoint de lote.
+///
+/// O aplicativo reenvia o lote quando a resposta se perde — cenário comum em
+/// sinal ruim, que é o caso de uso central do sistema. O registro é gravado na
+/// mesma transação da mutação: ou os dois entram, ou nenhum.
+///
+/// `usuarioId` fica sem relação declarada de propósito, como `session` e
+/// `account`: é tabela operacional, não de domínio, e não deve participar de
+/// cascata de exclusão do usuário.
+model mutacaoAplicada {
+  id         String   @id
+  usuarioId  String
+  entidade   String
+  entidadeId String
+  resultado  Json
+  aplicadaEm DateTime @default(now())
+
+  @@index([usuarioId, aplicadaEm])
+  @@map("mutacoes_aplicadas")
 }
