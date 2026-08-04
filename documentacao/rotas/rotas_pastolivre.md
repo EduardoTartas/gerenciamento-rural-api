@@ -194,7 +194,7 @@ Gerenciamento dos lotes de gado da propriedade.
 ---
 
 ## 6. /rebanhos/movimentacoes
-Registro histórico da transferência de lotes entre pastos. **Recurso imutável**: aceita apenas criação e consulta — não há PATCH nem DELETE, para garantir a rastreabilidade zootécnica.
+Registro histórico da transferência de lotes entre pastos. **Recurso imutável**: não há PATCH — o histórico não pode ser editado. O DELETE não apaga um registro: desfaz a última movimentação do rebanho, revertendo seus efeitos.
 
 ### 6.1 POST /rebanhos/movimentacoes
 **Caso de Uso:** Registrar a transferência de um lote para outro pasto.
@@ -217,6 +217,13 @@ Registro histórico da transferência de lotes entre pastos. **Recurso imutável
 
 ### 6.3 GET /rebanhos/movimentacoes/:id
 **Caso de Uso:** Detalhar um registro específico de movimentação.
+
+### 6.4 DELETE /rebanhos/movimentacoes/:id
+**Caso de Uso:** Desfazer um lançamento incorreto de movimentação.
+**Regras de Negócio:**
+- **Somente a Última:** só a movimentação mais recente e ativa do rebanho pode ser desfeita. Desfazer uma do meio da cadeia deixaria o histórico incoerente (o lote apareceria num pasto onde nunca entrou). Tentar desfazer qualquer outra retorna 409.
+- **Transação Atômica:** marca a movimentação como `ativo: false`, devolve o rebanho ao `pastoOrigemId` (restaurando `dataEntradaPastoAtual` para a data da movimentação desfeita) e recalcula o `status` de origem e destino contando rebanhos ativos — nunca lendo o campo `status`, que é cache.
+- Se o pasto ficar sem nenhum rebanho ativo após a reversão, entra em `Descanso` com `dataUltimaSaida` atualizada; caso contrário, `Ocupado`.
 
 ---
 

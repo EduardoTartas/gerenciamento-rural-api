@@ -90,7 +90,7 @@ const movimentacaoRoutes = {
             summary: "Obtém detalhes de uma movimentação por ID",
             description: `
             + Retorna todos os dados da movimentação incluindo rebanho, pasto de origem e pasto de destino.
-            + **Movimentações são imutáveis** — não há PATCH nem DELETE neste recurso.
+            + **Movimentações são imutáveis** — não há PATCH neste recurso.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "UUID da Movimentação" }],
@@ -99,6 +99,35 @@ const movimentacaoRoutes = {
                 400: commonResponses[400](),
                 401: commonResponses[401](),
                 404: commonResponses[404](),
+                500: commonResponses[500]()
+            }
+        },
+        delete: {
+            tags: ["Movimentações"],
+            summary: "Desfaz a última movimentação de um rebanho",
+            description: `
+            + Caso de uso: Desfazer o lançamento de uma movimentação registrada por engano.
+
+            + Função de Negócio (operação atômica em transação):
+                1. Confirma que o ID informado é a movimentação ativa mais recente do rebanho — do contrário, HTTP 409.
+                2. Marca a movimentação como \`ativo: false\`.
+                3. **Atualiza** o rebanho: devolve \`pastoAtualId\` ao pasto de origem e restaura \`dataEntradaPastoAtual\` para a data da movimentação desfeita.
+                4. **Pastos de Origem e Destino** → status recalculado contando rebanhos ativos (nunca lendo o campo \`status\`, que é cache): \`"Ocupado"\` se ainda houver algum, senão \`"Descanso"\` com \`dataUltimaSaida\` atualizada.
+
+            + Regras de Negócio:
+                - **Somente a última:** desfazer uma movimentação do meio da cadeia deixaria o histórico incoerente. Qualquer outra retorna 409.
+
+            + Resultado Esperado:
+                - HTTP 200 com a movimentação desfeita.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [{ name: "id", in: "path", required: true, schema: { type: "string", format: "uuid" }, description: "UUID da Movimentação" }],
+            responses: {
+                200: commonResponses[200]("#/components/schemas/MovimentacaoListItem"),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                404: commonResponses[404](),
+                409: commonResponses[409](),
                 500: commonResponses[500]()
             }
         }

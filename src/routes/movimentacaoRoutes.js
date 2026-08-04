@@ -9,12 +9,14 @@ const router = express.Router();
 const movimentacaoController = new MovimentacaoController();
 
 /**
- * Movimentações são imutáveis (apenas criação e consulta).
- * Não há PATCH nem DELETE — histórico não pode ser alterado.
+ * Movimentações são imutáveis (não há PATCH — histórico não pode ser
+ * alterado). O DELETE não apaga o registro: desfaz apenas a última
+ * movimentação do rebanho, revertendo seus efeitos colaterais.
  */
 router
     .get('/rebanhos/movimentacoes',     AuthMiddleware, asyncWrapper(movimentacaoController.list.bind(movimentacaoController)))
     .get('/rebanhos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoController.list.bind(movimentacaoController)))
-    .post('/rebanhos/movimentacoes',    AuthMiddleware, asyncWrapper(movimentacaoController.create.bind(movimentacaoController)));
+    .post('/rebanhos/movimentacoes',    AuthMiddleware, asyncWrapper(movimentacaoController.create.bind(movimentacaoController)))
+    .delete('/rebanhos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoController.remove.bind(movimentacaoController)));
 
 export default router;

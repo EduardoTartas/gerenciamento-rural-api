@@ -121,6 +121,54 @@ class MovimentacaoRepository {
             return movimentacao;
         });
     }
+
+    /** Movimentação ativa mais recente de um rebanho, ou `null`. */
+    async ultimaDoRebanho(rebanhoId) {
+        return this.prisma.historicoMovimentacao.findFirst({
+            where: { rebanhoId, ativo: true },
+            orderBy: [{ dataMovimentacao: 'desc' }, { createdAt: 'desc' }],
+        });
+    }
+
+    /**
+     * Reverte o efeito de uma movimentação, em transação.
+     *
+     * O `status` dos pastos é recalculado contando rebanhos ativos, nunca lendo
+     * o campo `status` — ele é cache e já esteve comprovadamente defasado.
+     */
+    async desfazerComTransacao(movimentacao) {
+        const { id, rebanhoId, pastoOrigemId, pastoDestinoId } = movimentacao;
+
+        return this.prisma.$transaction(async (tx) => {
+            const desfeita = await tx.historicoMovimentacao.update({
+                where: { id },
+                data: { ativo: false },
+            });
+
+            await tx.rebanho.update({
+                where: { id: rebanhoId },
+                data: {
+                    pastoAtualId: pastoOrigemId,
+                    dataEntradaPastoAtual: movimentacao.dataMovimentacao,
+                },
+            });
+
+            for (const pastoId of [pastoOrigemId, pastoDestinoId]) {
+                if (!pastoId) continue;
+                const ocupantes = await tx.rebanho.count({
+                    where: { pastoAtualId: pastoId, ativo: true },
+                });
+                await tx.pasto.update({
+                    where: { id: pastoId },
+                    data: ocupantes > 0
+                        ? { status: 'Ocupado' }
+                        : { status: 'Descanso', dataUltimaSaida: new Date() },
+                });
+            }
+
+            return desfeita;
+        });
+    }
 }
 
 export default MovimentacaoRepository;
