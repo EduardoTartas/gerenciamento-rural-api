@@ -25,14 +25,25 @@ describe('registro de mutações aplicadas', () => {
 
     it('devolve as já aplicadas indexadas por id', async () => {
         const { repo } = await montar();
-        const mapa = await repo.buscarPorIds(['m1', 'm2']);
+        const mapa = await repo.buscarPorIds('u1', ['m1', 'm2']);
         expect(mapa.get('m1')).toEqual({ situacao: 'aceito' });
         expect(mapa.has('m2')).toBe(false);
     });
 
+    it('escopa a consulta ao usuário autenticado', async () => {
+        // O id da mutação vem do cliente. Sem filtrar por usuarioId, uma
+        // colisão de id com outro usuário devolveria o resultado alheio.
+        const { repo, findMany } = await montar();
+        await repo.buscarPorIds('u1', ['m1', 'm2']);
+
+        const { where } = findMany.mock.calls[0][0];
+        expect(where.usuarioId).toBe('u1');
+        expect(where.id.in).toEqual(['m1', 'm2']);
+    });
+
     it('lista vazia não consulta o banco', async () => {
         const { repo, findMany } = await montar();
-        const mapa = await repo.buscarPorIds([]);
+        const mapa = await repo.buscarPorIds('u1', []);
         expect(mapa.size).toBe(0);
         expect(findMany).not.toHaveBeenCalled();
     });

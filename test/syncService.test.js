@@ -136,6 +136,81 @@ describe('aplicação do lote', () => {
         expect(resultados[0].situacao).toBe('aceito');
     });
 
+    it('busca mutações já aplicadas escopada ao usuário autenticado', async () => {
+        // O id da mutação é gerado pelo cliente. Sem filtrar por usuarioId na
+        // consulta de idempotência, uma colisão de id com outro usuário
+        // devolveria o resultado alheio como se fosse deste usuário.
+        const service = await montar({
+            despacho: { 'pastos:CREATE': vi.fn().mockResolvedValue({ id: 'ent-a' }) },
+        });
+
+        await service.aplicarLote([mutacao('a', 'pastos', 'CREATE')], req);
+
+        expect(service.mutacoesAplicadas.buscarPorIds).toHaveBeenCalledWith('u1', ['a']);
+    });
+
+    it('erro resourceNotFound do domínio volta como recuperavel: false', async () => {
+        // `ensure*Exists` dos services de domínio lança `errorType:
+        // 'resourceNotFound'`, não `notFound`. Antes do fix, isso caía no
+        // padrão `serverError` (recuperável) e o cliente offline reenviaria a
+        // mutação morta para sempre.
+        const erroDeRecurso = Object.assign(new Error('Pastagem não encontrada.'), {
+            errorType: 'resourceNotFound',
+            field: 'Pastagem',
+            customMessage: 'Pastagem não encontrada ou não pertence ao usuário autenticado.',
+        });
+
+        const service = await montar({
+            despacho: { 'pastos:UPDATE': vi.fn().mockRejectedValue(erroDeRecurso) },
+        });
+
+        const { resultados } = await service.aplicarLote(
+            [mutacao('a', 'pastos', 'UPDATE')],
+            req,
+        );
+
+        expect(resultados[0]).toMatchObject({
+            situacao: 'recusado',
+            erro: {
+                tipo: 'resourceNotFound',
+                recuperavel: false,
+                mensagem: 'Pastagem não encontrada ou não pertence ao usuário autenticado.',
+            },
+        });
+    });
+
+    it('erro inesperado (sem errorType) vira recusado genérico, sem vazar texto interno nem derrubar o lote', async () => {
+        const service = await montar({
+            despacho: {
+                'pastos:CREATE': vi.fn().mockRejectedValue(new Error('null value in column "nome" violates not-null constraint')),
+            },
+        });
+
+        const { resultados } = await service.aplicarLote(
+            [mutacao('a', 'pastos', 'CREATE')],
+            req,
+        );
+
+        expect(resultados[0].situacao).toBe('recusado');
+        expect(resultados[0].erro.tipo).toBe('serverError');
+        expect(resultados[0].erro.recuperavel).toBe(true);
+        expect(resultados[0].erro.mensagem).not.toMatch(/constraint|column/i);
+    });
+
+    it('erro inesperado sem forma de Error (throw de valor não-Error) não derruba o lote', async () => {
+        const service = await montar({
+            despacho: {
+                'pastos:CREATE': vi.fn().mockRejectedValue('falha crua sem shape de Error'),
+            },
+        });
+
+        await expect(
+            service.aplicarLote([mutacao('a', 'pastos', 'CREATE')], req),
+        ).resolves.toMatchObject({
+            resultados: [{ situacao: 'recusado', erro: { tipo: 'serverError' } }],
+        });
+    });
+
     it('recusa par entidade-ação desconhecido', async () => {
         const service = await montar({ despacho: {} });
 

@@ -6,12 +6,13 @@ import {
 } from '../src/utils/helpers/tiposDeErro.js';
 
 describe('tipos de erro', () => {
-    it('declara os sete tipos do contrato', () => {
+    it('declara os oito tipos do contrato', () => {
         expect(Object.keys(TIPOS_DE_ERRO).sort()).toEqual([
             'conflict',
             'forbidden',
             'notFound',
             'rateLimit',
+            'resourceNotFound',
             'serverError',
             'unauthorized',
             'validationError',
@@ -23,6 +24,7 @@ describe('tipos de erro', () => {
         expect(descreverErro('unauthorized').http).toBe(401);
         expect(descreverErro('forbidden').http).toBe(403);
         expect(descreverErro('notFound').http).toBe(404);
+        expect(descreverErro('resourceNotFound').http).toBe(404);
         expect(descreverErro('conflict').http).toBe(409);
         expect(descreverErro('rateLimit').http).toBe(429);
         expect(descreverErro('serverError').http).toBe(500);
@@ -38,7 +40,19 @@ describe('tipos de erro', () => {
         expect(ehRecuperavel('validationError')).toBe(false);
         expect(ehRecuperavel('conflict')).toBe(false);
         expect(ehRecuperavel('notFound')).toBe(false);
+        expect(ehRecuperavel('resourceNotFound')).toBe(false);
         expect(ehRecuperavel('forbidden')).toBe(false);
+    });
+
+    it('resourceNotFound (erro real dos services de domínio) não é retry infinito', () => {
+        // `ensure*Exists` nos seis services lança `errorType: 'resourceNotFound'`,
+        // não `notFound`. Sem esta entrada, caía no padrão `serverError` e o
+        // cliente offline reenviaria a mutação morta para sempre.
+        expect(descreverErro('resourceNotFound')).toEqual({
+            tipo: 'resourceNotFound',
+            http: 404,
+            recuperavel: false,
+        });
     });
 
     it('sessão expirada é recuperável, não culpa do dado', () => {

@@ -3,6 +3,7 @@
 import DbConnect from '../config/dbConnect.js';
 import MutacaoAplicadaRepository from '../repository/MutacaoAplicadaRepository.js';
 import { CustomError, HttpStatusCodes, descreverErro } from '../utils/helpers/index.js';
+import logger from '../utils/logger.js';
 import { DESPACHO } from './sync/despacho.js';
 import { descendentes, ordenarPorDependencia } from './sync/grafoDeDependencia.js';
 
@@ -39,7 +40,7 @@ class SyncService {
         }
 
         const porId = new Map(mutacoes.map((m) => [m.id, m]));
-        const jaAplicadas = await this.mutacoesAplicadas.buscarPorIds(ordem);
+        const jaAplicadas = await this.mutacoesAplicadas.buscarPorIds(usuarioId, ordem);
 
         const resultados = new Map();
         const bloqueadas = new Map(); // id da bloqueada -> id de quem a bloqueou
@@ -122,7 +123,42 @@ class SyncService {
     }
 
     _recusa(mutacao, erro) {
-        const { tipo, recuperavel } = descreverErro(erro.errorType);
+        // `erro?.` em tudo: um throw fora do padrão (valor não-Error, `null`)
+        // não pode derrubar o item — item ruim vira `recusado`, não 500 no lote.
+        const tipoBruto = erro?.errorType;
+
+        if (!tipoBruto) {
+            // Sem `errorType` não é um CustomError do domínio — é Prisma cru,
+            // bug ou qualquer coisa inesperada. `errorHandler.js` nunca vê isto
+            // porque o lote captura por item, então o log tem que acontecer
+            // aqui, senão o erro desaparece sem deixar rastro no servidor. E a
+            // mensagem ao cliente não pode ecoar `erro.message`: texto de
+            // erro do Prisma expõe nome de coluna/tabela, o oposto do
+            // "português claro, sem jargão técnico" que chega no celular do
+            // produtor.
+            logger.error('Erro inesperado ao aplicar mutação do lote', {
+                mutacaoId: mutacao.id,
+                entidade: mutacao.entidade,
+                entidadeId: mutacao.entidadeId,
+                message: erro?.message,
+                stack: erro?.stack,
+            });
+
+            return {
+                id: mutacao.id,
+                situacao: 'recusado',
+                entidade: mutacao.entidade,
+                entidadeId: mutacao.entidadeId,
+                erro: {
+                    tipo: 'serverError',
+                    campo: null,
+                    mensagem: 'Erro ao aplicar a mutação. Tente novamente mais tarde.',
+                    recuperavel: true,
+                },
+            };
+        }
+
+        const { tipo, recuperavel } = descreverErro(tipoBruto);
         return {
             id: mutacao.id,
             situacao: 'recusado',

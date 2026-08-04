@@ -14,12 +14,18 @@ class MutacaoAplicadaRepository {
         this.prisma = DbConnect.prisma;
     }
 
-    /** Mapa `id -> resultado` das mutações que já foram aplicadas. */
-    async buscarPorIds(ids) {
+    /**
+     * Mapa `id -> resultado` das mutações que já foram aplicadas.
+     *
+     * Escopado por `usuarioId`: o id da mutação é gerado pelo cliente, então
+     * sem este filtro uma colisão de id com outro usuário devolveria o
+     * resultado alheio — violaria o isolamento multi-tenant do resto da API.
+     */
+    async buscarPorIds(usuarioId, ids) {
         if (ids.length === 0) return new Map();
 
         const registros = await this.prisma.mutacaoAplicada.findMany({
-            where: { id: { in: ids } },
+            where: { id: { in: ids }, usuarioId },
             select: { id: true, resultado: true },
         });
         return new Map(registros.map((r) => [r.id, r.resultado]));
