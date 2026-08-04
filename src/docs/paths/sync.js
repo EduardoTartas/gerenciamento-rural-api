@@ -21,6 +21,7 @@ const syncRoutes = {
                 - \`historico_movimentacoes\` não aceita \`UPDATE\` — é evento imutável, corrige-se desfazendo ou lançando outra movimentação.
                 - O identificador da entidade vem sempre em \`entidadeId\`; \`dados\` nunca pode conter a chave \`id\`.
                 - \`dados\` é obrigatório em \`CREATE\`/\`UPDATE\` e ausente em \`DELETE\`.
+                - **\`dados\` passa pelo mesmo schema da rota REST equivalente**, incluindo a recusa de campos fora do schema. Um \`pastos:UPDATE\` com \`propriedadeId\`, por exemplo, é recusado aqui como seria com 400 no \`PATCH /pastagens/:id\` — mudar o vínculo de propriedade não é edição de pasto. A recusa é do item, com \`erro.tipo = validationError\`, e não derruba o lote.
                 - **O lote não é atômico entre itens:** uma mutação recusada não derruba as demais — só bloqueia quem dependia dela.
 
             + Resultado Esperado:

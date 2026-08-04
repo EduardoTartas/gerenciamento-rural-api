@@ -6,6 +6,7 @@ import { CustomError, HttpStatusCodes, descreverErro } from '../utils/helpers/in
 import logger from '../utils/logger.js';
 import { DESPACHO } from './sync/despacho.js';
 import { descendentes, ordenarPorDependencia } from './sync/grafoDeDependencia.js';
+import { validarDadosDaMutacao } from './sync/validacao.js';
 
 /** Dias que uma mutação aplicada fica registrada. */
 const RETENCAO_EM_DIAS = 30;
@@ -93,9 +94,19 @@ class SyncService {
             });
         }
 
+        // Mesma porta de entrada do REST. O controller REST faz
+        // `XSchema.parse(req.body)` antes de chamar o service; aqui não havia
+        // equivalente, e `dados` seguia cru até o Prisma. Recusa é por item —
+        // um corpo inválido não pode abortar o lote inteiro.
+        const validacao = validarDadosDaMutacao({ entidade, acao, dados });
+        if (!validacao.ok) {
+            return this._recusa(mutacao, validacao.erro);
+        }
+        const dadosValidados = validacao.dados;
+
         try {
             return await this.prisma.$transaction(async (tx) => {
-                const gravado = await executar({ entidadeId, dados, req, tx });
+                const gravado = await executar({ entidadeId, dados: dadosValidados, req, tx });
 
                 const resultado = {
                     id,
