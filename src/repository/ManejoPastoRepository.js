@@ -32,6 +32,7 @@ class ManejoPastoRepository {
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             pasto: { propriedade: { usuarioId } },
+            ativo: filters.ativo !== undefined ? filters.ativo : true,
         };
 
         if (filters.pastoId)      where.pastoId      = filters.pastoId;
@@ -85,12 +86,14 @@ class ManejoPastoRepository {
     }
 
     /**
-     * Remove um manejo de pasto por ID.
+     * Exclusão lógica. A linha precisa continuar existindo para o delta poder
+     * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
+     * informar, e o aplicativo ficaria com um registro fantasma.
      */
     async remove(id) {
-        return this.prisma.manejoPasto.delete({
+        return this.prisma.manejoPasto.update({
             where: { id },
-            select: { id: true, pastoId: true, tipoManejoId: true, dataAtividade: true },
+            data: { ativo: false },
         });
     }
 }

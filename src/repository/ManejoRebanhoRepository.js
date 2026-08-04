@@ -30,6 +30,7 @@ class ManejoRebanhoRepository {
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             rebanho: { propriedade: { usuarioId } },
+            ativo: filters.ativo !== undefined ? filters.ativo : true,
         };
 
         if (filters.rebanhoId)    where.rebanhoId    = filters.rebanhoId;
@@ -100,10 +101,15 @@ class ManejoRebanhoRepository {
         return this.prisma.manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT });
     }
 
+    /**
+     * Exclusão lógica. A linha precisa continuar existindo para o delta poder
+     * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
+     * informar, e o aplicativo ficaria com um registro fantasma.
+     */
     async remove(id) {
-        return this.prisma.manejoRebanho.delete({
+        return this.prisma.manejoRebanho.update({
             where: { id },
-            select: { id: true, rebanhoId: true, tipoManejoId: true, dataAtividade: true },
+            data: { ativo: false },
         });
     }
 }
