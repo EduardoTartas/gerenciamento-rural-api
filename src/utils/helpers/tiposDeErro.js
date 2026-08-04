@@ -9,13 +9,18 @@
  * justamente os dois casos em que insistir é a resposta certa.
  */
 export const TIPOS_DE_ERRO = {
-    validationError: { http: 400, recuperavel: false },
-    unauthorized:    { http: 401, recuperavel: true  },
-    forbidden:       { http: 403, recuperavel: false },
-    notFound:        { http: 404, recuperavel: false },
-    conflict:        { http: 409, recuperavel: false },
-    rateLimit:       { http: 429, recuperavel: true  },
-    serverError:     { http: 500, recuperavel: true  },
+    validationError:  { http: 400, recuperavel: false },
+    unauthorized:     { http: 401, recuperavel: true  },
+    forbidden:        { http: 403, recuperavel: false },
+    notFound:         { http: 404, recuperavel: false },
+    // Os services de domínio lançam `resourceNotFound` (via `ensure*Exists`),
+    // não `notFound` — sem esta entrada, `descreverErro` caía no padrão
+    // `serverError` (recuperável), e um 404 de negócio virava retry infinito
+    // no cliente offline.
+    resourceNotFound: { http: 404, recuperavel: false },
+    conflict:         { http: 409, recuperavel: false },
+    rateLimit:        { http: 429, recuperavel: true  },
+    serverError:      { http: 500, recuperavel: true  },
 };
 
 const PADRAO = 'serverError';
