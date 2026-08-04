@@ -18,10 +18,15 @@ describe('desfazer movimentação', () => {
         ativo: true,
     };
 
-    async function montarService({ ultima, alvo }) {
+    async function montarService({ ultima, alvo, ultimaNaTransacao = ultima }) {
         const escritas = [];
         const tx = {
             historicoMovimentacao: {
+                // Reconfere "é isso mesmo a última?" com o cliente transacional.
+                // Recebe seu próprio parâmetro (`ultimaNaTransacao`) para simular,
+                // nos testes, uma movimentação concorrente criada entre o check
+                // do service (fora da transação) e a abertura da transação.
+                findFirst: vi.fn(async () => ultimaNaTransacao),
                 update: vi.fn(async (args) => {
                     escritas.push({ tabela: 'movimentacao', ...args });
                     return { ...alvo, ativo: false };
@@ -104,5 +109,27 @@ describe('desfazer movimentação', () => {
         await service.remove('mov3', req);
 
         expect(tx.contarRebanhos).toHaveBeenCalled();
+    });
+
+    it('reconfere dentro da transação: não confia só no check feito antes de abrir a transação', async () => {
+        // O check externo (em `remove`) passa — `mov3` ainda é a última segundo
+        // aquele read. Mas entre esse read e a transação abrir, outra
+        // movimentação ('mov4') foi criada para o mesmo rebanho. A transação
+        // precisa reconferir com seu próprio cliente (`tx`) e recusar, mesmo
+        // com o check externo já tendo dado passagem.
+        const concorrente = { ...ULTIMA, id: 'mov4' };
+        const { service, tx } = await montarService({
+            ultima: ULTIMA,
+            alvo: ULTIMA,
+            ultimaNaTransacao: concorrente,
+        });
+
+        await expect(service.remove('mov3', req)).rejects.toMatchObject({
+            errorType: 'conflict',
+            statusCode: 409,
+        });
+        expect(tx.historicoMovimentacao.findFirst).toHaveBeenCalled();
+        expect(tx.historicoMovimentacao.update).not.toHaveBeenCalled();
+        expect(tx.rebanho.update).not.toHaveBeenCalled();
     });
 });
