@@ -13,6 +13,11 @@ export const MovimentacaoQuerySchema = z.object({
     pastoDestinoId: z.string().uuid().optional(),
     dataInicio:    z.coerce.date({ error: 'Data de início inválida.' }).optional(),
     dataFim:       z.coerce.date({ error: 'Data de fim inválida.' }).optional(),
+    atualizadoDesde: z
+        .string()
+        .datetime({ message: 'atualizadoDesde deve ser uma data ISO 8601 em UTC.' })
+        .transform((valor) => new Date(valor))
+        .optional(),
     page:          z.coerce.number().int().positive().optional().default(1),
     limit:         z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();

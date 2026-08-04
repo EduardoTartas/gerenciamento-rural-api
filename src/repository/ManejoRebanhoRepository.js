@@ -30,8 +30,19 @@ class ManejoRebanhoRepository {
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             rebanho: { propriedade: { usuarioId } },
-            ativo: filters.ativo !== undefined ? filters.ativo : true,
         };
+
+        // Numa leitura por diferença, o que foi excluído precisa vir junto —
+        // é assim que o aplicativo fica sabendo da exclusão. Filtrar por
+        // `ativo` aqui esconderia exatamente o que o cliente precisa saber.
+        if (filters.atualizadoDesde) {
+            where.updatedAt = { gt: filters.atualizadoDesde };
+        }
+        if (filters.ativo !== undefined) {
+            where.ativo = filters.ativo;
+        } else if (!filters.atualizadoDesde) {
+            where.ativo = true;
+        }
 
         if (filters.rebanhoId)    where.rebanhoId    = filters.rebanhoId;
         if (filters.tipoManejoId) where.tipoManejoId = filters.tipoManejoId;

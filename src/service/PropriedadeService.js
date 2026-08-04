@@ -24,11 +24,12 @@ class PropriedadeService {
             return this.ensurePropriedadeExists(id, usuarioId);
         }
 
-        const { nome, localizacao, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const { nome, localizacao, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;
         if (localizacao) filters.localizacao = localizacao;
+        if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         return this.repository.list(
             usuarioId,

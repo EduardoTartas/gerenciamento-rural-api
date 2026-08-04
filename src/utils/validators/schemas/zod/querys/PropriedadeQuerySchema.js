@@ -19,6 +19,11 @@ export const PropriedadeQuerySchema = z.object({
     ativo: z.enum(['true', 'false'], {
         errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
     }).transform(v => v === 'true').optional(),
+    atualizadoDesde: z
+        .string()
+        .datetime({ message: 'atualizadoDesde deve ser uma data ISO 8601 em UTC.' })
+        .transform((valor) => new Date(valor))
+        .optional(),
     page: z.coerce.number().int().positive().optional().default(1),
     limit: z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();

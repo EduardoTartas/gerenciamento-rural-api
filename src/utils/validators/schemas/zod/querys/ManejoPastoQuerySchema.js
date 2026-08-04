@@ -19,6 +19,11 @@ export const ManejoPastoQuerySchema = z.object({
     tipoManejoId: z.string().uuid('O ID do tipo de manejo deve ser um UUID válido.').optional(),
     dataInicio:   z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
     dataFim:      z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
+    atualizadoDesde: z
+        .string()
+        .datetime({ message: 'atualizadoDesde deve ser uma data ISO 8601 em UTC.' })
+        .transform((valor) => new Date(valor))
+        .optional(),
     page:         z.coerce.number().int().positive().optional().default(1),
     limit:        z.coerce.number().int().positive().max(100).optional().default(10),
 }).strict();
