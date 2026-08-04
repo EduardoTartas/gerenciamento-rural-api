@@ -19,7 +19,7 @@ class ManejoRebanhoService {
             return this.ensureManejoExists(id, usuarioId);
         }
 
-        const { rebanhoId, tipoManejoId, propriedadeId, dataInicio, dataFim, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const { rebanhoId, tipoManejoId, propriedadeId, dataInicio, dataFim, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (rebanhoId)    filters.rebanhoId    = rebanhoId;
@@ -27,6 +27,7 @@ class ManejoRebanhoService {
         if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (dataInicio)   filters.dataInicio   = dataInicio;
         if (dataFim)      filters.dataFim      = dataFim;
+        if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         return this.repository.list(
             usuarioId,

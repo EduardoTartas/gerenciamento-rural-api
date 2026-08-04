@@ -25,7 +25,7 @@ class PastoService {
             return this.ensurePastoExists(id, usuarioId);
         }
 
-        const { nome, propriedadeId, status, tipoPastagem, ativo, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const { nome, propriedadeId, status, tipoPastagem, ativo, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;
@@ -33,6 +33,7 @@ class PastoService {
         if (status) filters.status = status;
         if (tipoPastagem) filters.tipoPastagem = tipoPastagem;
         if (ativo !== undefined) filters.ativo = ativo;
+        if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         return this.repository.list(
             usuarioId,

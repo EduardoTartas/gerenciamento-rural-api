@@ -26,7 +26,7 @@ class RebanhoService {
         const {
             nomeRebanho, propriedadeId, pastoAtualId, racaId,
             sistemaProducaoId, regimeAlimentarId,
-            ativo, page = 1, limit = 10,
+            ativo, atualizadoDesde, page = 1, limit = 10,
         } = req._parsedQuery ?? req.query;
 
         const filters = {};
@@ -38,6 +38,7 @@ class RebanhoService {
         if (regimeAlimentarId) filters.regimeAlimentarId = regimeAlimentarId;
         // ativo vem como boolean do Zod (_parsedQuery) ou string do req.query
         if (ativo !== undefined) filters.ativo         = typeof ativo === 'boolean' ? ativo : ativo === 'true';
+        if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         return this.repository.list(
             usuarioId,

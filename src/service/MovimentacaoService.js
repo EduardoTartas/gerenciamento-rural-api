@@ -21,7 +21,7 @@ class MovimentacaoService {
             return this.ensureMovimentacaoExists(id, usuarioId);
         }
 
-        const { rebanhoId, propriedadeId, pastoOrigemId, pastoDestinoId, dataInicio, dataFim, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const { rebanhoId, propriedadeId, pastoOrigemId, pastoDestinoId, dataInicio, dataFim, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (rebanhoId)     filters.rebanhoId     = rebanhoId;
@@ -30,6 +30,7 @@ class MovimentacaoService {
         if (pastoDestinoId) filters.pastoDestinoId = pastoDestinoId;
         if (dataInicio)    filters.dataInicio    = dataInicio;
         if (dataFim)       filters.dataFim       = dataFim;
+        if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         return this.repository.list(
             usuarioId,
