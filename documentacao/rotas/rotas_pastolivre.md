@@ -327,11 +327,32 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 
 ---
 
-## 10. Rotas Operacionais
+## 10. /sync
+Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 
-### 10.1 GET /health
+### 10.1 POST /sync
+**Caso de Uso:** Ao reconectar, o app envia de uma vez a fila de criações, edições e exclusões feitas offline.
+**Regras de Negócio:**
+- **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
+- **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
+- **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
+- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`. Esta última não aceita `UPDATE` (movimentação é evento imutável).
+- **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
+- **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
+- **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
+- **Idempotência:** reenviar o mesmo `id` de mutação já aplicado devolve o resultado registrado da primeira tentativa, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
+- **Delegação:** cada mutação é despachada para o service de domínio correspondente — o `/sync` não reimplementa regra de negócio nenhuma.
+
+**Resposta:** **Sempre HTTP 200**, mesmo com mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada item (um 4xx faria o interceptor do app descartar o resultado das mutações que entraram). O corpo é `{ message: "N de M mutações aplicadas.", data: { resultados }, errors: [] }`, onde `resultados` traz um item por mutação enviada, na mesma ordem do envio, cada um com `situacao` (`aceito`, `recusado` ou `bloqueado`), `entidade`, `entidadeId` e, conforme o caso, `dados` (registro gravado), `erro` (`{ tipo, campo, mensagem, recuperavel }`) ou `bloqueadoPor` (id da mutação recusada que bloqueou esta).
+`400` só ocorre por erro de construção do lote em si (`dependeDe` apontando para fora do lote, ou ciclo de dependência) — nesse caso nenhuma mutação chega a ser tentada.
+
+---
+
+## 11. Rotas Operacionais
+
+### 11.1 GET /health
 **Caso de Uso:** Verificação de saúde para orquestração (Kubernetes) e monitoramento.
 **Resposta:** `200` com `{ status, database, timestamp, uptime }` quando a consulta ao banco responde; `503` caso contrário. Não exige autenticação.
 
-### 10.2 GET /docs
+### 11.2 GET /docs
 **Caso de Uso:** Documentação interativa Swagger UI. A rota `/` redireciona para cá.

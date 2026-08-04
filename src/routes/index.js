@@ -18,6 +18,7 @@ import catalogoRoutes from './catalogoRoutes.js';
 import rebanhoRoutes from './rebanhoRoutes.js';
 import manejoRebanhoRoutes from './manejoRebanhoRoutes.js';
 import movimentacaoRoutes from './movimentacaoRoutes.js';
+import syncRoutes from './syncRoutes.js';
 
 dotenv.config();
 
@@ -82,6 +83,7 @@ const routes = (app) => {
         manejoRebanhoRoutes,
         movimentacaoRoutes,
         rebanhoRoutes,
+        syncRoutes,
     );
 };
 
