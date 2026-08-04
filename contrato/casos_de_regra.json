@@ -1,0 +1,49 @@
+{
+  "nomeUnicoPasto": [
+    {
+      "descricao": "nome já usado na mesma propriedade",
+      "existentes": [{ "nome": "Piquete Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nome": "Piquete Norte", "propriedadeId": "p1" },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "mesmo nome em outra propriedade é permitido",
+      "existentes": [{ "nome": "Piquete Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nome": "Piquete Norte", "propriedadeId": "p2" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "nome de pasto inativo pode ser reaproveitado",
+      "existentes": [{ "nome": "Piquete Norte", "propriedadeId": "p1", "ativo": false }],
+      "entrada": { "nome": "Piquete Norte", "propriedadeId": "p1" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "comparação ignora caixa",
+      "existentes": [{ "nome": "Piquete Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nome": "piquete norte", "propriedadeId": "p1" },
+      "esperado": "recusa"
+    }
+  ],
+  "formatoLocalizacao": [
+    { "descricao": "cidade e UF", "entrada": { "localizacao": "Sorriso,MT" }, "esperado": "aceita" },
+    { "descricao": "espaço após a vírgula", "entrada": { "localizacao": "Sorriso, MT" }, "esperado": "aceita" },
+    { "descricao": "sem UF", "entrada": { "localizacao": "Vilhena" }, "esperado": "recusa" },
+    { "descricao": "UF com um caractere", "entrada": { "localizacao": "Vilhena,R" }, "esperado": "recusa" },
+    { "descricao": "vazio é permitido, campo é opcional", "entrada": { "localizacao": "" }, "esperado": "aceita" }
+  ],
+  "desfazerMovimentacao": [
+    {
+      "descricao": "a última pode ser desfeita",
+      "existentes": [{ "id": "mov1", "ordem": 1 }, { "id": "mov2", "ordem": 2 }],
+      "entrada": { "id": "mov2" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "uma do meio não pode",
+      "existentes": [{ "id": "mov1", "ordem": 1 }, { "id": "mov2", "ordem": 2 }],
+      "entrada": { "id": "mov1" },
+      "esperado": "recusa"
+    }
+  ]
+}
