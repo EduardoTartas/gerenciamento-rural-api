@@ -9,6 +9,7 @@ const manejoPastoSchemas = {
             pastoId: { type: "string", format: "uuid", description: "Filtrar por ID do pasto" },
             propriedadeId: { type: "string", format: "uuid", description: "Filtrar por ID da propriedade" },
             tipoManejo: { type: "string", enum: tiposManejoPasto, description: "Filtrar por tipo de manejo" },
+            ativo: { type: "boolean", description: "Filtrar por manejos vigentes (true) ou excluídos (false). Sem o filtro, `atualizadoDesde` traz os dois — é assim que o app fica sabendo da exclusão." },
         }
     },
 
@@ -20,6 +21,8 @@ const manejoPastoSchemas = {
             tipoManejo: { type: "string", enum: tiposManejoPasto, example: "Roçagem" },
             dataAtividade: { type: "string", format: "date-time", example: "2026-04-01T00:00:00.000Z" },
             observacoes: { type: "string", nullable: true, example: "Roçagem completa do pasto norte" },
+            ativo: { type: "boolean", example: true, description: "`false` quando o manejo foi excluído. Numa leitura por diferença é o que distingue a linha excluída de uma vigente." },
+            updatedAt: { type: "string", format: "date-time", example: "2026-04-01T10:30:00.000Z", description: "Marca d'água da sincronização: o cliente usa o maior valor recebido como próximo `atualizadoDesde`." },
             pasto: {
                 type: "object",
                 properties: {

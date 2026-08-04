@@ -8,6 +8,7 @@ const movimentacaoSchemas = {
             propriedadeId: { type: "string", format: "uuid", description: "Filtrar por ID da propriedade" },
             pastoOrigemId:  { type: "string", format: "uuid", description: "Filtrar por ID do pasto de origem" },
             pastoDestinoId: { type: "string", format: "uuid", description: "Filtrar por ID do pasto de destino" },
+            ativo: { type: "boolean", description: "Filtrar por movimentações válidas (true) ou desfeitas (false). Sem o filtro, `atualizadoDesde` traz as duas — é assim que o app fica sabendo do que foi desfeito." },
         }
     },
 
@@ -20,7 +21,9 @@ const movimentacaoSchemas = {
             pastoDestinoId:   { type: "string", format: "uuid", example: "c3d4e5f6-a7b8-9012-cdef-123456789012" },
             dataMovimentacao: { type: "string", format: "date-time", example: "2026-04-20T08:00:00.000Z" },
             observacoes:      { type: "string", nullable: true, example: "Transferência para pasto de engorda" },
+            ativo:            { type: "boolean", example: true, description: "`false` quando a movimentação foi desfeita. Numa leitura por diferença é o que distingue a linha desfeita de uma válida." },
             createdAt:        { type: "string", format: "date-time", example: "2026-04-20T08:05:00.000Z" },
+            updatedAt:        { type: "string", format: "date-time", example: "2026-04-20T08:05:00.000Z", description: "Marca d'água da sincronização: o cliente usa o maior valor recebido como próximo `atualizadoDesde`." },
             rebanho: {
                 type: "object",
                 properties: {

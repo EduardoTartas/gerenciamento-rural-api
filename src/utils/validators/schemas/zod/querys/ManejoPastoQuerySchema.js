@@ -19,6 +19,9 @@ export const ManejoPastoQuerySchema = z.object({
     tipoManejoId: z.string().uuid('O ID do tipo de manejo deve ser um UUID válido.').optional(),
     dataInicio:   z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
     dataFim:      z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
+    ativo: z.enum(['true', 'false'], {
+        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+    }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()
         .datetime({ message: 'atualizadoDesde deve ser uma data ISO 8601 em UTC.' })

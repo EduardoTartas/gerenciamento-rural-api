@@ -10,7 +10,15 @@ const MOVIMENTACAO_SELECT = {
     pastoDestinoId: true,
     dataMovimentacao: true,
     observacoes: true,
+    // `ativo` viaja na resposta porque a leitura por diferença devolve o que foi
+    // desfeito. Sem este campo o aplicativo recebe a movimentação desfeita igual
+    // a uma válida e a ressuscita.
+    ativo: true,
     createdAt: true,
+    // `updatedAt` é o relógio da sincronização: é dele que o cliente tira o
+    // próximo `atualizadoDesde`. Sem ele na resposta o aplicativo não consegue
+    // avançar a marca d'água e repete a mesma janela para sempre.
+    updatedAt: true,
     rebanho: {
         select: {
             id: true,
