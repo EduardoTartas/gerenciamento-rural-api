@@ -73,15 +73,20 @@ const routes = (app) => {
     // Registro de todas as rotas (com rate limiting geral para rotas autenticadas)
     // Ordem: rotas específicas ANTES de rotas genéricas (/:id), caso contrário
     // GET /rebanhos/:id captura /rebanhos/manejos e /rebanhos/movimentacoes
+    //
+    // `manejoPastoRoutes` vinha DEPOIS de `pastoRoutes` e caía nessa armadilha:
+    // `/pastagens/:id` engolia `/pastagens/manejos`, que respondia 400 "ID de
+    // pastagem inválido" para toda listagem de manejo de pasto — inclusive a
+    // leitura por diferença.
     app.use('/v1',
         authRateLimit,
         userRoutes,
         propriedadeRoutes,
         catalogoRoutes,
-        pastoRoutes,
         manejoPastoRoutes,
         manejoRebanhoRoutes,
         movimentacaoRoutes,
+        pastoRoutes,
         rebanhoRoutes,
         syncRoutes,
     );

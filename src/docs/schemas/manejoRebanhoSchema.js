@@ -7,6 +7,7 @@ const manejoRebanhoSchemas = {
             rebanhoId:    { type: "string", format: "uuid", description: "Filtrar por ID do rebanho" },
             propriedadeId: { type: "string", format: "uuid", description: "Filtrar por ID da propriedade" },
             tipoManejoId: { type: "string", format: "uuid", description: "Filtrar por ID do tipo de manejo (catálogo global)" },
+            ativo: { type: "boolean", description: "Filtrar por manejos vigentes (true) ou excluídos (false). Sem o filtro, `atualizadoDesde` traz os dois — é assim que o app fica sabendo da exclusão." },
         }
     },
 
@@ -20,6 +21,7 @@ const manejoRebanhoSchemas = {
             pesoRegistrado:    { type: "number", nullable: true, example: 395.0 },
             dataAtividade:     { type: "string", format: "date-time", example: "2026-04-15T00:00:00.000Z" },
             observacoes:       { type: "string", nullable: true, example: "Vacinação semestral do lote" },
+            ativo:             { type: "boolean", example: true, description: "`false` quando o manejo foi excluído. Numa leitura por diferença é o que distingue a linha excluída de uma vigente." },
             createdAt:         { type: "string", format: "date-time", example: "2026-04-15T10:30:00.000Z" },
             updatedAt:         { type: "string", format: "date-time", example: "2026-04-15T10:30:00.000Z" },
             tipoManejo: {

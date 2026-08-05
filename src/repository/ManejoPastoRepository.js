@@ -8,6 +8,11 @@ const MANEJO_SELECT = {
     tipoManejoId: true,
     dataAtividade: true,
     observacoes: true,
+    // `ativo` viaja na resposta porque a leitura por diferença devolve o que foi
+    // excluído. Sem este campo o aplicativo recebe a linha apagada igual a uma
+    // viva e a ressuscita — o oposto do que o rastro de exclusão existe para
+    // resolver.
+    ativo: true,
     createdAt: true,
     updatedAt: true,
     tipoManejo: { select: { id: true, nome: true } },

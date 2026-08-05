@@ -134,6 +134,8 @@ Gerenciamento de eventos operacionais aplicados a um espaço físico (ex: Aduba�
 **Caso de Uso:** Obter os históricos de manejo de uma fazenda, permitindo cruzar eventos de custo e mão-de-obra com relatórios.
 **Regras de Negócio:**
 - Permite paginação com filtros por período (`dataAtividade`), `tipoManejo` e `pastoId`.
+- **Filtro `ativo`:** por padrão devolve só manejos vigentes. `?ativo=false` lista os excluídos.
+- **Leitura por diferença:** com `?atualizadoDesde=<ISO 8601>` o filtro padrão de `ativo` **sai**, e a resposta traz vigentes e excluídos juntos — é assim que o app fica sabendo da exclusão. Cada item carrega `ativo` e `updatedAt`: `ativo` distingue a linha excluída da vigente, e `updatedAt` é a marca d'água para o próximo `atualizadoDesde`.
 
 ### 4.3 GET /pastagens/manejos/:id
 **Caso de Uso:** Resgatar detalhamento de um manejo específico.
@@ -142,14 +144,9 @@ Gerenciamento de eventos operacionais aplicados a um espaço físico (ex: Aduba�
 **Caso de Uso:** Corrigir erros de lançamento (data errada, tipo de manejo trocado).
 
 ### 4.5 DELETE /pastagens/manejos/:id
-**Caso de Uso:** Apagar definitivamente um log de manejo lançado por engano.
+**Caso de Uso:** Apagar um log de manejo lançado por engano.
 **Regras de Negócio:**
-- **Hard-Delete (Exclusão Real):** Como os Manejos são entradas de livro-caixa operacional que não possuem dependências, a exclusão remove a linha definitivamente do banco para evitar lixo de dados.
-
-> ⚠️ **Divergência conhecida:** o filtro por período (`dataInicio` / `dataFim`) documentado
-> em 4.2 não funciona. O `ManejoPastoController` valida a query sem atribuir
-> `req._parsedQuery`, e o `ManejoPastoService.list` lê `req.query` cru — as datas chegam ao
-> Prisma como texto, onde é esperado um `DateTime`.
+- **Soft-Delete (`ativo: false`):** a linha continua no banco. Apagá-la de verdade tirava dela o `updatedAt` que a leitura por diferença precisa para reportar a exclusão, e o app ficava com um registro fantasma para sempre.
 
 ---
 
@@ -213,7 +210,9 @@ Registro histórico da transferência de lotes entre pastos. **Recurso imutável
 **Caso de Uso:** Consultar a linha do tempo de movimentações.
 **Regras de Negócio:**
 - Ordenado por `dataMovimentacao` decrescente.
-- Filtros: `rebanhoId`, `propriedadeId`, `pastoOrigemId`, `pastoDestinoId`, `dataInicio`, `dataFim`, `page`, `limit`.
+- Filtros: `rebanhoId`, `propriedadeId`, `pastoOrigemId`, `pastoDestinoId`, `dataInicio`, `dataFim`, `ativo`, `page`, `limit`.
+- **Filtro `ativo`:** por padrão devolve só movimentações válidas. `?ativo=false` lista as desfeitas.
+- **Leitura por diferença:** com `?atualizadoDesde=<ISO 8601>` o filtro padrão de `ativo` **sai**, e válidas e desfeitas vêm juntas. Cada item carrega `ativo` (distingue a desfeita da válida) e `updatedAt` (marca d'água para o próximo `atualizadoDesde`).
 
 ### 6.3 GET /rebanhos/movimentacoes/:id
 **Caso de Uso:** Detalhar um registro específico de movimentação.
@@ -246,7 +245,9 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 ### 7.2 GET /rebanhos/manejos
 **Caso de Uso:** Consultar o histórico sanitário de um lote.
 **Regras de Negócio:**
-- Filtros: `rebanhoId`, `tipoManejoId`, `propriedadeId`, `dataInicio`, `dataFim`, `page`, `limit`.
+- Filtros: `rebanhoId`, `tipoManejoId`, `propriedadeId`, `dataInicio`, `dataFim`, `ativo`, `page`, `limit`.
+- **Filtro `ativo`:** por padrão devolve só manejos vigentes. `?ativo=false` lista os excluídos.
+- **Leitura por diferença:** com `?atualizadoDesde=<ISO 8601>` o filtro padrão de `ativo` **sai**, e vigentes e excluídos vêm juntos. Cada item carrega `ativo` e `updatedAt`.
 
 ### 7.3 GET /rebanhos/manejos/:id
 **Caso de Uso:** Detalhar um manejo específico.
@@ -342,6 +343,7 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 - **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
 - **Idempotência:** reenviar o mesmo `id` de mutação já aplicado devolve o resultado registrado da primeira tentativa, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
 - **Delegação:** cada mutação é despachada para o service de domínio correspondente — o `/sync` não reimplementa regra de negócio nenhuma.
+- **Validação por entidade:** antes do despacho, `dados` é validado contra o **mesmo schema Zod da rota REST equivalente** (`pastos:UPDATE` → o schema do `PATCH /pastagens/:id`, e assim por diante), incluindo a recusa de campos fora do schema e a coerção de tipos (datas em texto viram `DateTime`). Um `pastos:UPDATE` carregando `propriedadeId`, por exemplo, é recusado — trocar o vínculo de propriedade não é edição de pasto, e aceitá-lo permitiria mover o registro para a fazenda de outro usuário. A recusa é do item (`situacao: recusado`, `erro.tipo: validationError`, `recuperavel: false`) e não derruba o lote.
 
 **Resposta:** **Sempre HTTP 200**, mesmo com mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada item (um 4xx faria o interceptor do app descartar o resultado das mutações que entraram). O corpo é `{ message: "N de M mutações aplicadas.", data: { resultados }, errors: [] }`, onde `resultados` traz um item por mutação enviada, na mesma ordem do envio, cada um com `situacao` (`aceito`, `recusado` ou `bloqueado`), `entidade`, `entidadeId` e, conforme o caso, `dados` (registro gravado), `erro` (`{ tipo, campo, mensagem, recuperavel }`) ou `bloqueadoPor` (id da mutação recusada que bloqueou esta).
 `400` só ocorre por erro de construção do lote em si (`dependeDe` apontando para fora do lote, ou ciclo de dependência) — nesse caso nenhuma mutação chega a ser tentada.

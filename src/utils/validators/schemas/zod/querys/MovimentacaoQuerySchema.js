@@ -13,6 +13,9 @@ export const MovimentacaoQuerySchema = z.object({
     pastoDestinoId: z.string().uuid().optional(),
     dataInicio:    z.coerce.date({ error: 'Data de início inválida.' }).optional(),
     dataFim:       z.coerce.date({ error: 'Data de fim inválida.' }).optional(),
+    ativo: z.enum(['true', 'false'], {
+        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+    }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()
         .datetime({ message: 'atualizadoDesde deve ser uma data ISO 8601 em UTC.' })

@@ -26,13 +26,37 @@ describe('aplicação do lote', () => {
         return new SyncService();
     }
 
-    const mutacao = (id, entidade, acao, dependeDe = null) => ({
+    const UUID = '11111111-1111-4111-8111-111111111111';
+
+    /**
+     * Corpo mínimo que passa pelo schema real da entidade.
+     *
+     * Desde que o lote valida `dados` contra o mesmo schema do REST, um `{}`
+     * genérico seria recusado antes de chegar ao despacho — e os testes de
+     * ordem/dependência/idempotência mediriam a validação em vez do que querem
+     * medir.
+     */
+    const CORPO_VALIDO = {
+        'propriedades:CREATE': { nome: 'Fazenda A' },
+        'propriedades:UPDATE': { nome: 'Fazenda A' },
+        'pastos:CREATE': { propriedadeId: UUID, nome: 'Pasto A' },
+        'pastos:UPDATE': { nome: 'Pasto A' },
+        'rebanhos:CREATE': { propriedadeId: UUID, nomeRebanho: 'Lote A', pastoAtualId: UUID },
+        'rebanhos:UPDATE': { nomeRebanho: 'Lote A' },
+        'manejo_rebanhos:CREATE': {
+            rebanhoId: UUID,
+            tipoManejoId: UUID,
+            dataAtividade: '2026-08-01T12:00:00.000Z',
+        },
+    };
+
+    const mutacao = (id, entidade, acao, dependeDe = null, dados = null) => ({
         id,
         entidade,
         acao,
         entidadeId: `ent-${id}`,
         dependeDe,
-        dados: {},
+        dados: dados ?? CORPO_VALIDO[`${entidade}:${acao}`] ?? {},
     });
 
     it('aplica mutações independentes e devolve aceito', async () => {
@@ -223,6 +247,134 @@ describe('aplicação do lote', () => {
             situacao: 'recusado',
             erro: { tipo: 'validationError' },
         });
+    });
+
+    // ================================
+    // VALIDAÇÃO POR ENTIDADE
+    // ================================
+
+    it('recusa UPDATE de pasto que tenta reparentar para outra propriedade', async () => {
+        // O exploit: `PastoService.update` confere a posse ATUAL do pasto, não o
+        // destino. `propriedadeId` não existe em `PastoUpdateSchema`, então o
+        // REST devolve 400 — mas o lote passava o campo verbatim ao Prisma e o
+        // pasto ia para o tenant da vítima.
+        const atualizar = vi.fn().mockResolvedValue({});
+        const service = await montar({ despacho: { 'pastos:UPDATE': atualizar } });
+
+        const { resultados } = await service.aplicarLote(
+            [
+                mutacao('a', 'pastos', 'UPDATE', null, {
+                    nome: 'Pasto A',
+                    propriedadeId: '22222222-2222-4222-8222-222222222222',
+                }),
+            ],
+            req,
+        );
+
+        expect(resultados[0]).toMatchObject({
+            situacao: 'recusado',
+            erro: { tipo: 'validationError', recuperavel: false },
+        });
+        // O que prova que não houve reparentamento: o service nunca foi chamado.
+        expect(atualizar).not.toHaveBeenCalled();
+        expect(resultados[0].erro.mensagem).toMatch(/propriedadeId/);
+    });
+
+    it('recusa campo fora do schema nas demais entidades reparentáveis', async () => {
+        const casos = [
+            ['rebanhos', 'UPDATE', { propriedadeId: UUID }],
+            ['manejo_pastos', 'UPDATE', { pastoId: UUID }],
+            ['manejo_rebanhos', 'UPDATE', { rebanhoId: UUID }],
+        ];
+
+        for (const [entidade, acao, dados] of casos) {
+            const executar = vi.fn().mockResolvedValue({});
+            const service = await montar({ despacho: { [`${entidade}:${acao}`]: executar } });
+
+            const { resultados } = await service.aplicarLote(
+                [mutacao('a', entidade, acao, null, dados)],
+                req,
+            );
+
+            expect(resultados[0].situacao, `${entidade}:${acao}`).toBe('recusado');
+            expect(resultados[0].erro.tipo, `${entidade}:${acao}`).toBe('validationError');
+            expect(executar, `${entidade}:${acao}`).not.toHaveBeenCalled();
+        }
+    });
+
+    it('mutação bem formada continua passando, em mais de uma entidade', async () => {
+        // Trava contra rigor demais: a validação não pode recusar o caminho feliz.
+        const criarPasto = vi.fn().mockResolvedValue({ id: 'ent-p' });
+        const criarRebanho = vi.fn().mockResolvedValue({ id: 'ent-r' });
+        const atualizarPropriedade = vi.fn().mockResolvedValue({ id: 'ent-f' });
+
+        const service = await montar({
+            despacho: {
+                'pastos:CREATE': criarPasto,
+                'rebanhos:CREATE': criarRebanho,
+                'propriedades:UPDATE': atualizarPropriedade,
+            },
+        });
+
+        const { resultados } = await service.aplicarLote(
+            [
+                mutacao('p', 'pastos', 'CREATE'),
+                mutacao('r', 'rebanhos', 'CREATE'),
+                mutacao('f', 'propriedades', 'UPDATE'),
+            ],
+            req,
+        );
+
+        expect(resultados.map((r) => r.situacao)).toEqual(['aceito', 'aceito', 'aceito']);
+        expect(criarPasto).toHaveBeenCalled();
+        expect(criarRebanho).toHaveBeenCalled();
+        expect(atualizarPropriedade).toHaveBeenCalled();
+    });
+
+    it('entrega ao service o dado coagido, não a string crua', async () => {
+        // `z.coerce.date()` é o que o REST aplica. Sem ele, a string ISO chegava
+        // ao Prisma como texto e virava PrismaClientValidationError — sem
+        // `errorType`, classificado como serverError recuperável, ou seja,
+        // reenvio eterno de uma mutação que nunca vai passar.
+        const criar = vi.fn().mockResolvedValue({});
+        const service = await montar({ despacho: { 'manejo_rebanhos:CREATE': criar } });
+
+        await service.aplicarLote([mutacao('a', 'manejo_rebanhos', 'CREATE')], req);
+
+        const { dados } = criar.mock.calls[0][0];
+        expect(dados.dataAtividade).toBeInstanceOf(Date);
+        expect(dados.dataAtividade.toISOString()).toBe('2026-08-01T12:00:00.000Z');
+    });
+
+    it('corpo inválido recusa só o item, sem derrubar o lote', async () => {
+        const criar = vi.fn().mockResolvedValue({ id: 'ent-b' });
+        const service = await montar({ despacho: { 'pastos:CREATE': criar } });
+
+        const { resultados } = await service.aplicarLote(
+            [
+                // Falta `propriedadeId`, que `PastoCreateSchema` exige.
+                mutacao('a', 'pastos', 'CREATE', null, { nome: 'Pasto A' }),
+                mutacao('b', 'pastos', 'CREATE'),
+            ],
+            req,
+        );
+
+        const porId = Object.fromEntries(resultados.map((r) => [r.id, r]));
+        expect(porId.a.situacao).toBe('recusado');
+        expect(porId.a.erro.tipo).toBe('validationError');
+        expect(porId.b.situacao).toBe('aceito');
+    });
+
+    it('DELETE não exige corpo', async () => {
+        const remover = vi.fn().mockResolvedValue({ id: 'ent-a', ativo: false });
+        const service = await montar({ despacho: { 'pastos:DELETE': remover } });
+
+        const { resultados } = await service.aplicarLote(
+            [mutacao('a', 'pastos', 'DELETE')],
+            req,
+        );
+
+        expect(resultados[0].situacao).toBe('aceito');
     });
 
     it('lança quando há ciclo de dependência', async () => {
