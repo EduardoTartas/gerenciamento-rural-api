@@ -35,11 +35,35 @@ describe('ordem de registro das rotas', () => {
         expect(registro).toContain('rebanhoRoutes');
     });
 
+    /**
+     * Sem esta trava, o teste tinha um furo de falso-positivo: se alguém
+     * quebrar o registro em dois `app.use('/v1', ...)`, os routers específicos
+     * caem fora da fatia, `indexOf` devolve `-1`, e `-1 < posicao(pastoRoutes)`
+     * passa verde — justamente no refactor capaz de requebrar a ordem.
+     */
+    it('todos os routers específicos estão dentro do bloco analisado', () => {
+        for (const router of [
+            'manejoPastoRoutes',
+            'manejoRebanhoRoutes',
+            'movimentacaoRoutes',
+            'pastoRoutes',
+            'rebanhoRoutes',
+        ]) {
+            expect(posicao(router), `${router} fora do bloco analisado`)
+                .toBeGreaterThanOrEqual(0);
+        }
+    });
+
     it('rotas de manejo de pasto vêm antes de /pastagens/:id', () => {
+        expect(posicao('manejoPastoRoutes')).toBeGreaterThanOrEqual(0);
+        expect(posicao('pastoRoutes')).toBeGreaterThanOrEqual(0);
         expect(posicao('manejoPastoRoutes')).toBeLessThan(posicao('pastoRoutes'));
     });
 
     it('rotas de manejo e movimentação de rebanho vêm antes de /rebanhos/:id', () => {
+        expect(posicao('manejoRebanhoRoutes')).toBeGreaterThanOrEqual(0);
+        expect(posicao('movimentacaoRoutes')).toBeGreaterThanOrEqual(0);
+        expect(posicao('rebanhoRoutes')).toBeGreaterThanOrEqual(0);
         expect(posicao('manejoRebanhoRoutes')).toBeLessThan(posicao('rebanhoRoutes'));
         expect(posicao('movimentacaoRoutes')).toBeLessThan(posicao('rebanhoRoutes'));
     });

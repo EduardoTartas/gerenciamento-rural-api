@@ -124,6 +124,32 @@ describe('tipos de erro', () => {
         });
         expect(ehRecuperavel('prisma:P2000')).toBe(false);
     });
+
+    it('conflito de transação do Prisma é recuperável, não descarte da escrita', () => {
+        // Toda mutação do lote e todo desfazer de movimentação rodam dentro de
+        // `$transaction`, então P2034 (deadlock), P2024 (pool esgotado) e P2028
+        // são cenários reais aqui. Marcados como definitivos, o cliente
+        // offline-first descarta a mutação — perde o trabalho do produtor numa
+        // falha que um simples reenvio resolveria.
+        for (const codigo of ['P2024', 'P2028', 'P2034']) {
+            expect(descreverErro(`prisma:${codigo}`), codigo).toEqual({
+                tipo: 'databaseError', http: 500, recuperavel: true,
+            });
+            expect(ehRecuperavel(`prisma:${codigo}`), codigo).toBe(true);
+        }
+    });
+
+    it('a exceção dos transitórios não afrouxa os códigos de dado ruim', () => {
+        // Guarda contra a correção se desfazer: P2011 (violação de not-null),
+        // P2000 (valor longo demais) e P2023 (coluna inconsistente) continuam
+        // sendo culpa do dado enviado — reenviar repete o mesmo erro.
+        for (const codigo of ['P2011', 'P2000', 'P2023']) {
+            expect(descreverErro(`prisma:${codigo}`), codigo).toEqual({
+                tipo: 'validationError', http: 400, recuperavel: false,
+            });
+            expect(ehRecuperavel(`prisma:${codigo}`), codigo).toBe(false);
+        }
+    });
 });
 
 /**

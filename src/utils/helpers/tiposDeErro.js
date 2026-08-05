@@ -67,9 +67,30 @@ const PADRAO = 'serverError';
  */
 const PREFIXO_PRISMA = 'prisma:';
 
+/**
+ * Exceções ao parágrafo acima: códigos que NÃO falam do dado enviado, e sim do
+ * estado momentâneo do banco. Reenviar é a resposta certa — a própria
+ * documentação do Prisma manda repetir a transação no P2034.
+ *
+ * Isto não é hipotético neste sistema: toda mutação do lote e todo desfazer de
+ * movimentação rodam dentro de `$transaction`, que é exatamente onde conflito
+ * de escrita e estouro de pool aparecem. Classificá-los como definitivos faria
+ * o cliente offline **descartar** a escrita — trocar "reenvia para sempre" por
+ * "perde o trabalho do produtor", que é pior.
+ */
+const CODIGOS_PRISMA_TRANSITORIOS = new Set([
+    'P2024', // esgotou o tempo esperando conexão do pool
+    'P2028', // erro na API de transação
+    'P2034', // conflito de escrita / falha de serialização (deadlock)
+]);
+
 /** Descreve um tipo. Tipo desconhecido vira `serverError`, que é recuperável. */
 export function descreverErro(tipo) {
     if (typeof tipo === 'string' && tipo.startsWith(PREFIXO_PRISMA)) {
+        const codigo = tipo.slice(PREFIXO_PRISMA.length);
+        if (CODIGOS_PRISMA_TRANSITORIOS.has(codigo)) {
+            return { tipo: 'databaseError', ...TIPOS_DE_ERRO.databaseError };
+        }
         return { tipo: 'validationError', ...TIPOS_DE_ERRO.validationError };
     }
     const conhecido = Object.hasOwn(TIPOS_DE_ERRO, tipo) ? tipo : PADRAO;
