@@ -45,5 +45,105 @@
       "entrada": { "id": "mov1" },
       "esperado": "recusa"
     }
+  ],
+  "nomeUnicoRebanho": [
+    {
+      "descricao": "nome já usado na mesma propriedade",
+      "existentes": [{ "nomeRebanho": "Lote Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nomeRebanho": "Lote Norte", "propriedadeId": "p1" },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "mesmo nome em outra propriedade é permitido",
+      "existentes": [{ "nomeRebanho": "Lote Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nomeRebanho": "Lote Norte", "propriedadeId": "p2" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "nome de rebanho inativo pode ser reaproveitado",
+      "existentes": [{ "nomeRebanho": "Lote Norte", "propriedadeId": "p1", "ativo": false }],
+      "entrada": { "nomeRebanho": "Lote Norte", "propriedadeId": "p1" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "comparação ignora caixa",
+      "existentes": [{ "nomeRebanho": "Lote Norte", "propriedadeId": "p1", "ativo": true }],
+      "entrada": { "nomeRebanho": "lote norte", "propriedadeId": "p1" },
+      "esperado": "recusa"
+    }
+  ],
+  "propriedadeInativaNaoRecebePasto": [
+    {
+      "descricao": "propriedade ativa recebe pasto",
+      "existentes": [{ "id": "p1", "ativo": true }],
+      "entrada": { "propriedadeId": "p1" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "propriedade inativa recusa",
+      "existentes": [{ "id": "p1", "ativo": false }],
+      "entrada": { "propriedadeId": "p1" },
+      "esperado": "recusa"
+    }
+  ],
+  "rebanhoInativoNaoRecebeManejo": [
+    {
+      "descricao": "rebanho ativo recebe manejo",
+      "existentes": [{ "id": "r1", "ativo": true }],
+      "entrada": { "rebanhoId": "r1" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "rebanho inativo recusa",
+      "existentes": [{ "id": "r1", "ativo": false }],
+      "entrada": { "rebanhoId": "r1" },
+      "esperado": "recusa"
+    }
+  ],
+  "pastoComRebanhoNaoExclui": [
+    {
+      "descricao": "pasto vazio pode ser excluído",
+      "existentes": [],
+      "entrada": { "pastoId": "pastoA" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "pasto com rebanho ativo recusa",
+      "existentes": [{ "pastoAtualId": "pastoA", "ativo": true }],
+      "entrada": { "pastoId": "pastoA" },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "rebanho inativo no pasto não impede a exclusão",
+      "existentes": [{ "pastoAtualId": "pastoA", "ativo": false }],
+      "entrada": { "pastoId": "pastoA" },
+      "esperado": "aceita"
+    }
+  ],
+  "lotacaoConjunta": [
+    {
+      "descricao": "pasto vazio aceita sem confirmação",
+      "existentes": [],
+      "entrada": { "pastoId": "pastoA", "confirmouLotacaoConjunta": false },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "pasto ocupado sem confirmação recusa",
+      "existentes": [{ "pastoAtualId": "pastoA", "ativo": true }],
+      "entrada": { "pastoId": "pastoA", "confirmouLotacaoConjunta": false },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "pasto ocupado com confirmação aceita",
+      "existentes": [{ "pastoAtualId": "pastoA", "ativo": true }],
+      "entrada": { "pastoId": "pastoA", "confirmouLotacaoConjunta": true },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "conta rebanhos ativos, não lê o status do pasto",
+      "existentes": [{ "pastoAtualId": "pastoA", "ativo": true, "statusDoPasto": "Vazio" }],
+      "entrada": { "pastoId": "pastoA", "confirmouLotacaoConjunta": false },
+      "esperado": "recusa"
+    }
   ]
 }

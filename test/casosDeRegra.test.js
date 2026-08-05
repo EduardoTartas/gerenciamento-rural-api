@@ -12,11 +12,16 @@ describe('casos de regra compartilhados', () => {
         casos = JSON.parse(await readFile('contrato/casos_de_regra.json', 'utf8'));
     });
 
-    it('o arquivo declara os três conjuntos de regra', () => {
+    it('o arquivo declara os oito conjuntos de regra', () => {
         expect(Object.keys(casos).sort()).toEqual([
             'desfazerMovimentacao',
             'formatoLocalizacao',
+            'lotacaoConjunta',
             'nomeUnicoPasto',
+            'nomeUnicoRebanho',
+            'pastoComRebanhoNaoExclui',
+            'propriedadeInativaNaoRecebePasto',
+            'rebanhoInativoNaoRecebeManejo',
         ]);
     });
 
@@ -69,6 +74,71 @@ describe('casos de regra compartilhados', () => {
             for (const caso of casos.desfazerMovimentacao) {
                 const ultima = caso.existentes.reduce((a, b) => (a.ordem > b.ordem ? a : b));
                 const veredito = ultima.id === caso.entrada.id ? 'aceita' : 'recusa';
+                expect(veredito, caso.descricao).toBe(caso.esperado);
+            }
+        });
+    });
+
+    describe('nome único de rebanho', () => {
+        // Espelha `RebanhoRepository.findByNome`: mesma propriedade, ignorando
+        // caixa, considerando só os ativos.
+        function jaExiste({ existentes, entrada }) {
+            return existentes.some(
+                (e) =>
+                    e.ativo &&
+                    e.propriedadeId === entrada.propriedadeId &&
+                    e.nomeRebanho.toLowerCase() === entrada.nomeRebanho.toLowerCase(),
+            );
+        }
+
+        it('cada caso produz o veredito esperado', () => {
+            for (const caso of casos.nomeUnicoRebanho) {
+                expect(jaExiste(caso) ? 'recusa' : 'aceita', caso.descricao).toBe(caso.esperado);
+            }
+        });
+    });
+
+    describe('entidade inativa não recebe filho', () => {
+        it('propriedade inativa recusa pasto', () => {
+            for (const caso of casos.propriedadeInativaNaoRecebePasto) {
+                const pai = caso.existentes.find((e) => e.id === caso.entrada.propriedadeId);
+                const veredito = pai && pai.ativo ? 'aceita' : 'recusa';
+                expect(veredito, caso.descricao).toBe(caso.esperado);
+            }
+        });
+
+        it('rebanho inativo recusa manejo', () => {
+            for (const caso of casos.rebanhoInativoNaoRecebeManejo) {
+                const pai = caso.existentes.find((e) => e.id === caso.entrada.rebanhoId);
+                const veredito = pai && pai.ativo ? 'aceita' : 'recusa';
+                expect(veredito, caso.descricao).toBe(caso.esperado);
+            }
+        });
+    });
+
+    describe('integridade do pasto', () => {
+        // Conta rebanhos ativos no pasto. Nunca lê `pasto.status` — o campo é
+        // cache e já esteve comprovadamente defasado.
+        function ocupantes({ existentes, entrada }) {
+            return existentes.filter(
+                (r) => r.ativo && r.pastoAtualId === entrada.pastoId,
+            ).length;
+        }
+
+        it('pasto com rebanho ativo não pode ser excluído', () => {
+            for (const caso of casos.pastoComRebanhoNaoExclui) {
+                const veredito = ocupantes(caso) > 0 ? 'recusa' : 'aceita';
+                expect(veredito, caso.descricao).toBe(caso.esperado);
+            }
+        });
+
+        it('lotação conjunta exige confirmação explícita', () => {
+            for (const caso of casos.lotacaoConjunta) {
+                const precisaConfirmar = ocupantes(caso) > 0;
+                const veredito =
+                    !precisaConfirmar || caso.entrada.confirmouLotacaoConjunta
+                        ? 'aceita'
+                        : 'recusa';
                 expect(veredito, caso.descricao).toBe(caso.esperado);
             }
         });
