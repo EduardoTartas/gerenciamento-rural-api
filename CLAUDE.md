@@ -132,6 +132,13 @@ eventos `historicoMovimentacao`, `manejoRebanho`, `manejoPasto` · catálogos gl
 
 Catálogos são **compartilhados entre todos os usuários** — não têm `propriedadeId`.
 
+## Ferramentas em `.claude/`
+
+- `rules/` — regras sempre ativas (`principios`, `seguranca`, `qualidade`, `entrega`) e regras
+  escopadas por path (`api.md` em routes/controllers/service, `database.md` em prisma/repository).
+- `skills/novo-recurso/` — `/novo-recurso <Entidade>` escafolda as 6 camadas de um recurso novo.
+- `agents/revisor-camadas.md` — subagente `revisor-camadas` para revisar diff antes de abrir MR.
+
 ## Documentação
 
 - `documentacao/rotas/rotas_pastolivre.md` — regras de negócio por endpoint
