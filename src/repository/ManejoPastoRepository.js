@@ -1,6 +1,7 @@
 // src/repository/ManejoPastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
     id: true,
@@ -39,17 +40,7 @@ class ManejoPastoRepository {
             pasto: { propriedade: { usuarioId } },
         };
 
-        // Numa leitura por diferença, o que foi excluído precisa vir junto —
-        // é assim que o aplicativo fica sabendo da exclusão. Filtrar por
-        // `ativo` aqui esconderia exatamente o que o cliente precisa saber.
-        if (filters.atualizadoDesde) {
-            where.updatedAt = { gt: filters.atualizadoDesde };
-        }
-        if (filters.ativo !== undefined) {
-            where.ativo = filters.ativo;
-        } else if (!filters.atualizadoDesde) {
-            where.ativo = true;
-        }
+        aplicarAtivoOuDiferenca(where, filters);
 
         if (filters.pastoId)      where.pastoId      = filters.pastoId;
         if (filters.tipoManejoId) where.tipoManejoId = filters.tipoManejoId;

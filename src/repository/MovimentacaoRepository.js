@@ -1,7 +1,7 @@
 // src/repository/MovimentacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
+import { CustomError, HttpStatusCodes, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 const MOVIMENTACAO_SELECT = {
     id: true,
@@ -41,17 +41,7 @@ class MovimentacaoRepository {
             rebanho: { propriedade: { usuarioId } },
         };
 
-        // Numa leitura por diferença, o que foi excluído precisa vir junto —
-        // é assim que o aplicativo fica sabendo da exclusão. Filtrar por
-        // `ativo` aqui esconderia exatamente o que o cliente precisa saber.
-        if (filters.atualizadoDesde) {
-            where.updatedAt = { gt: filters.atualizadoDesde };
-        }
-        if (filters.ativo !== undefined) {
-            where.ativo = filters.ativo;
-        } else if (!filters.atualizadoDesde) {
-            where.ativo = true;
-        }
+        aplicarAtivoOuDiferenca(where, filters);
 
         if (filters.rebanhoId)     where.rebanhoId     = filters.rebanhoId;
         if (filters.propriedadeId) {
