@@ -19,6 +19,7 @@ import rebanhoRoutes from './rebanhoRoutes.js';
 import manejoRebanhoRoutes from './manejoRebanhoRoutes.js';
 import movimentacaoRoutes from './movimentacaoRoutes.js';
 import syncRoutes from './syncRoutes.js';
+import uploadRoutes from './uploadRoutes.js';
 
 dotenv.config();
 
@@ -89,6 +90,7 @@ const routes = (app) => {
         pastoRoutes,
         rebanhoRoutes,
         syncRoutes,
+        uploadRoutes,
     );
 };
 
