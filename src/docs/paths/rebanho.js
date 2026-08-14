@@ -5,7 +5,7 @@ import rebanhoSchemas from "../schemas/rebanhoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const rebanhoRoutes = {
-    "/rebanhos": {
+    "/v1/rebanhos": {
         get: {
             tags: ["Rebanhos"],
             summary: "Lista todos os rebanhos do usuário autenticado",
@@ -79,7 +79,7 @@ const rebanhoRoutes = {
         }
     },
 
-    "/rebanhos/{id}": {
+    "/v1/rebanhos/{id}": {
         get: {
             tags: ["Rebanhos"],
             summary: "Obtém detalhes de um rebanho por ID",

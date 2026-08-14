@@ -5,7 +5,7 @@ import propriedadeSchemas from "../schemas/propriedadeSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const propriedadeRoutes = {
-    "/propriedades": {
+    "/v1/propriedades": {
         get: {
             tags: ["Propriedades"],
             summary: "Lista todas as propriedades do usuário autenticado",
@@ -91,7 +91,7 @@ const propriedadeRoutes = {
         }
     },
 
-    "/propriedades/{id}": {
+    "/v1/propriedades/{id}": {
         get: {
             tags: ["Propriedades"],
             summary: "Obtém detalhes de uma propriedade específica",

@@ -5,7 +5,7 @@ import pastoSchemas from "../schemas/pastoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const pastoRoutes = {
-    "/pastagens": {
+    "/v1/pastagens": {
         get: {
             tags: ["Pastagens"],
             summary: "Lista todas as pastagens do usuário autenticado",
@@ -98,7 +98,7 @@ const pastoRoutes = {
         }
     },
 
-    "/pastagens/{id}": {
+    "/v1/pastagens/{id}": {
         get: {
             tags: ["Pastagens"],
             summary: "Obtém detalhes de uma pastagem específica",
