@@ -175,6 +175,61 @@ const userRoutes = {
                 500: commonResponses[500]()
             }
         }
+    },
+
+    "/usuarios/{id}/foto": {
+        patch: {
+            tags: ["Usuários"],
+            summary: "Registra a foto de perfil do usuário",
+            description: `
+            + Caso de uso: Após enviar uma imagem via POST /uploads/imagens, associá-la ao perfil do usuário.
+
+            + Função de Negócio:
+                - Recebe a URL retornada pelo upload e grava em \`user.image\`.
+                + Recebe como parâmetro de caminho:
+                    - **id**: UUID do usuário.
+
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida.
+                - Um usuário só pode atualizar sua própria foto (aplicação de ação própria).
+                - A URL deve pertencer ao bucket de uploads configurado — URLs externas são rejeitadas.
+                - Se o cadastro falhar, a imagem recém-enviada é removida do bucket (rollback).
+                - Se havia uma foto anterior, ela é descartada do bucket após o sucesso.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com **UserDetails** atualizado.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [{
+                name: "id",
+                in: "path",
+                required: true,
+                schema: { type: "string", format: "uuid" },
+                description: "UUID do Usuário"
+            }],
+            requestBody: {
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            required: ["url"],
+                            properties: {
+                                url: { type: "string", format: "uri", description: "URL retornada por POST /uploads/imagens" }
+                            }
+                        }
+                    }
+                }
+            },
+            responses: {
+                200: commonResponses[200]("#/components/schemas/UserDetails"),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
+                500: commonResponses[500](),
+                503: commonResponses[503]()
+            }
+        }
     }
 };
 

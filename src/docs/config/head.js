@@ -42,6 +42,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const syncPaths = (await import(new URL("../paths/sync.js",
         import.meta.url).href + t)).default;
+    const uploadPaths = (await import(new URL("../paths/upload.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -63,6 +65,8 @@ const getSwaggerOptions = async () => {
     const movimentacaoSchemas = (await import(new URL("../schemas/movimentacaoSchema.js",
         import.meta.url).href + t)).default;
     const syncSchemas = (await import(new URL("../schemas/syncSchema.js",
+        import.meta.url).href + t)).default;
+    const uploadSchemas = (await import(new URL("../schemas/uploadSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -170,6 +174,10 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 {
                     name: "Sincronização",
                     description: "Aplicação em lote de mutações geradas offline pelo app"
+                },
+                {
+                    name: "Uploads",
+                    description: "Upload genérico de imagens para o armazenamento (Garage)"
                 }
             ],
             paths: {
@@ -183,6 +191,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...manejoRebanhoPaths,
                 ...movimentacaoPaths,
                 ...syncPaths,
+                ...uploadPaths,
             },
             components: {
                 securitySchemes: {
@@ -203,6 +212,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     ...manejoRebanhoSchemas,
                     ...movimentacaoSchemas,
                     ...syncSchemas,
+                    ...uploadSchemas,
                 }
             },
             security: [{
