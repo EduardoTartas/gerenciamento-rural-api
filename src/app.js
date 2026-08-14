@@ -5,6 +5,7 @@ import helmet from "helmet";
 import errorHandler from './utils/helpers/errorHandler.js';
 import logger from './utils/logger.js';
 import DbConnect from './config/dbConnect.js';
+import { ensureGarageEnv } from './config/garageConnect.js';
 import { auth } from './config/auth.js';
 import { toNodeHandler } from 'better-auth/node';
 import routes from './routes/index.js';
@@ -17,6 +18,7 @@ import { strictRateLimit } from './middlewares/RateLimitMiddleware.js';
 const app = express();
 
 await DbConnect.connect();
+ensureGarageEnv();
 
 // Middlewares de segurança
 // CSP restritiva em todas as rotas menos /v1/docs (Swagger precisa de scripts/styles inline)
