@@ -3,6 +3,16 @@
 import DbConnect from '../config/dbConnect.js';
 import { contemInsensitive } from '../utils/helpers/index.js';
 
+const USER_SELECT = {
+    id: true,
+    name: true,
+    email: true,
+    emailVerified: true,
+    image: true,
+    createdAt: true,
+    updatedAt: true,
+};
+
 class UserRepository {
     constructor() {
         this.prisma = DbConnect.prisma;
@@ -23,15 +33,7 @@ class UserRepository {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { name: 'asc' },
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    emailVerified: true,
-                    image: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
+                select: USER_SELECT,
             }),
             this.prisma.user.count({ where }),
         ]);
@@ -51,15 +53,7 @@ class UserRepository {
     async findById(id) {
         return this.prisma.user.findUnique({
             where: { id },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                emailVerified: true,
-                image: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+            select: USER_SELECT,
         });
     }
 
@@ -81,15 +75,7 @@ class UserRepository {
         const user = await this.prisma.user.update({
             where: { id },
             data,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                emailVerified: true,
-                image: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+            select: USER_SELECT,
         });
 
         return user;
