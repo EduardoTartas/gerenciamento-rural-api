@@ -3,7 +3,7 @@
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 
 const syncRoutes = {
-    "/sync": {
+    "/v1/sync": {
         post: {
             tags: ["Sincronização"],
             summary: "Aplica um lote de mutações geradas offline",

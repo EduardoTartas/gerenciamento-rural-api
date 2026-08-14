@@ -5,7 +5,7 @@ import movimentacaoSchemas from "../schemas/movimentacaoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const movimentacaoRoutes = {
-    "/rebanhos/movimentacoes": {
+    "/v1/rebanhos/movimentacoes": {
         get: {
             tags: ["Movimentações"],
             summary: "Lista o histórico de movimentações de rebanhos",
@@ -84,7 +84,7 @@ const movimentacaoRoutes = {
         }
     },
 
-    "/rebanhos/movimentacoes/{id}": {
+    "/v1/rebanhos/movimentacoes/{id}": {
         get: {
             tags: ["Movimentações"],
             summary: "Obtém detalhes de uma movimentação por ID",

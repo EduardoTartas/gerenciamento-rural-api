@@ -5,7 +5,7 @@ import userSchemas from "../schemas/userSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const userRoutes = {
-    "/usuarios": {
+    "/v1/usuarios": {
         get: {
             tags: ["Usuários"],
             summary: "Lista todos os usuários registrados (somente admin)",
@@ -56,7 +56,7 @@ const userRoutes = {
         }
     },
 
-    "/usuarios/{id}": {
+    "/v1/usuarios/{id}": {
         get: {
             tags: ["Usuários"],
             summary: "Obtém detalhes de um usuário",
@@ -177,7 +177,7 @@ const userRoutes = {
         }
     },
 
-    "/usuarios/{id}/foto": {
+    "/v1/usuarios/{id}/foto": {
         patch: {
             tags: ["Usuários"],
             summary: "Registra a foto de perfil do usuário",

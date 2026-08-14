@@ -5,7 +5,7 @@ import manejoPastoSchemas from "../schemas/manejoPastoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const manejoPastoRoutes = {
-    "/pastagens/manejos": {
+    "/v1/pastagens/manejos": {
         get: {
             tags: ["Manejos de Pastagem"],
             summary: "Lista todos os manejos de pasto do usuário autenticado",
@@ -94,7 +94,7 @@ const manejoPastoRoutes = {
         }
     },
 
-    "/pastagens/manejos/{id}": {
+    "/v1/pastagens/manejos/{id}": {
         get: {
             tags: ["Manejos de Pastagem"],
             summary: "Obtém detalhes de um manejo de pasto específico",

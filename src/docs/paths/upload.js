@@ -3,7 +3,7 @@
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 
 const uploadRoutes = {
-    "/uploads/imagens": {
+    "/v1/uploads/imagens": {
         post: {
             tags: ["Uploads"],
             summary: "Envia uma imagem para o armazenamento (Garage)",
