@@ -1,6 +1,7 @@
 // src/repository/PropriedadeRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 class PropriedadeRepository {
     constructor() {
@@ -16,24 +17,10 @@ class PropriedadeRepository {
             usuarioId,
         };
 
-        // Numa leitura por diferença, o que foi excluído precisa vir junto —
-        // é assim que o aplicativo fica sabendo da exclusão. Filtrar por
-        // `ativo` aqui esconderia exatamente o que o cliente precisa saber.
-        if (filters.atualizadoDesde) {
-            where.updatedAt = { gt: filters.atualizadoDesde };
-        }
-        if (filters.ativo !== undefined) {
-            where.ativo = filters.ativo;
-        } else if (!filters.atualizadoDesde) {
-            where.ativo = true;
-        }
+        aplicarAtivoOuDiferenca(where, filters);
 
-        if (filters.nome) {
-            where.nome = { contains: filters.nome, mode: 'insensitive' };
-        }
-        if (filters.localizacao) {
-            where.localizacao = { contains: filters.localizacao, mode: 'insensitive' };
-        }
+        if (filters.nome) where.nome = contemInsensitive(filters.nome);
+        if (filters.localizacao) where.localizacao = contemInsensitive(filters.localizacao);
 
         const [docs, totalDocs] = await Promise.all([
             this.prisma.propriedade.findMany({
@@ -103,7 +90,7 @@ class PropriedadeRepository {
      */
     async findByNome(nome, usuarioId, excludeId = null) {
         const where = {
-            nome: { equals: nome, mode: 'insensitive' },
+            nome: igualInsensitive(nome),
             usuarioId,
             ativo: true,
         };
