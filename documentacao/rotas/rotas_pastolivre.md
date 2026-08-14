@@ -326,12 +326,35 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 - **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
 - **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
 
+### 9.5 PATCH /usuarios/:id/foto
+**Caso de Uso:** Registrar a foto de perfil após envio via `POST /uploads/imagens`.
+**Regras de Negócio:**
+- **Ação Própria:** somente o próprio usuário pode alterar sua foto (403 caso contrário).
+- **Fluxo em duas etapas:** o cliente primeiro envia o arquivo em `POST /uploads/imagens` (recebe a URL), depois registra essa URL aqui. O upload em si não altera o perfil.
+- **Origem da URL:** rejeita (400) qualquer URL que não pertença ao bucket configurado (`GARAGE_PUBLIC_URL`) — impede associar imagens externas arbitrárias.
+- **Rollback:** se o cadastro falhar, a imagem recém-enviada é deletada do bucket, evitando arquivo órfão.
+- **Substituição:** se já havia uma foto anterior, ela é removida do bucket em segundo plano após o sucesso.
+
 ---
 
-## 10. /sync
+## 10. /uploads
+Upload genérico de imagens para o Garage. Desacoplado de qualquer entidade — a associação (ex.: foto de perfil) é feita em uma chamada separada.
+
+### 10.1 POST /uploads/imagens
+**Caso de Uso:** Enviar um arquivo de imagem e receber sua URL pública.
+**Regras de Negócio:**
+- **Autenticação:** requer sessão válida.
+- **Validação:** extensão (`.jpg`, `.jpeg`, `.png`) e mimetype real do binário; máximo 5MB.
+- **Processamento:** redimensiona para 512x512 (`cover`) e reencoda em JPEG (Sharp) antes de enviar.
+- **Sem associação:** a imagem enviada fica órfã no bucket até algum recurso registrar sua URL (ex.: `PATCH /usuarios/:id/foto`).
+- **Decisão de escopo — sem vínculo de dono:** o upload não registra quem enviou o arquivo. Qualquer usuário autenticado que descubra a URL de outro (nome é UUID, não enumerável, mas pode vazar) pode registrá-la como sua própria foto em `PATCH /usuarios/:id/foto`. Nesse caso, se o dono original trocar de foto depois, a limpeza do avatar antigo remove o arquivo que o outro usuário também referenciava. Risco aceito conscientemente para o escopo deste TCC — não implementar vínculo de dono por upload a menos que o risco de vazamento de URL aumente (ex.: exposição em listagens públicas).
+
+---
+
+## 11. /sync
 Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 
-### 10.1 POST /sync
+### 11.1 POST /sync
 **Caso de Uso:** Ao reconectar, o app envia de uma vez a fila de criações, edições e exclusões feitas offline.
 **Regras de Negócio:**
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
@@ -350,9 +373,9 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 
 ---
 
-## 11. Rotas Operacionais
+## 12. Rotas Operacionais
 
-### 11.1 GET /health
+### 12.1 GET /health
 **Caso de Uso:** Verificação de saúde para orquestração (Kubernetes) e monitoramento.
 **Resposta:** `200` com `{ status, database, timestamp, uptime }` quando a consulta ao banco responde; `503` caso contrário. Não exige autenticação.
 

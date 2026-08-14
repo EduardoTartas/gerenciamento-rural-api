@@ -1,7 +1,7 @@
 // src/controllers/UserController.js
 
 import UserService from '../service/UserService.js';
-import { UserUpdateSchema } from '../utils/validators/schemas/zod/UserSchema.js';
+import { UserUpdateSchema, UserFotoSchema } from '../utils/validators/schemas/zod/UserSchema.js';
 import {
     UserQuerySchema,
     UserIdSchema,
@@ -82,6 +82,25 @@ class UserController {
             data,
             HttpStatusCodes.OK.code,
             'Usuário atualizado com sucesso.',
+        );
+    }
+
+    /**
+     * PATCH /users/:id/foto
+     * Registra a URL de uma imagem já enviada via POST /uploads/imagens.
+     */
+    async registrarFoto(req, res) {
+        const { id } = req.params;
+        UserIdSchema.parse(id);
+
+        const { url } = UserFotoSchema.parse(req.body);
+        const data = await this.service.registrarFoto(id, url, req);
+
+        return CommonResponse.success(
+            res,
+            data,
+            HttpStatusCodes.OK.code,
+            'Foto de perfil atualizada com sucesso.',
         );
     }
 

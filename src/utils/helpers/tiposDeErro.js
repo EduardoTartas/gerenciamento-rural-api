@@ -54,6 +54,8 @@ export const TIPOS_DE_ERRO = {
      * culpa do dado enviado; tratar como condição de servidor.
      */
     operationalError:          { http: 500, recuperavel: true  },
+    /** Garage/Minio fora do ar ou instável ao subir/remover arquivo. Condição transitória. */
+    storageError:              { http: 503, recuperavel: true  },
 };
 
 const PADRAO = 'serverError';
