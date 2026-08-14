@@ -177,7 +177,7 @@ const userRoutes = {
         }
     },
 
-    "/usuarios/{id}/foto": {
+    "/v1/usuarios/{id}/foto": {
         patch: {
             tags: ["Usuários"],
             summary: "Registra a foto de perfil do usuário",
