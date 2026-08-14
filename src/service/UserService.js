@@ -8,11 +8,14 @@ import {
 import { userRepository } from '../repository/index.js';
 import { auth } from '../config/auth.js';
 import DbConnect from '../config/dbConnect.js';
+import UploadService from './UploadService.js';
+import logger from '../utils/logger.js';
 
 class UserService {
     constructor() {
         this.repository = userRepository;
         this.prisma = DbConnect.prisma;
+        this.uploadService = new UploadService();
     }
 
     /**
@@ -53,6 +56,35 @@ class UserService {
         }
 
         return this.repository.update(id, parsedData);
+    }
+
+    /**
+     * Registra no perfil a URL de uma imagem já enviada via /uploads/imagens.
+     * Se o cadastro falhar, desfaz o upload (deleta a imagem órfã do bucket).
+     * Se o cadastro der certo e havia um avatar anterior, descarta o antigo.
+     */
+    async registrarFoto(id, url, req) {
+        const user = await this.ensureUserExists(id);
+        this.ensureSelfAction(req.user.id, id, 'atualizar a foto de outro usuário');
+        this.ensureUrlPertenceAoBucket(url);
+
+        let updated;
+        try {
+            updated = await this.repository.update(id, { image: url });
+        } catch (error) {
+            await this.uploadService.deletarImagem(url).catch((err) => {
+                logger.error('Falha ao desfazer upload após erro de cadastro.', { url, error: err.message });
+            });
+            throw error;
+        }
+
+        if (user.image && user.image !== url) {
+            this.uploadService.deletarImagem(user.image).catch((err) => {
+                logger.error('Falha ao remover avatar antigo.', { url: user.image, error: err.message });
+            });
+        }
+
+        return updated;
     }
 
     /**
@@ -115,6 +147,22 @@ class UserService {
             });
         }
         return user;
+    }
+
+    /**
+     * Garante que a URL informada é de um arquivo hospedado no bucket configurado,
+     * e não uma URL externa arbitrária enviada pelo cliente.
+     */
+    ensureUrlPertenceAoBucket(url) {
+        const baseUrl = process.env.GARAGE_PUBLIC_URL?.replace(/\/$/, '');
+        if (!baseUrl || !url.startsWith(`${baseUrl}/`)) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: 'url',
+                customMessage: 'A URL informada não corresponde a uma imagem enviada pelo sistema.',
+            });
+        }
     }
 
     /**

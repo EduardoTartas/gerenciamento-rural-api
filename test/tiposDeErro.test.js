@@ -24,6 +24,7 @@ describe('tipos de erro', () => {
             'recordNotFound',
             'resourceNotFound',
             'serverError',
+            'storageError',
             'tokenExpired',
             'unauthorized',
             'uniqueConstraintViolation',

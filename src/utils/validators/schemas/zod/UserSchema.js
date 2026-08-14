@@ -22,4 +22,11 @@ export const UserUpdateSchema = z.object({
         .nullable(),
 }).strict();
 
+/**
+ * Schema para registrar a foto de perfil após upload via /uploads/imagens.
+ */
+export const UserFotoSchema = z.object({
+    url: z.string().url('A URL da imagem é inválida.'),
+}).strict();
+
 export default UserUpdateSchema;
