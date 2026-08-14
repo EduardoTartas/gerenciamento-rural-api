@@ -7,7 +7,7 @@ import { hashPassword } from 'better-auth/crypto';
  * Cria um usuário e sua conta de autenticação no BetterAuth.
  * Usa o hashPassword nativo do BetterAuth para garantir compatibilidade.
  */
-async function criarUsuario(prisma, { name, email, password }) {
+async function criarUsuario(prisma, { name, email, password, admin = false }) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
     console.log(`  ⏭️  Usuário "${name}" já existe, pulando...`);
@@ -21,6 +21,7 @@ async function criarUsuario(prisma, { name, email, password }) {
       name,
       email,
       emailVerified: true,
+      admin,
       createdAt: new Date(),
       updatedAt: new Date(),
     },
@@ -56,6 +57,7 @@ export async function seedUsuarios(prisma, quantidadeAleatorios = 3) {
     name: 'Administrador',
     email: 'admin@admin.com',
     password: 'admin',
+    admin: true,
   });
   created.push(admin);
 
