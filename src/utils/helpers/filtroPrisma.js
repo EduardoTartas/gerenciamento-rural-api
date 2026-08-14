@@ -35,3 +35,16 @@ export function aplicarAtivoOuDiferenca(where, filters) {
         where.ativo = true;
     }
 }
+
+/**
+ * Filtro de intervalo de datas (`gte`/`lte`) num campo qualquer. Retorna
+ * `undefined` quando nem início nem fim foram informados, pra Prisma ignorar
+ * a chave — mesma ideia de `contemInsensitive`.
+ */
+export function intervaloData(inicio, fim) {
+    if (!inicio && !fim) return undefined;
+    const intervalo = {};
+    if (inicio) intervalo.gte = inicio;
+    if (fim) intervalo.lte = fim;
+    return intervalo;
+}
