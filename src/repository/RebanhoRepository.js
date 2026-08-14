@@ -1,6 +1,7 @@
 // src/repository/RebanhoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 /**
  * Select padrão para listas e buscas individuais de rebanho.
@@ -41,19 +42,9 @@ class RebanhoRepository {
             propriedade: { usuarioId },
         };
 
-        // Numa leitura por diferença, o que foi excluído precisa vir junto —
-        // é assim que o aplicativo fica sabendo da exclusão. Filtrar por
-        // `ativo` aqui esconderia exatamente o que o cliente precisa saber.
-        if (filters.atualizadoDesde) {
-            where.updatedAt = { gt: filters.atualizadoDesde };
-        }
-        if (filters.ativo !== undefined) {
-            where.ativo = filters.ativo;
-        } else if (!filters.atualizadoDesde) {
-            where.ativo = true;
-        }
+        aplicarAtivoOuDiferenca(where, filters);
 
-        if (filters.nomeRebanho) where.nomeRebanho = { contains: filters.nomeRebanho, mode: 'insensitive' };
+        if (filters.nomeRebanho) where.nomeRebanho = contemInsensitive(filters.nomeRebanho);
         if (filters.propriedadeId) where.propriedadeId = filters.propriedadeId;
         if (filters.pastoAtualId)  where.pastoAtualId  = filters.pastoAtualId;
         if (filters.racaId)        where.racaId        = filters.racaId;
@@ -90,7 +81,7 @@ class RebanhoRepository {
      */
     async findByNome(nomeRebanho, propriedadeId, excludeId = null) {
         const where = {
-            nomeRebanho: { equals: nomeRebanho, mode: 'insensitive' },
+            nomeRebanho: igualInsensitive(nomeRebanho),
             propriedadeId,
             ativo: true,
         };

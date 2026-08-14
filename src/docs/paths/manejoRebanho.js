@@ -5,7 +5,7 @@ import manejoRebanhoSchemas from "../schemas/manejoRebanhoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
 const manejoRebanhoRoutes = {
-    "/rebanhos/manejos": {
+    "/v1/rebanhos/manejos": {
         get: {
             tags: ["Manejos de Rebanho"],
             summary: "Lista todos os manejos de rebanho do usuário autenticado",
@@ -81,7 +81,7 @@ const manejoRebanhoRoutes = {
         }
     },
 
-    "/rebanhos/manejos/{id}": {
+    "/v1/rebanhos/manejos/{id}": {
         get: {
             tags: ["Manejos de Rebanho"],
             summary: "Obtém detalhes de um manejo de rebanho por ID",

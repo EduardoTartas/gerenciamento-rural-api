@@ -1,6 +1,7 @@
 // src/repository/CatalogoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { contemInsensitive, igualInsensitive } from '../utils/helpers/index.js';
 
 /**
  * Mapeamento das entidades de catálogo:
@@ -32,9 +33,7 @@ class CatalogoRepository {
         const where = {
             ativo: filters.ativo !== undefined ? filters.ativo : true,
         };
-        if (filters.nome) {
-            where.nome = { contains: filters.nome, mode: 'insensitive' };
-        }
+        if (filters.nome) where.nome = contemInsensitive(filters.nome);
 
         const [docs, totalDocs] = await Promise.all([
             this.prisma[model].findMany({
@@ -61,7 +60,7 @@ class CatalogoRepository {
      * Verifica nome duplicado (case-insensitive).
      */
     async findByNome(model, nome, excludeId = null) {
-        const where = { nome: { equals: nome, mode: 'insensitive' }, ativo: true };
+        const where = { nome: igualInsensitive(nome), ativo: true };
         if (excludeId) where.id = { not: excludeId };
         return this.prisma[model].findFirst({ where });
     }

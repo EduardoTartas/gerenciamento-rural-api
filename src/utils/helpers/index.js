@@ -8,3 +8,4 @@ export { default as messages } from './messages.js';
 export { default as StatusService } from './StatusService.js';
 export { default as asyncWrapper } from '../../middlewares/asyncWrapper.js';
 export { TIPOS_DE_ERRO, descreverErro, ehRecuperavel } from './tiposDeErro.js';
+export { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca, intervaloData } from './filtroPrisma.js';

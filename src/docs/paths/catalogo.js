@@ -7,7 +7,7 @@ import { generateParameters } from "./utils/generateParameters.js";
 const entidadesDisponiveis = "racas | sistemas-producao | regimes-alimentares | tipos-manejo-rebanho | tipos-manejo-pasto";
 
 const catalogoRoutes = {
-    "/catalogos/{entidade}": {
+    "/v1/catalogos/{entidade}": {
         get: {
             tags: ["Catálogos Globais"],
             summary: "Lista itens de um catálogo global",
@@ -89,7 +89,7 @@ const catalogoRoutes = {
         }
     },
 
-    "/catalogos/{entidade}/{id}": {
+    "/v1/catalogos/{entidade}/{id}": {
         get: {
             tags: ["Catálogos Globais"],
             summary: "Obtém um item de catálogo por ID",

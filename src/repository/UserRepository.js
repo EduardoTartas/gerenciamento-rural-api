@@ -1,6 +1,17 @@
 // src/repository/UserRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { contemInsensitive } from '../utils/helpers/index.js';
+
+const USER_SELECT = {
+    id: true,
+    name: true,
+    email: true,
+    emailVerified: true,
+    image: true,
+    createdAt: true,
+    updatedAt: true,
+};
 
 class UserRepository {
     constructor() {
@@ -13,12 +24,8 @@ class UserRepository {
     async list(filters = {}, page = 1, limit = 10) {
         const where = {};
 
-        if (filters.name) {
-            where.name = { contains: filters.name, mode: 'insensitive' };
-        }
-        if (filters.email) {
-            where.email = { contains: filters.email, mode: 'insensitive' };
-        }
+        if (filters.name) where.name = contemInsensitive(filters.name);
+        if (filters.email) where.email = contemInsensitive(filters.email);
 
         const [docs, totalDocs] = await Promise.all([
             this.prisma.user.findMany({
@@ -26,15 +33,7 @@ class UserRepository {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { name: 'asc' },
-                select: {
-                    id: true,
-                    name: true,
-                    email: true,
-                    emailVerified: true,
-                    image: true,
-                    createdAt: true,
-                    updatedAt: true,
-                },
+                select: USER_SELECT,
             }),
             this.prisma.user.count({ where }),
         ]);
@@ -54,15 +53,7 @@ class UserRepository {
     async findById(id) {
         return this.prisma.user.findUnique({
             where: { id },
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                emailVerified: true,
-                image: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+            select: USER_SELECT,
         });
     }
 
@@ -84,15 +75,7 @@ class UserRepository {
         const user = await this.prisma.user.update({
             where: { id },
             data,
-            select: {
-                id: true,
-                name: true,
-                email: true,
-                emailVerified: true,
-                image: true,
-                createdAt: true,
-                updatedAt: true,
-            },
+            select: USER_SELECT,
         });
 
         return user;
