@@ -1,7 +1,7 @@
 // src/repository/ManejoRebanhoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
+import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
     id: true,
@@ -46,9 +46,7 @@ class ManejoRebanhoRepository {
             where.rebanho = { ...where.rebanho, propriedadeId: filters.propriedadeId };
         }
         if (filters.dataInicio || filters.dataFim) {
-            where.dataAtividade = {};
-            if (filters.dataInicio) where.dataAtividade.gte = filters.dataInicio;
-            if (filters.dataFim)    where.dataAtividade.lte = filters.dataFim;
+            where.dataAtividade = intervaloData(filters.dataInicio, filters.dataFim);
         }
 
         const [docs, totalDocs] = await Promise.all([

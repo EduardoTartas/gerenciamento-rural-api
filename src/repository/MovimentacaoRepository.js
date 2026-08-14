@@ -1,7 +1,7 @@
 // src/repository/MovimentacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
-import { CustomError, HttpStatusCodes, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
+import { CustomError, HttpStatusCodes, aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MOVIMENTACAO_SELECT = {
     id: true,
@@ -50,9 +50,7 @@ class MovimentacaoRepository {
         if (filters.pastoOrigemId)  where.pastoOrigemId  = filters.pastoOrigemId;
         if (filters.pastoDestinoId) where.pastoDestinoId = filters.pastoDestinoId;
         if (filters.dataInicio || filters.dataFim) {
-            where.dataMovimentacao = {};
-            if (filters.dataInicio) where.dataMovimentacao.gte = filters.dataInicio;
-            if (filters.dataFim)    where.dataMovimentacao.lte = filters.dataFim;
+            where.dataMovimentacao = intervaloData(filters.dataInicio, filters.dataFim);
         }
 
         const [docs, totalDocs] = await Promise.all([

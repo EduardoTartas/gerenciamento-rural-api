@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../src/utils/helpers/filtroPrisma.js';
+import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca, intervaloData } from '../src/utils/helpers/filtroPrisma.js';
 
 describe('contemInsensitive', () => {
     it('monta o filtro de contains case-insensitive quando há valor', () => {
@@ -49,5 +49,26 @@ describe('aplicarAtivoOuDiferenca', () => {
         const where = {};
         aplicarAtivoOuDiferenca(where, { atualizadoDesde: data, ativo: true });
         expect(where).toEqual({ updatedAt: { gt: data }, ativo: true });
+    });
+});
+
+describe('intervaloData', () => {
+    const inicio = new Date('2026-01-01T00:00:00Z');
+    const fim = new Date('2026-01-31T23:59:59Z');
+
+    it('retorna undefined quando nem início nem fim foram informados', () => {
+        expect(intervaloData(undefined, undefined)).toBeUndefined();
+    });
+
+    it('monta só gte quando só início foi informado', () => {
+        expect(intervaloData(inicio, undefined)).toEqual({ gte: inicio });
+    });
+
+    it('monta só lte quando só fim foi informado', () => {
+        expect(intervaloData(undefined, fim)).toEqual({ lte: fim });
+    });
+
+    it('monta gte e lte quando os dois foram informados', () => {
+        expect(intervaloData(inicio, fim)).toEqual({ gte: inicio, lte: fim });
     });
 });
