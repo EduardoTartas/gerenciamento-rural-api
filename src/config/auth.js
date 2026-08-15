@@ -53,6 +53,20 @@ export const auth = betterAuth({
             },
         },
     },
+    // Login com Google via idToken nativo (app mobile). O `aud` do token gerado pelo
+    // Google SDK no Android é sempre o Client ID Web (passado como `serverClientId`
+    // no app) — por isso ele entra na lista mesmo sem o app usar o fluxo de redirect.
+    // O Client ID Android só autoriza o app nativo a existir (package + SHA-1), não é
+    // o que o backend valida.
+    socialProviders: {
+        google: {
+            clientId: [
+                process.env.GOOGLE_WEB_CLIENT_ID,
+                process.env.GOOGLE_ANDROID_CLIENT_ID,
+            ].filter(Boolean),
+            clientSecret: process.env.GOOGLE_CLIENT_SECRET,
+        },
+    },
     plugins: [
         bearer(),
         emailOTP({
