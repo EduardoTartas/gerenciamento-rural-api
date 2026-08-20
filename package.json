@@ -5,7 +5,7 @@
   "main": "src/app.js",
   "type": "module",
   "scripts": {
-    "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate",
+    "dev": "docker compose -f docker-compose.dev.yml up --build --force-recreate --renew-anon-volumes",
     "dev:local": "nodemon --legacy-watch server.js",
     "start": "node server.js",
     "start:docker": "docker compose -f docker-compose.yml up --build",
