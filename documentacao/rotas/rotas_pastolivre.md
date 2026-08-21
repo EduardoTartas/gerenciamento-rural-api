@@ -29,6 +29,17 @@ Rotas padrão de autenticação providas nativamente pelo framework BetterAuth.
 **Resposta:** 
 - Retorno de dados do usuário e definição do token de sessão.
 
+### 1.3 POST /api/auth/sign-in/social
+**Caso de Uso:** Login/cadastro via Google, usado pelo app mobile (fluxo de `idToken` nativo, não redirect web).
+**Regras de Negócio:**
+- Corpo: `{ provider: "google", idToken: { token } }`.
+- O app deve pedir o token ao SDK do Google usando `serverClientId` = Client ID **Web** — é ele que vira o `aud` do token validado pelo backend, não o Client ID Android.
+- Client IDs aceitos configurados via `GOOGLE_WEB_CLIENT_ID`/`GOOGLE_ANDROID_CLIENT_ID`.
+- Primeiro login com uma conta Google cria o usuário automaticamente, com e-mail já verificado.
+- **Vínculo com conta local existente exige `emailVerified: true`** (regra do BetterAuth). Este projeto não tem fluxo de verificação de e-mail no cadastro por senha — na prática, ninguém que se cadastrou por e-mail/senha consegue logar depois com Google usando o mesmo e-mail; a tentativa retorna 401 (`OAUTH_LINK_ERROR`). Comportamento correto de segurança (evita sequestro de conta não verificada), mas significa que hoje só funciona pra conta criada direto pelo Google.
+**Resposta:**
+- 200 com dados da sessão e do usuário. 401 se o `idToken` for inválido/expirado/audience errado (`INVALID_TOKEN`) ou se o e-mail já existir localmente sem verificação (`OAUTH_LINK_ERROR`).
+
 ---
 
 ## 2. /propriedades

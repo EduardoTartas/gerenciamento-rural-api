@@ -216,6 +216,55 @@ const authRoutes = {
         }
     },
 
+    "/api/auth/sign-in/social": {
+        post: {
+            tags: ["Auth"],
+            summary: "Login com Google via idToken nativo",
+            description: `
+            + Caso de uso: Login/cadastro via conta Google, usado pelo app mobile.
+
+            + Função de Negócio:
+                - Recebe o \`idToken\` obtido pelo SDK nativo do Google no dispositivo (não é o fluxo de redirect web).
+                - Verifica o token contra os Client IDs configurados (\`GOOGLE_WEB_CLIENT_ID\`, \`GOOGLE_ANDROID_CLIENT_ID\`).
+                - Cria o usuário automaticamente no primeiro login (e-mail já vem verificado pelo Google).
+
+            + Regras de Negócio:
+                - **provider**: sempre \`"google"\`.
+                - **idToken.token**: obrigatório — o app deve solicitar o token ao SDK do Google com \`serverClientId\` = Client ID **Web** (é ele que aparece como \`aud\` no token, não o Android).
+                - **Vínculo com conta local existente**: o BetterAuth só vincula automaticamente a um e-mail já cadastrado se esse usuário estiver com \`emailVerified: true\`. Este projeto **não tem fluxo de verificação de e-mail** no cadastro por senha (\`emailAndPassword\`) — logo, na prática, quem se cadastrou por e-mail/senha nunca terá o vínculo automático: a tentativa de login Google com o mesmo e-mail retorna 401 (\`OAUTH_LINK_ERROR\`) em vez de logar. É o comportamento correto de segurança do BetterAuth (evita sequestro de conta pré-existente não verificada), mas significa que hoje o único caminho funcional é: conta nova, criada direto pelo Google.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com dados da sessão e do usuário.
+                - HTTP 401 se o \`idToken\` for inválido, expirado ou de audience não reconhecida (\`INVALID_TOKEN\`), ou se a conta local com o mesmo e-mail existir sem \`emailVerified: true\` (\`OAUTH_LINK_ERROR\`).
+            `,
+            requestBody: {
+                content: {
+                    "application/json": {
+                        schema: {
+                            type: "object",
+                            required: ["provider", "idToken"],
+                            properties: {
+                                provider: { type: "string", example: "google" },
+                                idToken: {
+                                    type: "object",
+                                    required: ["token"],
+                                    properties: {
+                                        token: { type: "string", description: "ID token retornado pelo SDK nativo do Google" }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            responses: {
+                200: commonResponses[200]("#/components/schemas/SignInResponse"),
+                401: commonResponses[401](),
+                500: commonResponses[500]()
+            }
+        }
+    },
+
     "/api/auth/ok": {
         get: {
             tags: ["Auth"],
