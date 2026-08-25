@@ -1,6 +1,7 @@
 // src/repository/ManejoPastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
@@ -78,25 +79,37 @@ class ManejoPastoRepository {
 
     /**
      * Cria um novo manejo de pasto.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async create(data) {
-        return this.prisma.manejoPasto.create({ data, select: MANEJO_SELECT });
+    async create(data, tx) {
+        return ondeEscrever(tx, this.prisma).manejoPasto.create({ data, select: MANEJO_SELECT });
     }
 
     /**
      * Atualiza um manejo de pasto por ID.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async update(id, data) {
-        return this.prisma.manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT });
+    async update(id, data, tx) {
+        return ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT });
     }
 
     /**
      * Exclusão lógica. A linha precisa continuar existindo para o delta poder
      * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
      * informar, e o aplicativo ficaria com um registro fantasma.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async remove(id) {
-        return this.prisma.manejoPasto.update({
+    async remove(id, tx) {
+        return ondeEscrever(tx, this.prisma).manejoPasto.update({
             where: { id },
             data: { ativo: false },
         });

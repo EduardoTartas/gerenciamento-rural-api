@@ -50,7 +50,7 @@ class MovimentacaoService {
      * 3. O pasto de destino não pode ser o mesmo que o pasto atual.
      * 4. Toda a operação é executada em uma transação atômica (count incluso).
      */
-    async create(parsedData, req) {
+    async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         // Valida o rebanho
@@ -134,7 +134,7 @@ class MovimentacaoService {
             pastoDestinoId: parsedData.pastoDestinoId,
             dataMovimentacao,
             observacoes: parsedData.observacoes ?? null,
-        });
+        }, tx);
     }
 
     /**
@@ -143,7 +143,7 @@ class MovimentacaoService {
      * Só a última: desfazer uma do meio deixaria o histórico dizendo que o lote
      * saiu de A para B e depois apareceu em C sem nunca ter ido para lá.
      */
-    async remove(id, req) {
+    async remove(id, req, tx) {
         const usuarioId = req.user.id;
         const movimentacao = await this.ensureMovimentacaoExists(id, usuarioId);
 
@@ -161,7 +161,7 @@ class MovimentacaoService {
             });
         }
 
-        return this.repository.desfazerComTransacao(movimentacao);
+        return this.repository.desfazerComTransacao(movimentacao, tx);
     }
 
     // ================================

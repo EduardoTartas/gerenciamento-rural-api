@@ -50,7 +50,7 @@ class ManejoPastoService {
      * Cria um novo manejo de pasto.
      * Valida que o pasto e o tipo de manejo pertencem/existem.
      */
-    async create(parsedData, req) {
+    async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         const pasto = await this.ensurePastoExists(parsedData.pastoId, usuarioId);
@@ -67,13 +67,13 @@ class ManejoPastoService {
 
         await this.ensureTipoManejoExists(parsedData.tipoManejoId);
 
-        return this.repository.create(parsedData);
+        return this.repository.create(parsedData, tx);
     }
 
     /**
      * Atualiza um manejo de pasto existente.
      */
-    async update(id, parsedData, req) {
+    async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         await this.ensureManejoExists(id, usuarioId);
@@ -82,16 +82,16 @@ class ManejoPastoService {
             await this.ensureTipoManejoExists(parsedData.tipoManejoId);
         }
 
-        return this.repository.update(id, parsedData);
+        return this.repository.update(id, parsedData, tx);
     }
 
     /**
      * Exclui um manejo de pasto.
      */
-    async remove(id, req) {
+    async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureManejoExists(id, usuarioId);
-        return this.repository.remove(id);
+        return this.repository.remove(id, tx);
     }
 
     // ================================

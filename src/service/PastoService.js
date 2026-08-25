@@ -46,7 +46,7 @@ class PastoService {
     /**
      * Cria um novo pasto para uma propriedade do usuário autenticado.
      */
-    async create(parsedData, req) {
+    async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         // Valida se a propriedade existe e pertence ao usuário
@@ -66,14 +66,14 @@ class PastoService {
         // Valida nome único por propriedade
         await this.validateUniqueNome(parsedData.nome, parsedData.propriedadeId);
 
-        return this.repository.create(parsedData);
+        return this.repository.create(parsedData, tx);
     }
 
     /**
      * Atualiza um pasto existente.
      * Apenas o dono da propriedade pode atualizar.
      */
-    async update(id, parsedData, req) {
+    async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         const pasto = await this.ensurePastoExists(id, usuarioId);
@@ -129,7 +129,7 @@ class PastoService {
         // Depende de `pesoMedioAtual` preenchido — hoje é opcional. Sem ele,
         // cair para um valor por categoria animal ou omitir o cálculo.
 
-        return this.repository.update(id, parsedData);
+        return this.repository.update(id, parsedData, tx);
     }
 
     /**
@@ -138,8 +138,8 @@ class PastoService {
      * O método redireciona para a atualização da flag 'ativo', que já possui validações de integridade
      * (não permite arquivar se houver rebanhos ativos).
      */
-    async remove(id, req) {
-        return this.update(id, { ativo: false }, req);
+    async remove(id, req, tx) {
+        return this.update(id, { ativo: false }, req, tx);
     }
 
     // ================================
