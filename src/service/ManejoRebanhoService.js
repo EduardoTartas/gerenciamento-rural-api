@@ -38,7 +38,7 @@ class ManejoRebanhoService {
         );
     }
 
-    async create(parsedData, req) {
+    async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(parsedData.rebanhoId, usuarioId);
 
@@ -58,10 +58,10 @@ class ManejoRebanhoService {
         // Regra especial: Pesagem → atualiza pesoMedioAtual do rebanho, dentro de uma
         // transação e só quando esta pesagem é a mais recente (evita que um lançamento
         // retroativo sobrescreva um peso mais atual).
-        return this.repository.createComAtualizacaoPeso(parsedData);
+        return this.repository.createComAtualizacaoPeso(parsedData, tx);
     }
 
-    async update(id, parsedData, req) {
+    async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureManejoExists(id, usuarioId);
 
@@ -69,13 +69,13 @@ class ManejoRebanhoService {
             await this.ensureTipoManejoExists(parsedData.tipoManejoId);
         }
 
-        return this.repository.update(id, parsedData);
+        return this.repository.update(id, parsedData, tx);
     }
 
-    async remove(id, req) {
+    async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureManejoExists(id, usuarioId);
-        return this.repository.remove(id);
+        return this.repository.remove(id, tx);
     }
 
     // ================================

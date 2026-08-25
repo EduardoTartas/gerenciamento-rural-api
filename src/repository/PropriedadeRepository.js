@@ -1,6 +1,7 @@
 // src/repository/PropriedadeRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 /**
@@ -93,9 +94,13 @@ class PropriedadeRepository {
 
     /**
      * Cria uma nova propriedade.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async create(data) {
-        return this.prisma.propriedade.create({
+    async create(data, tx) {
+        return ondeEscrever(tx, this.prisma).propriedade.create({
             data,
             select: { usuarioId: true, ...PROPRIEDADE_SELECT },
         });
@@ -103,9 +108,13 @@ class PropriedadeRepository {
 
     /**
      * Atualiza uma propriedade por ID.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async update(id, data) {
-        return this.prisma.propriedade.update({
+    async update(id, data, tx) {
+        return ondeEscrever(tx, this.prisma).propriedade.update({
             where: { id },
             data,
             select: { usuarioId: true, ...PROPRIEDADE_SELECT },

@@ -1,6 +1,7 @@
 // src/repository/MovimentacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { comTransacao } from '../utils/helpers/transacao.js';
 import { CustomError, HttpStatusCodes, aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MOVIMENTACAO_SELECT = {
@@ -79,8 +80,14 @@ class MovimentacaoRepository {
      * O count de rebanhos restantes no pasto de origem é feito DENTRO da transação
      * para evitar race conditions.
      */
-    async createComTransacao({ id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes }) {
-        return this.prisma.$transaction(async (tx) => {
+    async createComTransacao(
+        { id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
+        executor,
+    ) {
+        // Reaproveita a transação recebida em vez de abrir outra — vindo do
+        // lote, abrir aqui daria transação dentro de transação, que o Prisma não
+        // compõe (issues #34 e #35).
+        return comTransacao(this.prisma, executor, async (tx) => {
             // 1. Cria o registro histórico, preservando o id gerado pelo cliente (offline-first)
             const movimentacao = await tx.historicoMovimentacao.create({
                 data: { id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
@@ -140,10 +147,12 @@ class MovimentacaoRepository {
      * sem reconferir dentro da transação, a reversão aplicaria efeitos sobre
      * um estado que já mudou.
      */
-    async desfazerComTransacao(movimentacao) {
+    async desfazerComTransacao(movimentacao, executor) {
         const { id, rebanhoId, pastoOrigemId, pastoDestinoId } = movimentacao;
 
-        return this.prisma.$transaction(async (tx) => {
+        // Reaproveita a transação do lote quando houver — ver
+        // `createComTransacao` acima (issues #34 e #35).
+        return comTransacao(this.prisma, executor, async (tx) => {
             const ultima = await tx.historicoMovimentacao.findFirst({
                 where: { rebanhoId, ativo: true },
                 orderBy: [{ dataMovimentacao: 'desc' }, { createdAt: 'desc' }],

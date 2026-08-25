@@ -42,7 +42,7 @@ class PropriedadeService {
     /**
      * Cria uma nova propriedade para o usuário autenticado.
      */
-    async create(parsedData, req) {
+    async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         // Validate unique name per user
@@ -51,14 +51,14 @@ class PropriedadeService {
         return this.repository.create({
             ...parsedData,
             usuarioId,
-        });
+        }, tx);
     }
 
     /**
      * Atualiza uma propriedade existente.
      * Apenas o dono pode atualizar sua propriedade.
      */
-    async update(id, parsedData, req) {
+    async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         await this.ensurePropriedadeExists(id, usuarioId);
@@ -82,7 +82,7 @@ class PropriedadeService {
             }
         }
 
-        return this.repository.update(id, parsedData);
+        return this.repository.update(id, parsedData, tx);
     }
 
     /**
@@ -91,8 +91,8 @@ class PropriedadeService {
      * O método redireciona para a atualização da flag 'ativo', que não permite arquivar
      * caso haja rebanhos ativos registrados na propriedade.
      */
-    async remove(id, req) {
-        return this.update(id, { ativo: false }, req);
+    async remove(id, req, tx) {
+        return this.update(id, { ativo: false }, req, tx);
     }
 
     // ================================

@@ -1,6 +1,6 @@
 // src/service/RebanhoService.js
 
-import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
+import { CustomError, HttpStatusCodes, messages, comTransacao } from '../utils/helpers/index.js';
 import { rebanhoRepository, pastoRepository, propriedadeRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 
@@ -54,7 +54,7 @@ class RebanhoService {
      *         pasto ativo (se informado) e pertence à mesma propriedade.
      * Toda a operação é executada em uma transação atômica.
      */
-    async create(parsedData, req) {
+    async create(parsedData, req, executor) {
         const usuarioId = req.user.id;
 
         const propriedade = await this.ensurePropriedadeExists(parsedData.propriedadeId, usuarioId);
@@ -117,7 +117,7 @@ class RebanhoService {
         const dataEntradaPastoAtual = parsedData.dataEntradaPastoAtual || new Date();
 
         // Transação atômica: cria rebanho + atualiza status do pasto
-        return this.prisma.$transaction(async (tx) => {
+        return comTransacao(this.prisma, executor, async (tx) => {
             await tx.pasto.update({
                 where: { id: parsedData.pastoAtualId },
                 data: { status: 'Ocupado' },
@@ -132,7 +132,7 @@ class RebanhoService {
     /**
      * Atualiza um rebanho existente.
      */
-    async update(id, parsedData, req) {
+    async update(id, parsedData, req, executor) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
 
@@ -163,7 +163,7 @@ class RebanhoService {
             return this._reativar(rebanho, parsedData, usuarioId);
         }
 
-        return this.repository.update(id, parsedData);
+        return this.repository.update(id, parsedData, executor);
     }
 
     /**
@@ -171,7 +171,7 @@ class RebanhoService {
      * Desvincula do pasto atual e atualiza o status do pasto se necessário.
      * Executado em uma transação atômica.
      */
-    async remove(id, req) {
+    async remove(id, req, executor) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
         return this._inativar(rebanho);
@@ -184,7 +184,7 @@ class RebanhoService {
     async _inativar(rebanho) {
         const pastoAnteriorId = rebanho.pastoAtualId;
 
-        return this.prisma.$transaction(async (tx) => {
+        return comTransacao(this.prisma, executor, async (tx) => {
             // Inativa o rebanho e desvincula do pasto
             const resultado = await tx.rebanho.update({
                 where: { id: rebanho.id },
@@ -256,7 +256,7 @@ class RebanhoService {
         const { pastoAtualId, ativo, ...resto } = parsedData;
         const dataEntradaPastoAtual = resto.dataEntradaPastoAtual || new Date();
 
-        return this.prisma.$transaction(async (tx) => {
+        return comTransacao(this.prisma, executor, async (tx) => {
             await tx.pasto.update({
                 where: { id: pastoAtualId },
                 data: { status: 'Ocupado' },

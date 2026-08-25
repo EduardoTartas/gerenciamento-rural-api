@@ -1,6 +1,7 @@
 // src/repository/PastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 
@@ -117,9 +118,13 @@ class PastoRepository {
 
     /**
      * Cria um novo pasto.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async create(data) {
-        return this.prisma.pasto.create({
+    async create(data, tx) {
+        return ondeEscrever(tx, this.prisma).pasto.create({
             data,
             select: {
                 id: true,
@@ -144,9 +149,13 @@ class PastoRepository {
 
     /**
      * Atualiza um pasto por ID.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async update(id, data) {
-        return this.prisma.pasto.update({
+    async update(id, data, tx) {
+        return ondeEscrever(tx, this.prisma).pasto.update({
             where: { id },
             data,
             select: {
