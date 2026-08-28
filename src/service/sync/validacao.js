@@ -1,5 +1,6 @@
 // src/service/sync/validacao.js
 
+import { InsumoCreateSchema, InsumoUpdateSchema } from '../../utils/validators/schemas/zod/InsumoSchema.js';
 import {
     ManejoPastoCreateSchema,
     ManejoPastoUpdateSchema,
@@ -9,6 +10,11 @@ import {
     ManejoRebanhoUpdateSchema,
 } from '../../utils/validators/schemas/zod/ManejoRebanhoSchema.js';
 import { MovimentacaoCreateSchema } from '../../utils/validators/schemas/zod/MovimentacaoSchema.js';
+import { MovimentacaoInsumoCreateSchema } from '../../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
+import {
+    RegimeConsumoInsumoCreateSchema,
+    RegimeConsumoInsumoUpdateSchema,
+} from '../../utils/validators/schemas/zod/RegimeConsumoInsumoSchema.js';
 import {
     PastoCreateSchema,
     PastoUpdateSchema,
@@ -57,6 +63,14 @@ export const SCHEMAS_DE_MUTACAO = {
     'manejo_rebanhos:UPDATE': ManejoRebanhoUpdateSchema,
 
     'historico_movimentacoes:CREATE': MovimentacaoCreateSchema,
+
+    'insumos:CREATE': InsumoCreateSchema,
+    'insumos:UPDATE': InsumoUpdateSchema,
+
+    'movimentacoes_insumo:CREATE': MovimentacaoInsumoCreateSchema,
+
+    'regimes_consumo_insumo:CREATE': RegimeConsumoInsumoCreateSchema,
+    'regimes_consumo_insumo:UPDATE': RegimeConsumoInsumoUpdateSchema,
 };
 
 /**

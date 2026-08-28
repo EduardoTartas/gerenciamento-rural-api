@@ -1,11 +1,14 @@
 // src/service/sync/despacho.js
 
+import InsumoService from '../InsumoService.js';
 import ManejoPastoService from '../ManejoPastoService.js';
 import ManejoRebanhoService from '../ManejoRebanhoService.js';
 import MovimentacaoService from '../MovimentacaoService.js';
+import MovimentacaoInsumoService from '../MovimentacaoInsumoService.js';
 import PastoService from '../PastoService.js';
 import PropriedadeService from '../PropriedadeService.js';
 import RebanhoService from '../RebanhoService.js';
+import RegimeConsumoInsumoService from '../RegimeConsumoInsumoService.js';
 
 const propriedade = new PropriedadeService();
 const pasto = new PastoService();
@@ -13,6 +16,9 @@ const rebanho = new RebanhoService();
 const manejoPasto = new ManejoPastoService();
 const manejoRebanho = new ManejoRebanhoService();
 const movimentacao = new MovimentacaoService();
+const insumo = new InsumoService();
+const movimentacaoInsumo = new MovimentacaoInsumoService();
+const regimeConsumoInsumo = new RegimeConsumoInsumoService();
 
 /**
  * Liga `(entidade, ação)` ao método do service de domínio.
@@ -59,4 +65,22 @@ export const DESPACHO = {
         movimentacao.create({ ...dados, id: entidadeId }, req, tx),
     'historico_movimentacoes:DELETE': ({ entidadeId, req, tx }) =>
         movimentacao.remove(entidadeId, req, tx),
+
+    'insumos:CREATE': ({ entidadeId, dados, req, tx }) =>
+        insumo.create({ ...dados, id: entidadeId }, req, tx),
+    'insumos:UPDATE': ({ entidadeId, dados, req, tx }) =>
+        insumo.update(entidadeId, dados, req, tx),
+    'insumos:DELETE': ({ entidadeId, req, tx }) => insumo.remove(entidadeId, req, tx),
+
+    'movimentacoes_insumo:CREATE': ({ entidadeId, dados, req, tx }) =>
+        movimentacaoInsumo.create({ ...dados, id: entidadeId }, req, tx),
+    'movimentacoes_insumo:DELETE': ({ entidadeId, req, tx }) =>
+        movimentacaoInsumo.remove(entidadeId, req, tx),
+
+    'regimes_consumo_insumo:CREATE': ({ entidadeId, dados, req, tx }) =>
+        regimeConsumoInsumo.create({ ...dados, id: entidadeId }, req, tx),
+    'regimes_consumo_insumo:UPDATE': ({ entidadeId, dados, req, tx }) =>
+        regimeConsumoInsumo.update(entidadeId, dados, req, tx),
+    'regimes_consumo_insumo:DELETE': ({ entidadeId, req, tx }) =>
+        regimeConsumoInsumo.remove(entidadeId, req, tx),
 };
