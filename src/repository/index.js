@@ -12,6 +12,7 @@ import ManejoRebanhoRepository from './ManejoRebanhoRepository.js';
 import MovimentacaoRepository from './MovimentacaoRepository.js';
 import UploadRepository from './UploadRepository.js';
 import InsumoRepository from './InsumoRepository.js';
+import MovimentacaoInsumoRepository from './MovimentacaoInsumoRepository.js';
 
 export const userRepository = new UserRepository();
 export const propriedadeRepository = new PropriedadeRepository();
@@ -23,3 +24,4 @@ export const manejoRebanhoRepository = new ManejoRebanhoRepository();
 export const movimentacaoRepository = new MovimentacaoRepository();
 export const uploadRepository = new UploadRepository();
 export const insumoRepository = new InsumoRepository();
+export const movimentacaoInsumoRepository = new MovimentacaoInsumoRepository();
