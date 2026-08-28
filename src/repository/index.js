@@ -13,6 +13,7 @@ import MovimentacaoRepository from './MovimentacaoRepository.js';
 import UploadRepository from './UploadRepository.js';
 import InsumoRepository from './InsumoRepository.js';
 import MovimentacaoInsumoRepository from './MovimentacaoInsumoRepository.js';
+import RegimeConsumoInsumoRepository from './RegimeConsumoInsumoRepository.js';
 
 export const userRepository = new UserRepository();
 export const propriedadeRepository = new PropriedadeRepository();
@@ -25,3 +26,4 @@ export const movimentacaoRepository = new MovimentacaoRepository();
 export const uploadRepository = new UploadRepository();
 export const insumoRepository = new InsumoRepository();
 export const movimentacaoInsumoRepository = new MovimentacaoInsumoRepository();
+export const regimeConsumoInsumoRepository = new RegimeConsumoInsumoRepository();

@@ -19,6 +19,7 @@ import rebanhoRoutes from './rebanhoRoutes.js';
 import manejoRebanhoRoutes from './manejoRebanhoRoutes.js';
 import movimentacaoRoutes from './movimentacaoRoutes.js';
 import insumoRoutes from './insumoRoutes.js';
+import regimeConsumoRoutes from './regimeConsumoRoutes.js';
 import syncRoutes from './syncRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
 
@@ -89,6 +90,7 @@ const routes = (app) => {
         manejoRebanhoRoutes,
         movimentacaoRoutes,
         insumoRoutes,
+        regimeConsumoRoutes,
         pastoRoutes,
         rebanhoRoutes,
         syncRoutes,
