@@ -37,6 +37,9 @@ describe('InsumoService', () => {
         await expect(
             service.create({ propriedadeId: 'p1', tipoInsumoId: 't1', nome: 'Ração', destino: 'Rebanho', unidadeMedida: 'kg' }, req()),
         ).rejects.toMatchObject({ errorType: 'conflict', field: 'nome' });
+
+        // multi-tenancy: findByNome recebe o usuarioId como primeiro argumento
+        expect(service.repository.findByNome).toHaveBeenCalledWith('dono', 'p1', 'Ração', null);
     });
 
     it('preserva o id recebido ao criar (offline-first)', async () => {

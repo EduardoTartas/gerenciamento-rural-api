@@ -64,8 +64,8 @@ class InsumoRepository {
         });
     }
 
-    async findByNome(propriedadeId, nome, excludeId = null) {
-        const where = { propriedadeId, nome: igualInsensitive(nome), ativo: true };
+    async findByNome(usuarioId, propriedadeId, nome, excludeId = null) {
+        const where = { propriedadeId, propriedade: { usuarioId }, nome: igualInsensitive(nome), ativo: true };
         if (excludeId) where.id = { not: excludeId };
         return this.prisma.insumo.findFirst({ where, select: { id: true } });
     }

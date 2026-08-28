@@ -62,7 +62,7 @@ class InsumoService {
         const usuarioId = req.user.id;
         await this.ensurePropriedadeExists(parsedData.propriedadeId, usuarioId);
         await this.ensureTipoInsumoExists(parsedData.tipoInsumoId);
-        await this.ensureNomeDisponivel(parsedData.propriedadeId, parsedData.nome);
+        await this.ensureNomeDisponivel(usuarioId, parsedData.propriedadeId, parsedData.nome);
         const criado = await this.repository.create(parsedData, tx);
         return this.comSaldo(criado);
     }
@@ -75,7 +75,7 @@ class InsumoService {
             await this.ensureTipoInsumoExists(parsedData.tipoInsumoId);
         }
         if (parsedData.nome && parsedData.nome.toLowerCase() !== atual.nome.toLowerCase()) {
-            await this.ensureNomeDisponivel(atual.propriedadeId, parsedData.nome, id);
+            await this.ensureNomeDisponivel(usuarioId, atual.propriedadeId, parsedData.nome, id);
         }
         const atualizado = await this.repository.update(id, parsedData, tx);
         return this.comSaldo(atualizado);
@@ -131,8 +131,8 @@ class InsumoService {
         return tipo;
     }
 
-    async ensureNomeDisponivel(propriedadeId, nome, excludeId = null) {
-        const existe = await this.repository.findByNome(propriedadeId, nome, excludeId);
+    async ensureNomeDisponivel(usuarioId, propriedadeId, nome, excludeId = null) {
+        const existe = await this.repository.findByNome(usuarioId, propriedadeId, nome, excludeId);
         if (existe) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.CONFLICT.code,
