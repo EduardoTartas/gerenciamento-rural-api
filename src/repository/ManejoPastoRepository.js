@@ -25,7 +25,23 @@ const MANEJO_SELECT = {
             propriedade: { select: { id: true, nome: true } },
         },
     },
+    movimentacoesInsumo: {
+        where: { ativo: true },
+        select: {
+            id: true, insumoId: true, quantidade: true, observacoes: true,
+            insumo: { select: { id: true, nome: true, unidadeMedida: true } },
+        },
+    },
 };
+
+/**
+ * A relação `movimentacoesInsumo` viaja no `select` para uma única consulta, mas
+ * a resposta expõe os itens do manejo sob a chave `itens` — o nome cru do ledger
+ * não vaza para o aplicativo.
+ */
+function comItens({ movimentacoesInsumo, ...manejo }) {
+    return { ...manejo, itens: movimentacoesInsumo ?? [] };
+}
 
 class ManejoPastoRepository {
     constructor() {
@@ -63,7 +79,7 @@ class ManejoPastoRepository {
             this.prisma.manejoPasto.count({ where }),
         ]);
 
-        return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
+        return { docs: docs.map(comItens), totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
     /**
@@ -71,10 +87,11 @@ class ManejoPastoRepository {
      * Restrito ao usuário autenticado via pasto -> propriedade.
      */
     async findById(id, usuarioId) {
-        return this.prisma.manejoPasto.findFirst({
+        const manejo = await this.prisma.manejoPasto.findFirst({
             where: { id, pasto: { propriedade: { usuarioId } } },
             select: MANEJO_SELECT,
         });
+        return manejo ? comItens(manejo) : null;
     }
 
     /**
@@ -85,7 +102,7 @@ class ManejoPastoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async create(data, tx) {
-        return ondeEscrever(tx, this.prisma).manejoPasto.create({ data, select: MANEJO_SELECT });
+        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.create({ data, select: MANEJO_SELECT }));
     }
 
     /**
@@ -96,7 +113,7 @@ class ManejoPastoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT });
+        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT }));
     }
 
     /**
