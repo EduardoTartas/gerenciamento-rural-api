@@ -63,6 +63,16 @@ const manejoPastoSchemas = {
                     },
                 },
             },
+            itens: {
+                type: "array",
+                description: "Presente apenas na resposta de criação quando o corpo enviou `itens`. Lista as movimentações de estoque (`Saida`, origem `ManejoPasto`) geradas para o manejo.",
+                items: { $ref: "#/components/schemas/MovimentacaoInsumo" },
+            },
+            avisos: {
+                type: "array",
+                description: "Presente apenas na resposta de criação quando algum item deixou o saldo projetado do insumo negativo. Lista de mensagens de estoque insuficiente — o manejo é criado mesmo assim.",
+                items: { type: "string", example: "Estoque insuficiente de \"Ração proteinada 20%\" — saldo ficará negativo." },
+            },
         },
         description: "Esquema para detalhes do manejo de pasto"
     },
@@ -82,6 +92,17 @@ const manejoPastoSchemas = {
         description: "Lista paginada de manejos de pasto"
     },
 
+    ManejoPastoItemInsumo: {
+        type: "object",
+        properties: {
+            insumoId: { type: "string", format: "uuid", description: "UUID de um insumo da mesma propriedade do pasto, com `destino` `Pasto` ou `Ambos`.", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
+            quantidade: { type: "number", exclusiveMinimum: 0, description: "Quantidade consumida, na unidade do insumo. Deve ser maior que zero.", example: 25 },
+            observacoes: { type: "string", nullable: true, maxLength: 500, description: "Observação opcional do item (máx 500 caracteres).", example: "Adubo aplicado no talhão leste" },
+        },
+        required: ["insumoId", "quantidade"],
+        description: "Item de insumo consumido no manejo. Cada item vira uma movimentação de `Saida` (origem `ManejoPasto`) na mesma transação do manejo."
+    },
+
     ManejoPastoCreate: {
         type: "object",
         properties: {
@@ -89,6 +110,12 @@ const manejoPastoSchemas = {
             tipoManejo: { type: "string", enum: tiposManejoPasto, description: "Tipo de manejo realizado", example: "Roçagem" },
             dataAtividade: { type: "string", format: "date-time", description: "Data em que a atividade foi realizada", example: "2026-04-01T00:00:00.000Z" },
             observacoes: { type: "string", description: "Observações adicionais (máx 500 caracteres)", nullable: true, example: "Roçagem completa do pasto norte" },
+            itens: {
+                type: "array",
+                description: "Opcional. Insumos consumidos no manejo (máx 50). Cada item debita o estoque via uma movimentação de `Saida` (origem `ManejoPasto`) criada na mesma transação. Saldo insuficiente **avisa, não bloqueia** — o saldo pode ficar negativo.",
+                maxItems: 50,
+                items: { $ref: "#/components/schemas/ManejoPastoItemInsumo" },
+            },
         },
         required: ["pastoId", "tipoManejo", "dataAtividade"],
         description: "Esquema para criação de manejo de pasto. Tipos disponíveis: Roçagem, Adubação, Calagem, Aplicação de Pesticida, Reforma de Cerca, Limpeza Geral, Plantio/Reforma, Outro.",

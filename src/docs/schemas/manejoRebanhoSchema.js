@@ -44,6 +44,16 @@ const manejoRebanhoSchemas = {
                         }
                     }
                 }
+            },
+            itens: {
+                type: "array",
+                description: "Presente apenas na resposta de criação quando o corpo enviou `itens`. Lista as movimentações de estoque (`Saida`, origem `ManejoRebanho`) geradas para o manejo.",
+                items: { $ref: "#/components/schemas/MovimentacaoInsumo" }
+            },
+            avisos: {
+                type: "array",
+                description: "Presente apenas na resposta de criação quando algum item deixou o saldo projetado do insumo negativo. Lista de mensagens de estoque insuficiente — o manejo é criado mesmo assim.",
+                items: { type: "string", example: "Estoque insuficiente de \"Vermífugo\" — saldo ficará negativo." }
             }
         },
         description: "Item de manejo de rebanho"
@@ -61,15 +71,32 @@ const manejoRebanhoSchemas = {
         description: "Lista paginada de manejos de rebanho"
     },
 
+    ManejoRebanhoItemInsumo: {
+        type: "object",
+        properties: {
+            insumoId: { type: "string", format: "uuid", description: "UUID de um insumo da mesma propriedade do rebanho, com `destino` `Rebanho` ou `Ambos`.", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
+            quantidade: { type: "number", exclusiveMinimum: 0, description: "Quantidade consumida, na unidade do insumo. Deve ser maior que zero.", example: 3 },
+            observacoes: { type: "string", nullable: true, maxLength: 500, description: "Observação opcional do item (máx 500 caracteres).", example: "Dose aplicada em 40 cabeças" },
+        },
+        required: ["insumoId", "quantidade"],
+        description: "Item de insumo consumido no manejo. Cada item vira uma movimentação de `Saida` (origem `ManejoRebanho`) na mesma transação do manejo."
+    },
+
     ManejoRebanhoCreate: {
         type: "object",
         properties: {
             rebanhoId:        { type: "string", format: "uuid", description: "UUID do rebanho (obrigatório)", example: "d4e5f6a7-b8c9-0123-def0-123456789012" },
             tipoManejoId:     { type: "string", format: "uuid", description: "UUID do tipo de manejo do catálogo global (obrigatório)", example: "f6a7b8c9-d0e1-2345-f012-345678901234" },
             dataAtividade:    { type: "string", format: "date-time", description: "Data da atividade (não pode ser no futuro)", example: "2026-04-15T00:00:00.000Z" },
-            medicamentoVacina: { type: "string", nullable: true, description: "Nome do medicamento ou vacina aplicada (máx 200 caracteres)", example: "Vacina Aftosa" },
+            medicamentoVacina: { type: "string", nullable: true, description: "Campo legado (retrocompat de dados). Nome do medicamento ou vacina aplicada (máx 200 caracteres). O app novo usa o array `itens`.", example: "Vacina Aftosa" },
             pesoRegistrado:   { type: "number", nullable: true, description: "Peso registrado em kg. Se informado, atualiza automaticamente o pesoMedioAtual do rebanho.", example: 395.0 },
             observacoes:      { type: "string", nullable: true, description: "Observações adicionais (máx 500 caracteres)", example: "Vacinação semestral completa do lote" },
+            itens: {
+                type: "array",
+                description: "Opcional. Insumos consumidos no manejo (máx 50). Cada item debita o estoque via uma movimentação de `Saida` (origem `ManejoRebanho`) criada na mesma transação. Saldo insuficiente **avisa, não bloqueia** — o saldo pode ficar negativo.",
+                maxItems: 50,
+                items: { $ref: "#/components/schemas/ManejoRebanhoItemInsumo" },
+            },
         },
         required: ["rebanhoId", "tipoManejoId", "dataAtividade"],
         example: {

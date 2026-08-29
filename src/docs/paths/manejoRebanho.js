@@ -55,16 +55,19 @@ const manejoRebanhoRoutes = {
                     • **rebanhoId** (obrigatório): UUID do rebanho.
                     • **tipoManejoId** (obrigatório): UUID do tipo de manejo (de /catalogos/tipos-manejo-rebanho).
                     • **dataAtividade** (obrigatório): data da atividade (não pode ser no futuro).
-                    • **medicamentoVacina** (opcional): nome do medicamento/vacina.
+                    • **medicamentoVacina** (opcional): nome do medicamento/vacina. Campo **legado** (retrocompat de dados); o app novo usa \`itens\`.
                     • **pesoRegistrado** (opcional): peso registrado em kg.
                     • **observacoes** (opcional): observações adicionais (máx 500 caracteres).
+                    • **itens** (opcional): Array (máx 50) de insumos consumidos no manejo — cada item com **insumoId** (UUID), **quantidade** (> 0) e **observacoes** (opcional, máx 500). Ver **ManejoRebanhoItemInsumo**.
 
             + Regras de Negócio:
                 - O rebanho deve existir, estar **ativo** e pertencer ao usuário.
                 - O tipo de manejo deve existir e estar **ativo** no catálogo global.
+                - Cada item de \`itens\` gera, na mesma transação, uma movimentação de estoque de \`Saida\` (origem \`ManejoRebanho\`) apontando o \`manejoRebanhoId\` e o \`rebanhoId\`. O insumo precisa ser da mesma propriedade e ter \`destino\` \`Rebanho\` ou \`Ambos\`.
+                - Saldo insuficiente **avisa, não bloqueia**: o manejo é criado e o saldo do insumo pode ficar negativo.
 
             + Resultado Esperado:
-                - HTTP 201 com **ManejoRebanhoListItem** do manejo registrado.
+                - HTTP 201 com **ManejoRebanhoListItem** do manejo registrado. Quando o corpo enviou \`itens\`, a resposta traz \`itens\` (as movimentações de estoque geradas) e, se algum insumo ficou com saldo projetado negativo, \`avisos\` (mensagens de estoque insuficiente).
             `,
             security: [{ bearerAuth: [] }],
             requestBody: {
