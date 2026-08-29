@@ -29,10 +29,35 @@ describe('MovimentacaoInsumoService', () => {
         expect(create).toHaveBeenCalledWith(expect.objectContaining({ id: 'uuid-cli' }), undefined);
     });
 
-    it('list exige insumoId', async () => {
+    it('list sem insumoId e sem atualizadoDesde retorna 400', async () => {
         await expect(
             service.list({ ...req(), _parsedQuery: {} }),
-        ).rejects.toMatchObject({ errorType: 'validationError', field: 'insumoId' });
+        ).rejects.toMatchObject({ errorType: 'validationError', field: 'insumoId', statusCode: 400 });
+    });
+
+    it('list com atualizadoDesde e sem insumoId faz leitura por diferenca sem validar insumo', async () => {
+        const ensureInsumo = vi.fn();
+        service.ensureInsumoDoUsuario = ensureInsumo;
+        const list = vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 });
+        service.repository = { list };
+        const marca = new Date('2026-08-25T00:00:00.000Z');
+
+        await service.list({ ...req(), _parsedQuery: { atualizadoDesde: marca } });
+
+        expect(ensureInsumo).not.toHaveBeenCalled();
+        const [usuarioId, filters] = list.mock.calls[0];
+        expect(usuarioId).toBe('dono');
+        expect(filters).not.toHaveProperty('insumoId');
+        expect(filters.atualizadoDesde).toBe(marca);
+    });
+
+    it('list com atualizadoDesde aceita propriedadeId como filtro', async () => {
+        const list = vi.fn().mockResolvedValue({ docs: [], totalDocs: 0 });
+        service.repository = { list };
+
+        await service.list({ ...req(), _parsedQuery: { atualizadoDesde: new Date(), propriedadeId: 'p1' } });
+
+        expect(list.mock.calls[0][1]).toMatchObject({ propriedadeId: 'p1' });
     });
 
     it('recusa rebanhoId de outro usuario', async () => {

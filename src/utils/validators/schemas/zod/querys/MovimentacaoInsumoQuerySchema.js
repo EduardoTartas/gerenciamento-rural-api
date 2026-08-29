@@ -4,7 +4,8 @@ import { z } from 'zod/v4';
 export const MovimentacaoInsumoIdSchema = z.string().uuid('ID de movimentação inválido. Deve ser um UUID válido.');
 
 export const MovimentacaoInsumoQuerySchema = z.object({
-    insumoId:   z.string().uuid('O ID do insumo deve ser um UUID válido.').optional(),
+    insumoId:      z.string().uuid('O ID do insumo deve ser um UUID válido.').optional(),
+    propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
     tipo:       z.enum(['Entrada', 'Saida', 'Ajuste']).optional(),
     origem:     z.string().optional(),
     dataInicio: z.coerce.date().optional(),

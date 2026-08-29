@@ -366,6 +366,10 @@ model movimentacaoInsumo {
   @@index([insumoId])
   @@index([insumoId, data])
   @@index([insumoId, updatedAt])
+  // Sustenta a leitura por diferença por propriedade (sem insumoId): o filtro
+  // inicial é `updatedAt > marca`, e o índice composto acima não serve porque
+  // sua primeira coluna é insumoId.
+  @@index([updatedAt])
   @@index([manejoRebanhoId])
   @@index([manejoPastoId])
   @@map("movimentacoes_insumo")
