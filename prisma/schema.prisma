@@ -139,6 +139,18 @@ model tipoManejoPasto {
   @@map("tipos_manejo_pasto")
 }
 
+model tipoInsumo {
+  id        String   @id @default(uuid())
+  nome      String   @unique
+  ativo     Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  insumos   insumo[]
+
+  @@map("tipos_insumo")
+}
+
 // --- TABELAS DE ESTRUTURA E PROPRIEDADE ---
 
 // ATENÇÃO: existe um índice único PARCIAL em (usuarioId, nome) WHERE ativo = true,
@@ -161,6 +173,7 @@ model propriedade {
 
   pastos   pasto[]
   rebanhos rebanho[]
+  insumos  insumo[]
 
   @@index([usuarioId])
   @@index([usuarioId, updatedAt])
@@ -188,10 +201,37 @@ model pasto {
   manejosPasto         manejoPasto[]
   movimentacoesOrigem  historicoMovimentacao[] @relation("PastoOrigem")
   movimentacoesDestino historicoMovimentacao[] @relation("PastoDestino")
+  movimentacoesInsumo  movimentacaoInsumo[]
 
   @@index([propriedadeId])
   @@index([propriedadeId, updatedAt])
   @@map("pastos")
+}
+
+// ATENÇÃO: índice único parcial em (propriedadeId, lower(nome)) WHERE ativo = true,
+// criado por migration. Prisma não suporta índice parcial no schema — mesma
+// ressalva de pasto/rebanho. Rode `prisma migrate dev --create-only` e confira o SQL.
+model insumo {
+  id            String   @id @default(uuid())
+  propriedadeId String
+  propriedade   propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  tipoInsumoId  String
+  tipoInsumo    tipoInsumo  @relation(fields: [tipoInsumoId], references: [id])
+  nome          String
+  destino       String   // enum aplicação: Pasto | Rebanho | Ambos
+  unidadeMedida String   // enum aplicação: kg | g | L | mL | dose | saco | unidade
+  estoqueMinimo Decimal?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  movimentacoes  movimentacaoInsumo[]
+  regimesConsumo regimeConsumoInsumo[]
+
+  @@index([propriedadeId])
+  @@index([propriedadeId, updatedAt])
+  @@index([tipoInsumoId])
+  @@map("insumos")
 }
 
 // --- TABELAS DE ANIMAIS E REBANHO ---
@@ -219,8 +259,10 @@ model rebanho {
   createdAt             DateTime          @default(now())
   updatedAt             DateTime          @updatedAt
 
-  movimentacoes historicoMovimentacao[]
-  manejos       manejoRebanho[]
+  movimentacoes       historicoMovimentacao[]
+  manejos             manejoRebanho[]
+  regimesConsumo      regimeConsumoInsumo[]
+  movimentacoesInsumo movimentacaoInsumo[]
 
   @@index([propriedadeId])
   @@index([propriedadeId, updatedAt])
@@ -268,6 +310,8 @@ model manejoRebanho {
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
+  movimentacoesInsumo movimentacaoInsumo[]
+
   @@index([rebanhoId])
   @@index([tipoManejoId])
   @@index([rebanhoId, updatedAt])
@@ -286,10 +330,66 @@ model manejoPasto {
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
+  movimentacoesInsumo movimentacaoInsumo[]
+
   @@index([pastoId])
   @@index([tipoManejoId])
   @@index([pastoId, updatedAt])
   @@map("manejo_pastos")
+}
+
+/// Ledger de estoque de insumo. Evento com exclusão lógica (`ativo`): a linha
+/// precisa persistir para a leitura por diferença reportar a exclusão, igual a
+/// `historicoMovimentacao`. Saldo = soma (Entrada + / Saida - / Ajuste com sinal).
+/// Cada item de insumo de um manejo é uma linha `Saida` com `manejoXId` preenchido.
+model movimentacaoInsumo {
+  id              String   @id @default(uuid())
+  insumoId        String
+  insumo          insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  tipo            String   // enum aplicação: Entrada | Saida | Ajuste
+  quantidade      Decimal  // positiva em Entrada/Saida; assinada em Ajuste
+  data            DateTime
+  origem          String   // enum aplicação: Compra | CadastroInicial | ManejoRebanho | ManejoPasto | ConsumoRebanho | AjusteContagem | Perda
+  manejoRebanhoId String?
+  manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
+  manejoPastoId   String?
+  manejoPasto     manejoPasto?   @relation(fields: [manejoPastoId], references: [id], onDelete: Cascade)
+  rebanhoId       String?
+  rebanho         rebanho? @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
+  pastoId         String?
+  pasto           pasto?   @relation(fields: [pastoId], references: [id], onDelete: SetNull)
+  observacoes     String?
+  ativo           Boolean  @default(true)
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  @@index([insumoId])
+  @@index([insumoId, data])
+  @@index([insumoId, updatedAt])
+  @@index([manejoRebanhoId])
+  @@index([manejoPastoId])
+  @@map("movimentacoes_insumo")
+}
+
+/// Consumo diário recorrente de um insumo por um rebanho. Não escreve no ledger:
+/// o saldo projetado é calculado na leitura. Um regime ativo por par
+/// (rebanhoId, insumoId) — índice único parcial WHERE ativo = true AND dataFim IS NULL.
+model regimeConsumoInsumo {
+  id            String   @id @default(uuid())
+  rebanhoId     String
+  rebanho       rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  insumoId      String
+  insumo        insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  quantidadeDia Decimal
+  dataInicio    DateTime
+  dataFim       DateTime?
+  ativo         Boolean  @default(true)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+
+  @@index([rebanhoId])
+  @@index([insumoId])
+  @@map("regimes_consumo_insumo")
 }
 
 /// Mutações já aplicadas pelo endpoint de lote.

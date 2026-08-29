@@ -4,7 +4,7 @@ import commonResponses from "../schemas/swaggerCommonResponses.js";
 import catalogoSchemas from "../schemas/catalogoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
-const entidadesDisponiveis = "racas | sistemas-producao | regimes-alimentares | tipos-manejo-rebanho | tipos-manejo-pasto";
+const entidadesDisponiveis = "racas | sistemas-producao | regimes-alimentares | tipos-manejo-rebanho | tipos-manejo-pasto | tipos-insumo";
 
 const catalogoRoutes = {
     "/v1/catalogos/{entidade}": {
@@ -18,6 +18,7 @@ const catalogoRoutes = {
                 - \`regimes-alimentares\` — Regimes alimentares (ex: Pasto, Confinamento, Semi-confinamento)
                 - \`tipos-manejo-rebanho\` — Tipos de manejo de rebanho (ex: Vacinação, Pesagem)
                 - \`tipos-manejo-pasto\` — Tipos de manejo de pasto (ex: Roçagem, Adubação)
+                - \`tipos-insumo\` — Tipos de insumo (ex: Ração, Sal mineral, Vacina, Medicamento, Fertilizante, Semente, Defensivo, Outro)
 
             + Regras de Negócio:
                 - Requer sessão autenticada válida.

@@ -8,6 +8,7 @@ export async function seedCatalogos(prisma) {
   const regimes = ['Pasto', 'Confinamento', 'Semi-confinamento'];
   const manejosRebanho = ['Vacinação', 'Pesagem', 'Vermifugação'];
   const manejosPasto = ['Roçagem', 'Adubação', 'Reforma de Cerca', 'Limpeza', 'Calagem', 'Dessecação', 'Plantio de Forrageira', 'Irrigação'];
+  const tiposInsumo = ['Ração', 'Sal mineral', 'Vacina', 'Medicamento', 'Fertilizante', 'Semente', 'Defensivo', 'Outro'];
 
   const catalogos = {};
 
@@ -64,6 +65,17 @@ export async function seedCatalogos(prisma) {
       create: { nome: manejo },
     });
     catalogos.manejosPasto.push(item);
+  }
+
+  // Tipos de Insumo
+  catalogos.tiposInsumo = [];
+  for (const tipo of tiposInsumo) {
+    const item = await prisma.tipoInsumo.upsert({
+      where: { nome: tipo },
+      update: {},
+      create: { nome: tipo },
+    });
+    catalogos.tiposInsumo.push(item);
   }
 
   console.log('  Catalogos globais registrados');

@@ -28,7 +28,23 @@ const MANEJO_SELECT = {
             propriedade: { select: { id: true, nome: true } },
         },
     },
+    movimentacoesInsumo: {
+        where: { ativo: true },
+        select: {
+            id: true, insumoId: true, quantidade: true, observacoes: true,
+            insumo: { select: { id: true, nome: true, unidadeMedida: true } },
+        },
+    },
 };
+
+/**
+ * A relação `movimentacoesInsumo` viaja no `select` para uma única consulta, mas
+ * a resposta expõe os itens do manejo sob a chave `itens` — o nome cru do ledger
+ * não vaza para o aplicativo.
+ */
+function comItens({ movimentacoesInsumo, ...manejo }) {
+    return { ...manejo, itens: movimentacoesInsumo ?? [] };
+}
 
 class ManejoRebanhoRepository {
     constructor() {
@@ -62,14 +78,15 @@ class ManejoRebanhoRepository {
             this.prisma.manejoRebanho.count({ where }),
         ]);
 
-        return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
+        return { docs: docs.map(comItens), totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
     async findById(id, usuarioId) {
-        return this.prisma.manejoRebanho.findFirst({
+        const manejo = await this.prisma.manejoRebanho.findFirst({
             where: { id, rebanho: { propriedade: { usuarioId } } },
             select: MANEJO_SELECT,
         });
+        return manejo ? comItens(manejo) : null;
     }
 
     /**
@@ -78,7 +95,7 @@ class ManejoRebanhoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async create(data, tx) {
-        return ondeEscrever(tx, this.prisma).manejoRebanho.create({ data, select: MANEJO_SELECT });
+        return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.create({ data, select: MANEJO_SELECT }));
     }
 
     /**
@@ -93,7 +110,7 @@ class ManejoRebanhoRepository {
      */
     async createComAtualizacaoPeso(data, executor) {
         return comTransacao(this.prisma, executor, async (tx) => {
-            const manejo = await tx.manejoRebanho.create({ data, select: MANEJO_SELECT });
+            const manejo = comItens(await tx.manejoRebanho.create({ data, select: MANEJO_SELECT }));
 
             if (data.pesoRegistrado != null) {
                 const pesagemMaisRecente = await tx.manejoRebanho.findFirst({
@@ -120,7 +137,7 @@ class ManejoRebanhoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT });
+        return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT }));
     }
 
     /**
