@@ -176,17 +176,19 @@ const insumoRoutes = {
             + Caso de uso: Consultar o extrato (ledger) de um insumo.
 
             + Regras de Negócio:
-                - **\`insumoId\` é obrigatório** na query — sem ele retorna 400.
-                - O insumo deve pertencer ao usuário logado.
-                - Lista paginada ordenada por \`data\` decrescente.
-                + Filtros: **insumoId** (obrigatório), **tipo** (Entrada, Saida, Ajuste), **origem**, **dataInicio**, **dataFim**, **ativo**, **atualizadoDesde**.
+                - **\`insumoId\` é obrigatório**, exceto quando \`atualizadoDesde\` está presente: aí a chamada é uma leitura por diferença de todas as movimentações da propriedade do usuário (sincronização offline), opcionalmente restrita por \`propriedadeId\`.
+                - Sem \`insumoId\` e sem \`atualizadoDesde\` retorna 400.
+                - Quando informado, o insumo deve pertencer ao usuário logado.
+                - Lista paginada ordenada por \`data\` decrescente. Toda consulta é escopada ao usuário autenticado.
+                + Filtros: **insumoId**, **propriedadeId**, **tipo** (Entrada, Saida, Ajuste), **origem**, **dataInicio**, **dataFim**, **ativo**, **atualizadoDesde**.
 
             + Resultado Esperado:
                 - HTTP 200 com lista paginada de **MovimentacaoInsumo**.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [
-                { name: "insumoId", in: "query", required: true, schema: { type: "string", format: "uuid" }, description: "UUID do insumo (obrigatório)" },
+                { name: "insumoId", in: "query", required: false, schema: { type: "string", format: "uuid" }, description: "UUID do insumo. Obrigatório, exceto quando atualizadoDesde é informado (leitura por diferença)." },
+                { name: "propriedadeId", in: "query", required: false, schema: { type: "string", format: "uuid" }, description: "Restringe a leitura por diferença a uma propriedade" },
                 { name: "tipo", in: "query", schema: { type: "string", enum: ["Entrada", "Saida", "Ajuste"] }, required: false, description: "Filtrar por tipo" },
                 { name: "origem", in: "query", schema: { type: "string" }, required: false, description: "Filtrar por origem" },
                 { name: "dataInicio", in: "query", schema: { type: "string", format: "date-time" }, required: false, description: "Movimentações a partir desta data" },
