@@ -46,17 +46,35 @@ class RegimeConsumoInsumoService {
 
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
-        await this.ensureExists(id, usuarioId);
+        const atual = await this.ensureExists(id, usuarioId);
         const dados = { ...parsedData };
         if (dados.dataFim) dados.ativo = false; // encerrar
+
+        // Reabertura explícita (`dataFim: null`): reativa e, como só pode haver um
+        // regime em aberto por par (rebanho, insumo), encerra qualquer outro
+        // aberto do par antes de aplicar — senão bate no índice único parcial.
+        const reabrindo = Object.prototype.hasOwnProperty.call(parsedData, 'dataFim') && parsedData.dataFim === null;
+        if (reabrindo) {
+            dados.ativo = true;
+            return comTransacao(this.prisma, tx, async (trx) => {
+                const aberto = await this.repository.findAbertoDoPar(atual.rebanhoId, atual.insumoId, trx);
+                if (aberto && aberto.id !== id) {
+                    await this.repository.update(aberto.id, { dataFim: new Date(), ativo: false }, trx);
+                }
+                return this.repository.update(id, dados, trx);
+            });
+        }
+
         return this.repository.update(id, dados, tx);
     }
 
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
-        await this.ensureExists(id, usuarioId);
-        // exclusão lógica: encerra e desativa
-        return this.repository.update(id, { ativo: false, dataFim: new Date() }, tx);
+        const regime = await this.ensureExists(id, usuarioId);
+        // exclusão lógica: encerra e desativa. `dataFim` nunca antes de `dataInicio`
+        // (um regime futuro excluído hoje encerraria antes de começar).
+        const dataFim = new Date(Math.max(Date.now(), new Date(regime.dataInicio).getTime()));
+        return this.repository.update(id, { ativo: false, dataFim }, tx);
     }
 
     // utilitários

@@ -21,8 +21,10 @@ const INSUMO_SELECT = {
         where: { ativo: true },
         select: { tipo: true, quantidade: true, data: true, origem: true },
     },
+    // Sem filtro por `ativo`: um regime encerrado (`ativo: false`) ainda teve
+    // consumo real antes do `dataFim` que a projeção precisa contar. O filtro
+    // de vigência diária fica em `calcularConsumoDiaTotal` (respeita `ativo`).
     regimesConsumo: {
-        where: { ativo: true },
         select: { quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true },
     },
 };

@@ -77,6 +77,11 @@ class InsumoService {
         if (parsedData.nome && parsedData.nome.toLowerCase() !== atual.nome.toLowerCase()) {
             await this.ensureNomeDisponivel(usuarioId, atual.propriedadeId, parsedData.nome, id);
         }
+        // Reativar um insumo cujo nome foi reutilizado por outro ativo colide com
+        // o índice único parcial `insumos_propriedadeId_nome_ci_key`.
+        if (parsedData.ativo === true && atual.ativo === false) {
+            await this.ensureNomeDisponivel(usuarioId, atual.propriedadeId, parsedData.nome ?? atual.nome, id);
+        }
         const atualizado = await this.repository.update(id, parsedData, tx);
         return this.comSaldo(atualizado);
     }

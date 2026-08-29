@@ -46,6 +46,7 @@ describe('ordem de registro das rotas', () => {
             'manejoPastoRoutes',
             'manejoRebanhoRoutes',
             'movimentacaoRoutes',
+            'regimeConsumoRoutes',
             'pastoRoutes',
             'rebanhoRoutes',
         ]) {
@@ -66,5 +67,16 @@ describe('ordem de registro das rotas', () => {
         expect(posicao('rebanhoRoutes')).toBeGreaterThanOrEqual(0);
         expect(posicao('manejoRebanhoRoutes')).toBeLessThan(posicao('rebanhoRoutes'));
         expect(posicao('movimentacaoRoutes')).toBeLessThan(posicao('rebanhoRoutes'));
+    });
+
+    /**
+     * `/rebanhos/regimes-consumo` e `/rebanhos/regimes-consumo/:id` também casam
+     * com `/rebanhos/:id`. Se `regimeConsumoRoutes` cair depois de `rebanhoRoutes`,
+     * o `RebanhoController` recebe `id = 'regimes-consumo'` e responde 400.
+     */
+    it('rotas de regime de consumo vêm antes de /rebanhos/:id', () => {
+        expect(posicao('regimeConsumoRoutes')).toBeGreaterThanOrEqual(0);
+        expect(posicao('rebanhoRoutes')).toBeGreaterThanOrEqual(0);
+        expect(posicao('regimeConsumoRoutes')).toBeLessThan(posicao('rebanhoRoutes'));
     });
 });

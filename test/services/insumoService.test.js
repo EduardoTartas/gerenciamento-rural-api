@@ -55,6 +55,43 @@ describe('InsumoService', () => {
         expect(create).toHaveBeenCalledWith(expect.objectContaining({ id: 'uuid-do-cliente' }), undefined);
     });
 
+    it('projeta consumo de regime encerrado, mas conta só o aberto no consumoDiaTotal', () => {
+        const insumoBase = (regimes) => ({
+            id: 'i1', estoqueMinimo: null,
+            movimentacoes: [{ tipo: 'Entrada', quantidade: 500, origem: 'Compra', data: new Date('2026-08-01T00:00:00Z') }],
+            regimesConsumo: regimes,
+        });
+        const regimeFechado = {
+            quantidadeDia: 2, ativo: false,
+            dataInicio: new Date('2026-08-01T00:00:00Z'), dataFim: new Date('2026-08-11T00:00:00Z'),
+        };
+        const regimeAberto = {
+            quantidadeDia: 3, ativo: true,
+            dataInicio: new Date('2026-08-01T00:00:00Z'), dataFim: null,
+        };
+
+        const comAmbos = service.comSaldo(insumoBase([regimeFechado, regimeAberto]));
+        const soAberto = service.comSaldo(insumoBase([regimeAberto]));
+
+        // o regime encerrado contribui com seus 10 dias * 2/dia = 20 para a projeção
+        expect(comAmbos.saldo.consumoProjetado - soAberto.saldo.consumoProjetado).toBe(20);
+        // mas não entra na taxa diária: só o regime aberto (3/dia)
+        expect(comAmbos.saldo.consumoDiaTotal).toBe(3);
+    });
+
+    it('recusa reativar insumo cujo nome ja foi reutilizado por outro ativo', async () => {
+        service.repository = {
+            findById: vi.fn().mockResolvedValue({ id: 'i1', ativo: false, nome: 'Ração', propriedadeId: 'p1' }),
+            findByNome: vi.fn().mockResolvedValue({ id: 'outro' }),
+        };
+
+        await expect(
+            service.update('i1', { ativo: true }, req()),
+        ).rejects.toMatchObject({ errorType: 'conflict', field: 'nome' });
+
+        expect(service.repository.findByNome).toHaveBeenCalledWith('dono', 'p1', 'Ração', 'i1');
+    });
+
     it('enriquece a leitura por id com o pacote de saldo', async () => {
         service.repository = {
             findById: vi.fn().mockResolvedValue({

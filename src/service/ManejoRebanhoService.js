@@ -144,7 +144,13 @@ class ManejoRebanhoService {
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureManejoExists(id, usuarioId);
-        return this.repository.remove(id, tx);
+        return comTransacao(this.prisma, tx, async (trx) => {
+            const removido = await this.repository.remove(id, trx);
+            // Sem isto, as Saídas de insumo do manejo continuam debitando o saldo
+            // enquanto o manejo já não aparece em nenhuma leitura.
+            await this.movimentacaoInsumoRepository.desativarPorManejo('manejoRebanhoId', id, trx);
+            return removido;
+        });
     }
 
     // ================================

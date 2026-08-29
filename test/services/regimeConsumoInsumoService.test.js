@@ -52,4 +52,22 @@ describe('RegimeConsumoInsumoService', () => {
         expect(update).toHaveBeenCalledWith('antigo', expect.objectContaining({ ativo: false, dataFim: base.dataInicio }), 'TX');
         expect(create).toHaveBeenCalledWith(expect.objectContaining({ id: 'novo' }), 'TX');
     });
+
+    it('reabrir um regime (dataFim: null) encerra outro aberto do mesmo par', async () => {
+        const update = vi.fn().mockResolvedValue({});
+        service.repository = {
+            findById: vi.fn().mockResolvedValue({
+                id: 'este', rebanhoId: 'r1', insumoId: 'i1',
+                dataInicio: new Date('2026-08-01T00:00:00Z'),
+            }),
+            findAbertoDoPar: vi.fn().mockResolvedValue({ id: 'outro-aberto' }),
+            update,
+        };
+
+        await service.update('este', { dataFim: null }, req());
+
+        expect(service.repository.findAbertoDoPar).toHaveBeenCalledWith('r1', 'i1', 'TX');
+        expect(update).toHaveBeenCalledWith('outro-aberto', expect.objectContaining({ ativo: false }), 'TX');
+        expect(update).toHaveBeenCalledWith('este', expect.objectContaining({ ativo: true, dataFim: null }), 'TX');
+    });
 });

@@ -1,11 +1,18 @@
 // src/service/MovimentacaoInsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import { movimentacaoInsumoRepository, insumoRepository } from '../repository/index.js';
+import {
+    movimentacaoInsumoRepository,
+    insumoRepository,
+    rebanhoRepository,
+    pastoRepository,
+} from '../repository/index.js';
 
 class MovimentacaoInsumoService {
     constructor() {
         this.repository = movimentacaoInsumoRepository;
         this.insumoRepository = insumoRepository;
+        this.rebanhoRepository = rebanhoRepository;
+        this.pastoRepository = pastoRepository;
     }
 
     async list(req) {
@@ -39,8 +46,54 @@ class MovimentacaoInsumoService {
 
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
-        await this.ensureInsumoDoUsuario(parsedData.insumoId, usuarioId);
+        const insumo = await this.ensureInsumoDoUsuario(parsedData.insumoId, usuarioId);
+
+        if (parsedData.rebanhoId) {
+            await this.ensureVinculoDaPropriedade(
+                this.rebanhoRepository, parsedData.rebanhoId, usuarioId, insumo.propriedadeId,
+                'rebanhoId',
+                'Rebanho não encontrado ou não pertence ao usuário autenticado.',
+                'O rebanho pertence a outra propriedade.',
+            );
+        }
+        if (parsedData.pastoId) {
+            await this.ensureVinculoDaPropriedade(
+                this.pastoRepository, parsedData.pastoId, usuarioId, insumo.propriedadeId,
+                'pastoId',
+                'Pasto não encontrado ou não pertence ao usuário autenticado.',
+                'O pasto pertence a outra propriedade.',
+            );
+        }
+
         return this.repository.create(parsedData, tx);
+    }
+
+    /**
+     * Garante que o rebanho/pasto informado pertence ao usuário e à mesma
+     * propriedade do insumo movimentado. Sem isso, o produtor poderia gravar
+     * linhas de ledger referenciando FK de outro tenant.
+     */
+    async ensureVinculoDaPropriedade(repository, id, usuarioId, propriedadeIdInsumo, campo, msgNaoEncontrado, msgOutraPropriedade) {
+        const registro = await repository.findById(id, usuarioId);
+        if (!registro) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: campo,
+                details: [{ path: campo, message: msgNaoEncontrado }],
+                customMessage: msgNaoEncontrado,
+            });
+        }
+        if (registro.propriedadeId !== propriedadeIdInsumo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                errorType: 'validationError',
+                field: campo,
+                details: [{ path: campo, message: msgOutraPropriedade }],
+                customMessage: msgOutraPropriedade,
+            });
+        }
+        return registro;
     }
 
     async remove(id, req, tx) {

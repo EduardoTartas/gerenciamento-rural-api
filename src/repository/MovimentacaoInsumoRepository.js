@@ -61,6 +61,18 @@ class MovimentacaoInsumoRepository {
     async remove(id, tx) {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data: { ativo: false } });
     }
+
+    /**
+     * Soft-delete em lote das movimentações de um manejo excluído. Sem isto, o
+     * manejo some das leituras mas suas Saídas continuam debitando o saldo.
+     * `campo` é `'manejoPastoId'` ou `'manejoRebanhoId'`.
+     */
+    async desativarPorManejo(campo, manejoId, tx) {
+        return ondeEscrever(tx, this.prisma).movimentacaoInsumo.updateMany({
+            where: { [campo]: manejoId, ativo: true },
+            data: { ativo: false },
+        });
+    }
 }
 
 export default MovimentacaoInsumoRepository;

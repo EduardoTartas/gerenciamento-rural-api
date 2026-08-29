@@ -34,4 +34,38 @@ describe('MovimentacaoInsumoService', () => {
             service.list({ ...req(), _parsedQuery: {} }),
         ).rejects.toMatchObject({ errorType: 'validationError', field: 'insumoId' });
     });
+
+    it('recusa rebanhoId de outro usuario', async () => {
+        service.insumoRepository = { findById: vi.fn().mockResolvedValue({ id: 'i1', propriedadeId: 'p1' }) };
+        service.rebanhoRepository = { findById: vi.fn().mockResolvedValue(null) };
+        await expect(
+            service.create(
+                { insumoId: 'i1', tipo: 'Saida', quantidade: 5, data: new Date(), origem: 'ConsumoRebanho', rebanhoId: 'r-alheio' },
+                req(),
+            ),
+        ).rejects.toMatchObject({ errorType: 'validationError', statusCode: 400, field: 'rebanhoId' });
+    });
+
+    it('recusa pastoId de outra propriedade', async () => {
+        service.insumoRepository = { findById: vi.fn().mockResolvedValue({ id: 'i1', propriedadeId: 'p1' }) };
+        service.pastoRepository = { findById: vi.fn().mockResolvedValue({ id: 'past1', propriedadeId: 'p2' }) };
+        await expect(
+            service.create(
+                { insumoId: 'i1', tipo: 'Saida', quantidade: 5, data: new Date(), origem: 'Perda', pastoId: 'past1' },
+                req(),
+            ),
+        ).rejects.toMatchObject({ errorType: 'validationError', statusCode: 400, field: 'pastoId' });
+    });
+
+    it('cria com rebanhoId da mesma propriedade', async () => {
+        service.insumoRepository = { findById: vi.fn().mockResolvedValue({ id: 'i1', propriedadeId: 'p1' }) };
+        service.rebanhoRepository = { findById: vi.fn().mockResolvedValue({ id: 'r1', propriedadeId: 'p1' }) };
+        const create = vi.fn().mockResolvedValue({ id: 'mov1' });
+        service.repository = { create };
+        await service.create(
+            { insumoId: 'i1', tipo: 'Saida', quantidade: 5, data: new Date(), origem: 'ConsumoRebanho', rebanhoId: 'r1' },
+            req(),
+        );
+        expect(create).toHaveBeenCalledWith(expect.objectContaining({ rebanhoId: 'r1' }), undefined);
+    });
 });
