@@ -31,6 +31,11 @@ class MovimentacaoInsumoRepository {
         aplicarAtivoOuDiferenca(where, filters);
 
         if (filters.insumoId) where.insumoId = filters.insumoId;
+        // Mantém o `usuarioId` no filtro: um `propriedadeId` forjado devolve
+        // lista vazia, nunca dado de outro tenant.
+        if (filters.propriedadeId) {
+            where.insumo = { propriedade: { usuarioId, id: filters.propriedadeId } };
+        }
         if (filters.tipo)     where.tipo = filters.tipo;
         if (filters.origem)   where.origem = filters.origem;
         if (filters.dataInicio || filters.dataFim) {

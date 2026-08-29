@@ -459,11 +459,13 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 - Recurso **imutável**: não há PATCH.
 
 ### 13.7 GET /insumos/movimentacoes
-**Caso de Uso:** Consultar o extrato (ledger) de um insumo.
+**Caso de Uso:** Consultar o extrato (ledger) de um insumo, ou sincronizar por diferença todas as movimentações da propriedade.
 **Regras de Negócio:**
-- **`insumoId` é obrigatório** na query — sem ele retorna 400. O insumo deve pertencer ao usuário logado.
-- Lista paginada ordenada por `data` decrescente.
-- Filtros: `insumoId` (obrigatório), `tipo`, `origem`, `dataInicio`, `dataFim`, `ativo`, `atualizadoDesde`, `page`, `limit`.
+- **`insumoId` é obrigatório**, exceto quando `atualizadoDesde` é informado. Com `atualizadoDesde` e sem `insumoId`, a chamada é uma leitura por diferença de todas as movimentações da propriedade do usuário — um único request por ciclo de sync, em vez de iterar insumo a insumo. Pode ser restrita com `propriedadeId`.
+- Sem `insumoId` **e** sem `atualizadoDesde` retorna 400.
+- Quando informado, o insumo deve pertencer ao usuário logado. Toda consulta é escopada ao usuário autenticado (via `insumo.propriedade.usuarioId`) — um `propriedadeId` de outro usuário devolve lista vazia.
+- Lista paginada ordenada por `data` decrescente. Índice `movimentacoes_insumo(updatedAt)` sustenta o delta por propriedade.
+- Filtros: `insumoId`, `propriedadeId`, `tipo`, `origem`, `dataInicio`, `dataFim`, `ativo`, `atualizadoDesde`, `page`, `limit`.
 
 ### 13.8 GET /insumos/movimentacoes/:id
 **Caso de Uso:** Detalhar uma movimentação de estoque.

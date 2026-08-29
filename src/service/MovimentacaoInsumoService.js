@@ -21,19 +21,30 @@ class MovimentacaoInsumoService {
         if (id) return this.ensureExists(id, usuarioId);
 
         const q = req._parsedQuery ?? req.query;
-        if (!q.insumoId) {
+
+        // Sem `insumoId` só é permitido para a leitura por diferença: com
+        // `atualizadoDesde`, o app avança a marca d'água de todas as
+        // movimentações da propriedade num único request, em vez de iterar
+        // insumo a insumo. O `where` do repository continua escopado ao
+        // usuário via `insumo.propriedade.usuarioId` — nada vaza.
+        if (!q.insumoId && !q.atualizadoDesde) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
                 field: 'insumoId',
-                details: [{ path: 'insumoId', message: 'Informe o insumoId para listar as movimentações.' }],
+                details: [{ path: 'insumoId', message: 'Informe o insumoId, ou use atualizadoDesde para a leitura por diferença.' }],
                 customMessage: 'Informe o insumo.',
             });
         }
-        await this.ensureInsumoDoUsuario(q.insumoId, usuarioId);
 
-        const { insumoId, tipo, origem, dataInicio, dataFim, ativo, atualizadoDesde, page = 1, limit = 10 } = q;
-        const filters = { insumoId };
+        if (q.insumoId) {
+            await this.ensureInsumoDoUsuario(q.insumoId, usuarioId);
+        }
+
+        const { insumoId, propriedadeId, tipo, origem, dataInicio, dataFim, ativo, atualizadoDesde, page = 1, limit = 10 } = q;
+        const filters = {};
+        if (insumoId)      filters.insumoId = insumoId;
+        if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (tipo)   filters.tipo = tipo;
         if (origem) filters.origem = origem;
         if (dataInicio) filters.dataInicio = dataInicio;
