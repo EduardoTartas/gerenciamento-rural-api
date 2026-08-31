@@ -20,6 +20,18 @@ export function calcularSaldoReal(movimentacoes = []) {
 }
 
 /**
+ * Consumo dos regimes desde `marco` (ou desde o início de cada regime, o que for
+ * mais recente) até `agora`, respeitando o `dataFim` de cada regime.
+ */
+function consumoProjetadoDesde(regimes, marco, agora) {
+    return regimes.reduce((total, regime) => {
+        const inicioBase = marco && marco > regime.dataInicio ? marco : regime.dataInicio;
+        const fim = regime.dataFim && regime.dataFim < agora ? regime.dataFim : agora;
+        return total + regime.quantidadeDia * diasEntre(inicioBase, fim);
+    }, 0);
+}
+
+/**
  * Consumo dos regimes ainda não lançado no ledger, desde a última contagem
  * física (movimentação de origem `AjusteContagem`) ou desde o início de cada
  * regime, o que for mais recente.
@@ -29,12 +41,7 @@ export function calcularConsumoProjetadoNaoLancado(regimes = [], movimentacoes =
         .filter((m) => m.origem === 'AjusteContagem')
         .map((m) => m.data.getTime());
     const marco = contagens.length ? new Date(Math.max(...contagens)) : null;
-
-    return regimes.reduce((total, regime) => {
-        const inicioBase = marco && marco > regime.dataInicio ? marco : regime.dataInicio;
-        const fim = regime.dataFim && regime.dataFim < agora ? regime.dataFim : agora;
-        return total + regime.quantidadeDia * diasEntre(inicioBase, fim);
-    }, 0);
+    return consumoProjetadoDesde(regimes, marco, agora);
 }
 
 /** Soma de `quantidadeDia` dos regimes vigentes hoje. */
@@ -44,10 +51,8 @@ export function calcularConsumoDiaTotal(regimes = [], agora = new Date()) {
         .reduce((total, r) => total + r.quantidadeDia, 0);
 }
 
-/** Pacote completo exibido na leitura de um insumo. */
-export function calcularSaldos({ movimentacoes = [], regimes = [], agora = new Date() }) {
-    const saldoReal = calcularSaldoReal(movimentacoes);
-    const consumoProjetado = calcularConsumoProjetadoNaoLancado(regimes, movimentacoes, agora);
+/** Monta o pacote de saldo a partir do saldo real e do consumo projetado já apurados. */
+function montarPacote({ saldoReal, consumoProjetado, regimes, agora }) {
     const saldoProjetado = saldoReal - consumoProjetado;
     const consumoDiaTotal = calcularConsumoDiaTotal(regimes, agora);
 
@@ -63,4 +68,31 @@ export function calcularSaldos({ movimentacoes = [], regimes = [], agora = new D
     }
 
     return { saldoReal, consumoProjetado, saldoProjetado, consumoDiaTotal, diasRestantes, previsaoTermino, esgotado };
+}
+
+/** Pacote completo exibido na leitura de um insumo (ledger cru — usado no findById). */
+export function calcularSaldos({ movimentacoes = [], regimes = [], agora = new Date() }) {
+    return montarPacote({
+        saldoReal: calcularSaldoReal(movimentacoes),
+        consumoProjetado: calcularConsumoProjetadoNaoLancado(regimes, movimentacoes, agora),
+        regimes,
+        agora,
+    });
+}
+
+/**
+ * Mesma matemática de `calcularSaldos`, mas a partir do ledger já agregado no
+ * banco: uma soma por tipo e a data da última contagem. Evita trazer todas as
+ * linhas de `movimentacoes_insumo` na listagem (issue #37).
+ *
+ * @param {{ entrada: number, saida: number, ajuste: number, ultimaContagem: Date|null }} resumo
+ */
+export function calcularSaldosComResumo({ resumo, regimes = [], agora = new Date() }) {
+    const saldoReal = (resumo?.entrada ?? 0) - (resumo?.saida ?? 0) + (resumo?.ajuste ?? 0);
+    return montarPacote({
+        saldoReal,
+        consumoProjetado: consumoProjetadoDesde(regimes, resumo?.ultimaContagem ?? null, agora),
+        regimes,
+        agora,
+    });
 }

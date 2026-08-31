@@ -4,6 +4,7 @@ import {
     calcularConsumoProjetadoNaoLancado,
     calcularConsumoDiaTotal,
     calcularSaldos,
+    calcularSaldosComResumo,
 } from '../../src/service/insumo/calculoSaldo.js';
 
 const dia = (iso) => new Date(`${iso}T00:00:00Z`);
@@ -120,5 +121,49 @@ describe('calcularSaldos', () => {
         expect(r.consumoDiaTotal).toBe(0);
         expect(r.diasRestantes).toBeNull();
         expect(r.previsaoTermino).toBeNull();
+    });
+});
+
+describe('calcularSaldosComResumo', () => {
+    it('produz o mesmo pacote que calcularSaldos para o ledger equivalente', () => {
+        const movimentacoes = [
+            { tipo: 'Entrada', quantidade: 100, origem: 'Compra', data: dia('2026-08-24') },
+            { tipo: 'Saida', quantidade: 12, origem: 'ManejoRebanho', data: dia('2026-08-25') },
+            { tipo: 'Ajuste', quantidade: -3, origem: 'AjusteContagem', data: dia('2026-08-26') },
+        ];
+        const regimes = [{ quantidadeDia: 10, dataInicio: dia('2026-08-20'), dataFim: null, ativo: true }];
+        const agora = dia('2026-08-28');
+
+        const cru = calcularSaldos({ movimentacoes, regimes, agora });
+        const resumido = calcularSaldosComResumo({
+            resumo: { entrada: 100, saida: 12, ajuste: -3, ultimaContagem: dia('2026-08-26') },
+            regimes,
+            agora,
+        });
+
+        expect(resumido).toEqual(cru);
+    });
+
+    it('sem contagem, projeta desde o inicio de cada regime', () => {
+        const r = calcularSaldosComResumo({
+            resumo: { entrada: 100, saida: 0, ajuste: 0, ultimaContagem: null },
+            regimes: [{ quantidadeDia: 10, dataInicio: dia('2026-08-26'), dataFim: null, ativo: true }],
+            agora: dia('2026-08-28'),
+        });
+        expect(r.saldoReal).toBe(100);
+        expect(r.consumoProjetado).toBe(20);
+        expect(r.saldoProjetado).toBe(80);
+        expect(r.previsaoTermino).toBe('2026-09-05T00:00:00.000Z');
+    });
+
+    it('resumo vazio da saldo zero', () => {
+        const r = calcularSaldosComResumo({
+            resumo: { entrada: 0, saida: 0, ajuste: 0, ultimaContagem: null },
+            regimes: [],
+            agora: dia('2026-08-28'),
+        });
+        expect(r.saldoReal).toBe(0);
+        expect(r.saldoProjetado).toBe(0);
+        expect(r.esgotado).toBe(true);
     });
 });

@@ -2,7 +2,7 @@
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { insumoRepository, propriedadeRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
-import { calcularSaldos } from './insumo/calculoSaldo.js';
+import { calcularSaldos, calcularSaldosComResumo } from './insumo/calculoSaldo.js';
 
 class InsumoService {
     constructor() {
@@ -13,23 +13,33 @@ class InsumoService {
 
     /** Converte Decimal -> Number e anexa o pacote de saldo a um insumo lido. */
     comSaldo(insumo) {
-        const movimentacoes = (insumo.movimentacoes ?? []).map((m) => ({
-            tipo: m.tipo,
-            quantidade: Number(m.quantidade),
-            origem: m.origem,
-            data: m.data,
-        }));
         const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
             quantidadeDia: Number(r.quantidadeDia),
             dataInicio: r.dataInicio,
             dataFim: r.dataFim,
             ativo: r.ativo,
         }));
-        const saldo = calcularSaldos({ movimentacoes, regimes, agora: new Date() });
+        const agora = new Date();
+
+        // Listagem: o repository já agregou o ledger em `_resumoLedger`.
+        // findById/create/update: o ledger cru vem em `movimentacoes`.
+        const saldo = insumo._resumoLedger
+            ? calcularSaldosComResumo({ resumo: insumo._resumoLedger, regimes, agora })
+            : calcularSaldos({
+                movimentacoes: (insumo.movimentacoes ?? []).map((m) => ({
+                    tipo: m.tipo,
+                    quantidade: Number(m.quantidade),
+                    origem: m.origem,
+                    data: m.data,
+                })),
+                regimes,
+                agora,
+            });
+
         const estoqueMinimo = insumo.estoqueMinimo == null ? null : Number(insumo.estoqueMinimo);
         saldo.estoqueBaixo = estoqueMinimo != null && saldo.saldoProjetado <= estoqueMinimo;
 
-        const { movimentacoes: _m, regimesConsumo: _r, ...limpo } = insumo;
+        const { movimentacoes: _m, regimesConsumo: _r, _resumoLedger: _rl, ...limpo } = insumo;
         return { ...limpo, saldo };
     }
 
