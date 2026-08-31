@@ -104,4 +104,33 @@ describe('InsumoService', () => {
         expect(out.saldo.saldoReal).toBe(100);
         expect(out.saldo.saldoProjetado).toBe(100);
     });
+
+    it('na listagem usa o _resumoLedger agregado pelo repository (sem ledger cru)', async () => {
+        service.repository = {
+            list: vi.fn().mockResolvedValue({
+                docs: [{
+                    id: 'i1', nome: 'Ração', estoqueMinimo: 30,
+                    regimesConsumo: [
+                        { quantidadeDia: 10, dataInicio: new Date('2026-08-01T00:00:00Z'), dataFim: null, ativo: true },
+                    ],
+                    _resumoLedger: { entrada: 100, saida: 25, ajuste: 5, ultimaContagem: null },
+                }],
+                totalDocs: 1, page: 1, limit: 10, totalPages: 1,
+            }),
+        };
+
+        const q = { ...req(), _parsedQuery: { page: 1, limit: 10 } };
+        const out = await service.list(q);
+
+        const insumo = out.docs[0];
+        // saldoReal vem das somas do resumo: 100 - 25 + 5
+        expect(insumo.saldo.saldoReal).toBe(80);
+        // regime ativo antigo => consumo projetado > 0 e relação mantida
+        expect(insumo.saldo.consumoProjetado).toBeGreaterThan(0);
+        expect(insumo.saldo.saldoProjetado).toBe(insumo.saldo.saldoReal - insumo.saldo.consumoProjetado);
+        expect(insumo.saldo.consumoDiaTotal).toBe(10);
+        // o resumo interno e os regimes crus não vazam na resposta
+        expect(insumo).not.toHaveProperty('_resumoLedger');
+        expect(insumo).not.toHaveProperty('regimesConsumo');
+    });
 });
