@@ -112,6 +112,10 @@ class ManejoPastoService {
             for (const item of itens) {
                 const insumo = insumosPorId.get(item.insumoId);
                 const mov = await this.movimentacaoInsumoRepository.create({
+                    // Preserva o id gerado no cliente (offline-first): o app grava a
+                    // linha local com o mesmo id que a API vai persistir, então o
+                    // pull seguinte reconhece a movimentação em vez de duplicá-la.
+                    ...(item.id ? { id: item.id } : {}),
                     insumoId: item.insumoId,
                     tipo: 'Saida',
                     quantidade: item.quantidade,

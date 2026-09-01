@@ -29,6 +29,7 @@ export const ManejoPastoCreateSchema = z
         itens: z
             .array(
                 z.object({
+                    id: z.string().uuid('O ID do item deve ser um UUID válido.').optional(),
                     insumoId: z.string().uuid('O ID do insumo deve ser um UUID válido.'),
                     quantidade: z.number({ error: 'A quantidade deve ser um número.' })
                         .positive('A quantidade deve ser maior que zero.'),
