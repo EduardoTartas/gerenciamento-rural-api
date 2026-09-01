@@ -74,6 +74,7 @@ const manejoRebanhoSchemas = {
     ManejoRebanhoItemInsumo: {
         type: "object",
         properties: {
+            id: { type: "string", format: "uuid", description: "Opcional. UUID gerado pelo cliente para a movimentação de estoque deste item (offline-first): quando presente, é preservado como `id` da movimentação criada, para o pull seguinte reconhecê-la em vez de duplicá-la.", example: "a1b2c3d4-e5f6-7890-abcd-ef0123456789" },
             insumoId: { type: "string", format: "uuid", description: "UUID de um insumo da mesma propriedade do rebanho, com `destino` `Rebanho` ou `Ambos`.", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
             quantidade: { type: "number", exclusiveMinimum: 0, description: "Quantidade consumida, na unidade do insumo. Deve ser maior que zero.", example: 3 },
             observacoes: { type: "string", nullable: true, maxLength: 500, description: "Observação opcional do item (máx 500 caracteres).", example: "Dose aplicada em 40 cabeças" },
