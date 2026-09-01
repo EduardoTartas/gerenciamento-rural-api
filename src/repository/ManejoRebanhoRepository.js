@@ -1,6 +1,8 @@
 // src/repository/ManejoRebanhoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { comTransacao } from '../utils/helpers/transacao.js';
+import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
@@ -26,7 +28,23 @@ const MANEJO_SELECT = {
             propriedade: { select: { id: true, nome: true } },
         },
     },
+    movimentacoesInsumo: {
+        where: { ativo: true },
+        select: {
+            id: true, insumoId: true, quantidade: true, observacoes: true,
+            insumo: { select: { id: true, nome: true, unidadeMedida: true } },
+        },
+    },
 };
+
+/**
+ * A relação `movimentacoesInsumo` viaja no `select` para uma única consulta, mas
+ * a resposta expõe os itens do manejo sob a chave `itens` — o nome cru do ledger
+ * não vaza para o aplicativo.
+ */
+function comItens({ movimentacoesInsumo, ...manejo }) {
+    return { ...manejo, itens: movimentacoesInsumo ?? [] };
+}
 
 class ManejoRebanhoRepository {
     constructor() {
@@ -60,28 +78,39 @@ class ManejoRebanhoRepository {
             this.prisma.manejoRebanho.count({ where }),
         ]);
 
-        return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
+        return { docs: docs.map(comItens), totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
     async findById(id, usuarioId) {
-        return this.prisma.manejoRebanho.findFirst({
+        const manejo = await this.prisma.manejoRebanho.findFirst({
             where: { id, rebanho: { propriedade: { usuarioId } } },
             select: MANEJO_SELECT,
         });
+        return manejo ? comItens(manejo) : null;
     }
 
-    async create(data) {
-        return this.prisma.manejoRebanho.create({ data, select: MANEJO_SELECT });
+    /**
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
+     */
+    async create(data, tx) {
+        return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.create({ data, select: MANEJO_SELECT }));
     }
 
     /**
      * Cria o manejo e, se for uma pesagem, atualiza rebanho.pesoMedioAtual dentro da
      * mesma transação — mas só se este manejo for a pesagem mais recente do rebanho.
      * Evita que uma pesagem retroativa sobrescreva um peso mais atual já registrado.
+     *
+     * Reaproveita a transação recebida em vez de abrir outra: vindo do lote,
+     * abrir aqui daria transação interativa dentro de transação interativa, que
+     * o Prisma não compõe — a de dentro pega outra conexão do pool (issues #34 e
+     * #35).
      */
-    async createComAtualizacaoPeso(data) {
-        return this.prisma.$transaction(async (tx) => {
-            const manejo = await tx.manejoRebanho.create({ data, select: MANEJO_SELECT });
+    async createComAtualizacaoPeso(data, executor) {
+        return comTransacao(this.prisma, executor, async (tx) => {
+            const manejo = comItens(await tx.manejoRebanho.create({ data, select: MANEJO_SELECT }));
 
             if (data.pesoRegistrado != null) {
                 const pesagemMaisRecente = await tx.manejoRebanho.findFirst({
@@ -102,17 +131,26 @@ class ManejoRebanhoRepository {
         });
     }
 
-    async update(id, data) {
-        return this.prisma.manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT });
+    /**
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
+     */
+    async update(id, data, tx) {
+        return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT }));
     }
 
     /**
      * Exclusão lógica. A linha precisa continuar existindo para o delta poder
      * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
      * informar, e o aplicativo ficaria com um registro fantasma.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async remove(id) {
-        return this.prisma.manejoRebanho.update({
+    async remove(id, tx) {
+        return ondeEscrever(tx, this.prisma).manejoRebanho.update({
             where: { id },
             data: { ativo: false },
         });

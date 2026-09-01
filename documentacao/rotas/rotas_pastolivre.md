@@ -277,7 +277,7 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 Tabelas de referência **compartilhadas entre todos os usuários** da plataforma — não pertencem a nenhuma propriedade.
 
 **Entidades disponíveis em `:entidade`:**
-`racas` · `sistemas-producao` · `regimes-alimentares` · `tipos-manejo-rebanho` · `tipos-manejo-pasto`
+`racas` · `sistemas-producao` · `regimes-alimentares` · `tipos-manejo-rebanho` · `tipos-manejo-pasto` · `tipos-insumo`
 
 Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
 
@@ -371,7 +371,7 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
 - **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
 - **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
-- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`. Esta última não aceita `UPDATE` (movimentação é evento imutável).
+- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`.
 - **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
 - **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
 - **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
@@ -392,3 +392,114 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 
 ### 11.2 GET /docs
 **Caso de Uso:** Documentação interativa Swagger UI. A rota `/` redireciona para cá.
+
+---
+
+## 13. /insumos
+
+Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, medicamento, fertilizante, semente, defensivo). Regras de negócio detalhadas em [`docs/superpowers/specs/2026-08-28-insumos-design.md`](../../docs/superpowers/specs/2026-08-28-insumos-design.md).
+
+**Modelo:**
+- **Insumo** pertence à **propriedade**, com `destino` (`Pasto` / `Rebanho` / `Ambos`). Estoque único por insumo.
+- **Estoque por ledger:** não há coluna de saldo. O saldo é a soma das `movimentacoesInsumo` — evento imutável. `saldoReal = Σ(Entrada) − Σ(Saida) + Σ(Ajuste com sinal)`.
+- **Saldo real vs. projetado:** a leitura de um insumo devolve o pacote `saldo` calculado na hora: `saldoReal` (soma do ledger), `consumoProjetado` (consumo dos regimes ainda não lançado, contado desde a última contagem física de origem `AjusteContagem` ou desde o início de cada regime), `saldoProjetado` (`saldoReal − consumoProjetado`), `consumoDiaTotal` (soma de `quantidadeDia` dos regimes vigentes), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`).
+- **Custo da leitura:** `GET /insumos/:id` traz o ledger inteiro do insumo e calcula o `saldo` a partir das linhas. `GET /insumos` (listagem) **não** traz o ledger: agrega no banco (soma por tipo + data da última contagem, via `groupBy`) e projeta em cima disso — o pacote `saldo` é idêntico.
+- **Regime de consumo:** consumo diário recorrente de um insumo por um rebanho. **Nunca escreve no ledger** — só alimenta a projeção. Criar um regime para um par (rebanho, insumo) que já tem regime em aberto **encerra o anterior** (`dataFim` = `dataInicio` do novo, `ativo: false`) na mesma transação. Um regime em aberto por par.
+- **Itens de insumo nos manejos:** o `POST` de `/pastagens/manejos` e `/rebanhos/manejos` aceita `itens: [{ insumoId, quantidade, observacoes? }]`. Cada item vira uma movimentação de `Saida` (origem `ManejoPasto` / `ManejoRebanho`) criada na mesma transação do manejo. **Saldo insuficiente avisa, não bloqueia** — o saldo pode ficar negativo; a resposta de criação traz `itens` e, quando aplicável, `avisos`.
+- **Exclusão do manejo estorna os itens:** ao excluir um manejo de pasto ou de rebanho (`DELETE`), as movimentações de insumo vinculadas a ele são desativadas (`ativo: false`) na mesma transação — deixam de debitar o saldo, acompanhando o manejo que some das leituras.
+- **Soft-delete:** `insumo` e `regimeConsumoInsumo` usam `ativo: false`; `DELETE` delega ao update de `ativo`. `movimentacaoInsumo` também é soft-delete (`ativo: false`) — a linha some do saldo mas fica no banco para a leitura por diferença.
+- **Multi-tenancy:** toda query é escopada ao usuário autenticado via `insumo.propriedade.usuarioId` / `rebanho.propriedade.usuarioId`.
+- **Offline-first:** todos os schemas de criação aceitam `id` (UUID) opcional gerado pelo cliente. Leitura por diferença com `?atualizadoDesde=<ISO 8601 UTC>` traz vigentes e excluídos juntos.
+
+**Enums (aplicação):**
+- `destino`: `Pasto` · `Rebanho` · `Ambos`
+- `unidadeMedida`: `kg` · `g` · `L` · `mL` · `dose` · `saco` · `unidade`
+- movimentação `tipo`: `Entrada` · `Saida` · `Ajuste`
+- movimentação `origem`: `Compra` · `CadastroInicial` · `ManejoRebanho` · `ManejoPasto` · `ConsumoRebanho` · `AjusteContagem` · `Perda` — o `POST /insumos/movimentacoes` avulso **recusa** `ManejoRebanho` e `ManejoPasto` (essas origens só nascem pelo fluxo de manejo).
+
+### 13.1 POST /insumos
+**Caso de Uso:** Cadastrar um insumo da propriedade.
+**Regras de Negócio:**
+- **Campos obrigatórios:** `propriedadeId`, `tipoInsumoId`, `nome`, `destino`, `unidadeMedida`.
+- **Campos opcionais:** `estoqueMinimo` (≥ 0), e `id` (UUID gerado pelo cliente offline).
+- A propriedade deve existir e pertencer ao usuário. O `tipoInsumoId` deve referenciar um item **ativo** do catálogo global `tipos-insumo`.
+- **Nome único:** `nome` exclusivo (case-insensitive) entre os insumos **ativos** da mesma propriedade (409 em conflito).
+- O estoque começa em zero — a quantidade inicial entra como uma movimentação de origem `CadastroInicial`.
+- A resposta já traz o pacote `saldo`.
+
+### 13.2 GET /insumos
+**Caso de Uso:** Popular a tela de estoque de insumos.
+**Regras de Negócio:**
+- Retorna lista paginada, apenas insumos de propriedades do usuário logado.
+- Filtros: `propriedadeId`, `tipoInsumoId`, `destino`, `nome`, `ativo`, `atualizadoDesde`, `page`, `limit`.
+- Por padrão devolve só `ativo: true`. Cada item traz `tipoInsumo`, `propriedade` e o pacote `saldo`.
+
+### 13.3 GET /insumos/:id
+**Caso de Uso:** Detalhar um insumo, com `saldo` calculado na leitura.
+
+### 13.4 PATCH /insumos/:id
+**Caso de Uso:** Corrigir dados do insumo (`tipoInsumoId`, `nome`, `destino`, `unidadeMedida`, `estoqueMinimo`, `ativo`).
+**Regras de Negócio:**
+- Pelo menos um campo deve ser enviado. Trocar o `nome` revalida a unicidade por propriedade (409).
+- Enviar `ativo: false` inativa o insumo (equivale ao DELETE); `ativo: true` reativa.
+
+### 13.5 DELETE /insumos/:id
+**Caso de Uso:** Excluir um insumo lançado por engano ou fora de uso.
+**Regras de Negócio:**
+- **Soft-delete (`ativo: false`):** a linha permanece no banco para a leitura por diferença reportar a exclusão. O ledger de movimentações não é afetado.
+
+### 13.6 POST /insumos/movimentacoes
+**Caso de Uso:** Lançar entrada (compra, cadastro inicial), saída (consumo, perda) ou ajuste (contagem física) de estoque.
+**Regras de Negócio:**
+- **Campos obrigatórios:** `insumoId`, `tipo`, `quantidade`, `data`, `origem`. **Opcionais:** `rebanhoId`, `pastoId`, `observacoes` (máx 500), `id`.
+- O insumo deve pertencer ao usuário logado.
+- `origem` **restrita** a: `Compra`, `CadastroInicial`, `ConsumoRebanho`, `AjusteContagem`, `Perda`. `ManejoRebanho` e `ManejoPasto` **não são aceitas** aqui.
+- `quantidade` > 0 para `Entrada`/`Saida`; em `Ajuste` aceita valor negativo (contagem para baixo); nunca zero.
+- `data` não pode ser no futuro.
+- Uma movimentação de origem `AjusteContagem` funciona como **marco de reconciliação**: a projeção de consumo dos regimes zera a partir dessa data.
+- Recurso **imutável**: não há PATCH.
+
+### 13.7 GET /insumos/movimentacoes
+**Caso de Uso:** Consultar o extrato (ledger) de um insumo, ou sincronizar por diferença todas as movimentações da propriedade.
+**Regras de Negócio:**
+- **`insumoId` é obrigatório**, exceto quando `atualizadoDesde` é informado. Com `atualizadoDesde` e sem `insumoId`, a chamada é uma leitura por diferença de todas as movimentações da propriedade do usuário — um único request por ciclo de sync, em vez de iterar insumo a insumo. Pode ser restrita com `propriedadeId`.
+- Sem `insumoId` **e** sem `atualizadoDesde` retorna 400.
+- Quando informado, o insumo deve pertencer ao usuário logado. Toda consulta é escopada ao usuário autenticado (via `insumo.propriedade.usuarioId`) — um `propriedadeId` de outro usuário devolve lista vazia.
+- Lista paginada ordenada por `data` decrescente. Índice `movimentacoes_insumo(updatedAt)` sustenta o delta por propriedade.
+- Filtros: `insumoId`, `propriedadeId`, `tipo`, `origem`, `dataInicio`, `dataFim`, `ativo`, `atualizadoDesde`, `page`, `limit`.
+
+### 13.8 GET /insumos/movimentacoes/:id
+**Caso de Uso:** Detalhar uma movimentação de estoque.
+
+### 13.9 DELETE /insumos/movimentacoes/:id
+**Caso de Uso:** Estornar uma movimentação lançada por engano.
+**Regras de Negócio:**
+- **Soft-delete (`ativo: false`):** a movimentação deixa de contar no saldo, mas a linha permanece no banco para a leitura por diferença.
+
+### 13.10 POST /rebanhos/regimes-consumo
+**Caso de Uso:** Registrar que um rebanho consome uma quantidade fixa de um insumo por dia.
+**Regras de Negócio:**
+- **Campos obrigatórios:** `rebanhoId`, `insumoId`, `quantidadeDia`, `dataInicio`. **Opcionais:** `dataFim`, `id`.
+- O rebanho deve existir e pertencer ao usuário. O insumo deve ser da **mesma propriedade** do rebanho e ter `destino` `Rebanho` ou `Ambos`.
+- `quantidadeDia` > 0. `dataInicio <= dataFim` quando `dataFim` for informada.
+- **Um regime em aberto por par (rebanho, insumo):** criar um novo para um par que já tem regime em aberto **encerra o anterior** (`dataFim` = `dataInicio` do novo, `ativo: false`) na mesma transação.
+- O regime **nunca escreve no ledger** — só alimenta `saldoProjetado` e `previsaoTermino` na leitura do insumo.
+
+### 13.11 GET /rebanhos/regimes-consumo
+**Caso de Uso:** Ver o consumo diário recorrente de insumos por rebanho.
+**Regras de Negócio:**
+- Apenas regimes de rebanhos de propriedades do usuário logado. Lista paginada ordenada por `dataInicio` decrescente.
+- Filtros: `rebanhoId`, `insumoId`, `emAberto` (`true` = só os com `dataFim` nula), `ativo`, `atualizadoDesde`, `page`, `limit`.
+
+### 13.12 GET /rebanhos/regimes-consumo/:id
+**Caso de Uso:** Detalhar um regime de consumo.
+
+### 13.13 PATCH /rebanhos/regimes-consumo/:id
+**Caso de Uso:** Ajustar a `quantidadeDia` ou encerrar o regime via `dataFim`.
+**Regras de Negócio:**
+- Aceita `quantidadeDia` (> 0) e `dataFim`. Enviar `dataFim` encerra o regime (`ativo: false`).
+
+### 13.14 DELETE /rebanhos/regimes-consumo/:id
+**Caso de Uso:** Encerrar um regime de consumo.
+**Regras de Negócio:**
+- **Exclusão lógica:** marca `ativo: false` e preenche `dataFim` com o momento atual. A partir daí o regime deixa de contar no `consumoDiaTotal` e na projeção.

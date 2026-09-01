@@ -14,7 +14,7 @@ const catalogoController = new CatalogoController();
  *
  * Entidades disponíveis em :entidade:
  *   racas, sistemas-producao,
- *   regimes-alimentares, tipos-manejo-rebanho, tipos-manejo-pasto
+ *   regimes-alimentares, tipos-manejo-rebanho, tipos-manejo-pasto, tipos-insumo
  *
  * Leitura liberada a qualquer autenticado. Escrita (criar/editar/arquivar) restrita a
  * admin — catálogos são compartilhados entre todos os usuários.

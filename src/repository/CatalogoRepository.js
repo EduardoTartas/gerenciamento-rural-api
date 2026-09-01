@@ -17,6 +17,7 @@ export const CATALOGO_ENTITIES = {
     'regimes-alimentares':  { model: 'regimeAlimentar',    label: 'Regime Alimentar',          relationModel: 'rebanho',       relationField: 'regimeAlimentarId' },
     'tipos-manejo-rebanho': { model: 'tipoManejoRebanho',  label: 'Tipo de Manejo de Rebanho', relationModel: 'manejoRebanho', relationField: 'tipoManejoId' },
     'tipos-manejo-pasto':   { model: 'tipoManejoPasto',    label: 'Tipo de Manejo de Pasto',   relationModel: 'manejoPasto',   relationField: 'tipoManejoId' },
+    'tipos-insumo':         { model: 'tipoInsumo',         label: 'Tipo de Insumo',            relationModel: 'insumo',        relationField: 'tipoInsumoId' },
 };
 
 const CATALOG_SELECT = { id: true, nome: true, ativo: true, createdAt: true, updatedAt: true };

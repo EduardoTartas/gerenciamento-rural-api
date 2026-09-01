@@ -1,6 +1,7 @@
 // src/repository/ManejoPastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
+import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
@@ -24,7 +25,23 @@ const MANEJO_SELECT = {
             propriedade: { select: { id: true, nome: true } },
         },
     },
+    movimentacoesInsumo: {
+        where: { ativo: true },
+        select: {
+            id: true, insumoId: true, quantidade: true, observacoes: true,
+            insumo: { select: { id: true, nome: true, unidadeMedida: true } },
+        },
+    },
 };
+
+/**
+ * A relação `movimentacoesInsumo` viaja no `select` para uma única consulta, mas
+ * a resposta expõe os itens do manejo sob a chave `itens` — o nome cru do ledger
+ * não vaza para o aplicativo.
+ */
+function comItens({ movimentacoesInsumo, ...manejo }) {
+    return { ...manejo, itens: movimentacoesInsumo ?? [] };
+}
 
 class ManejoPastoRepository {
     constructor() {
@@ -62,7 +79,7 @@ class ManejoPastoRepository {
             this.prisma.manejoPasto.count({ where }),
         ]);
 
-        return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
+        return { docs: docs.map(comItens), totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
     /**
@@ -70,33 +87,46 @@ class ManejoPastoRepository {
      * Restrito ao usuário autenticado via pasto -> propriedade.
      */
     async findById(id, usuarioId) {
-        return this.prisma.manejoPasto.findFirst({
+        const manejo = await this.prisma.manejoPasto.findFirst({
             where: { id, pasto: { propriedade: { usuarioId } } },
             select: MANEJO_SELECT,
         });
+        return manejo ? comItens(manejo) : null;
     }
 
     /**
      * Cria um novo manejo de pasto.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async create(data) {
-        return this.prisma.manejoPasto.create({ data, select: MANEJO_SELECT });
+    async create(data, tx) {
+        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.create({ data, select: MANEJO_SELECT }));
     }
 
     /**
      * Atualiza um manejo de pasto por ID.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async update(id, data) {
-        return this.prisma.manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT });
+    async update(id, data, tx) {
+        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT }));
     }
 
     /**
      * Exclusão lógica. A linha precisa continuar existindo para o delta poder
      * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
      * informar, e o aplicativo ficaria com um registro fantasma.
+     *
+     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
+     * que a escrita entre junto com a lápide de idempotência; o REST não passa
+     * nada e escreve pelo pool. Issue #34.
      */
-    async remove(id) {
-        return this.prisma.manejoPasto.update({
+    async remove(id, tx) {
+        return ondeEscrever(tx, this.prisma).manejoPasto.update({
             where: { id },
             data: { ativo: false },
         });

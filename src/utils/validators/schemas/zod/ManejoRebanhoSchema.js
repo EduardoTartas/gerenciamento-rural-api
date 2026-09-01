@@ -11,6 +11,17 @@ export const ManejoRebanhoCreateSchema = z.object({
     medicamentoVacina: z.string().max(200, 'Máximo 200 caracteres.').optional().nullable(),
     pesoRegistrado:   z.number().positive('O peso deve ser um número positivo.').optional().nullable(),
     observacoes:      z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
+    itens: z
+        .array(
+            z.object({
+                insumoId: z.string().uuid('O ID do insumo deve ser um UUID válido.'),
+                quantidade: z.number({ error: 'A quantidade deve ser um número.' })
+                    .positive('A quantidade deve ser maior que zero.'),
+                observacoes: z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
+            }).strict(),
+        )
+        .max(50, 'No máximo 50 itens de insumo por manejo.')
+        .optional(),
 }).strict();
 
 export const ManejoRebanhoUpdateSchema = z.object({

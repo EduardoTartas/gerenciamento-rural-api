@@ -40,6 +40,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const movimentacaoPaths = (await import(new URL("../paths/movimentacao.js",
         import.meta.url).href + t)).default;
+    const insumoPaths = (await import(new URL("../paths/insumo.js",
+        import.meta.url).href + t)).default;
     const syncPaths = (await import(new URL("../paths/sync.js",
         import.meta.url).href + t)).default;
     const uploadPaths = (await import(new URL("../paths/upload.js",
@@ -63,6 +65,8 @@ const getSwaggerOptions = async () => {
     const manejoRebanhoSchemas = (await import(new URL("../schemas/manejoRebanhoSchema.js",
         import.meta.url).href + t)).default;
     const movimentacaoSchemas = (await import(new URL("../schemas/movimentacaoSchema.js",
+        import.meta.url).href + t)).default;
+    const insumoSchemas = (await import(new URL("../schemas/insumoSchema.js",
         import.meta.url).href + t)).default;
     const syncSchemas = (await import(new URL("../schemas/syncSchema.js",
         import.meta.url).href + t)).default;
@@ -172,6 +176,10 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     description: "Histórico imutável de transferências entre pastos"
                 },
                 {
+                    name: "Insumos",
+                    description: "Estoque de insumos, movimentações (ledger) e consumo diário do rebanho"
+                },
+                {
                     name: "Sincronização",
                     description: "Aplicação em lote de mutações geradas offline pelo app"
                 },
@@ -190,6 +198,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...rebanhoPaths,
                 ...manejoRebanhoPaths,
                 ...movimentacaoPaths,
+                ...insumoPaths,
                 ...syncPaths,
                 ...uploadPaths,
             },
@@ -211,6 +220,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     ...rebanhoSchemas,
                     ...manejoRebanhoSchemas,
                     ...movimentacaoSchemas,
+                    ...insumoSchemas,
                     ...syncSchemas,
                     ...uploadSchemas,
                 }

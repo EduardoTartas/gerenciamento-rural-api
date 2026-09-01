@@ -26,6 +26,17 @@ export const ManejoPastoCreateSchema = z
             .max(500, 'As observações devem ter no máximo 500 caracteres.')
             .optional()
             .nullable(),
+        itens: z
+            .array(
+                z.object({
+                    insumoId: z.string().uuid('O ID do insumo deve ser um UUID válido.'),
+                    quantidade: z.number({ error: 'A quantidade deve ser um número.' })
+                        .positive('A quantidade deve ser maior que zero.'),
+                    observacoes: z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
+                }).strict(),
+            )
+            .max(50, 'No máximo 50 itens de insumo por manejo.')
+            .optional(),
     })
     .strict();
 
