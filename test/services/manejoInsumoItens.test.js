@@ -42,6 +42,30 @@ describe('ManejoPastoService — itens de insumo', () => {
         );
     });
 
+    it('preserva o id do item quando o cliente envia (offline-first)', async () => {
+        armaHappyPath();
+        await service.create({
+            pastoId: 'past1', tipoManejoId: 'tm1', dataAtividade: new Date('2026-08-27T00:00:00Z'),
+            itens: [{ id: 'item-uuid-cliente', insumoId: 'i1', quantidade: 5 }],
+        }, req());
+
+        expect(service.movimentacaoInsumoRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'item-uuid-cliente', insumoId: 'i1' }),
+            'TX',
+        );
+    });
+
+    it('sem id no item, nao passa a chave id (deixa o default do banco)', async () => {
+        armaHappyPath();
+        await service.create({
+            pastoId: 'past1', tipoManejoId: 'tm1', dataAtividade: new Date('2026-08-27T00:00:00Z'),
+            itens: [{ insumoId: 'i1', quantidade: 5 }],
+        }, req());
+
+        const [dados] = service.movimentacaoInsumoRepository.create.mock.calls[0];
+        expect(dados).not.toHaveProperty('id');
+    });
+
     it('recusa item com insumo de destino incompativel', async () => {
         armaHappyPath({ destino: 'Rebanho' });
         await expect(service.create({
@@ -124,6 +148,19 @@ describe('ManejoRebanhoService — itens de insumo', () => {
                 insumoId: 'i1', tipo: 'Saida', quantidade: 5,
                 origem: 'ManejoRebanho', manejoRebanhoId: 'manejo1', rebanhoId: 'reb1',
             }),
+            'TX',
+        );
+    });
+
+    it('preserva o id do item quando o cliente envia (offline-first)', async () => {
+        armaHappyPath();
+        await service.create({
+            rebanhoId: 'reb1', tipoManejoId: 'tm1', dataAtividade: new Date('2026-08-27T00:00:00Z'),
+            itens: [{ id: 'item-uuid-cliente', insumoId: 'i1', quantidade: 5 }],
+        }, req());
+
+        expect(service.movimentacaoInsumoRepository.create).toHaveBeenCalledWith(
+            expect.objectContaining({ id: 'item-uuid-cliente', insumoId: 'i1' }),
             'TX',
         );
     });
