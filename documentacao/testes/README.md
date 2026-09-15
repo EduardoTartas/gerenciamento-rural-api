@@ -4,6 +4,11 @@ Suíte de testes de integração HTTP da API Pasto Livre: cada rota tem seu `.md
 (esta pasta) e seus arquivos `test/endpoints/<rota>/<metodo>-<caminho>.test.js` correspondentes.
 Os testes rodam contra um PostgreSQL real, com usuários BetterAuth reais (A, B e um admin).
 
+Exceção à convenção de um arquivo por endpoint: `transversal.md` não descreve uma rota de
+domínio, e sim comportamento comum a toda a API (health check, 404, JSON inválido, ordem de
+rotas, 401) — todos os cenários `APP-*` vivem num único arquivo,
+`test/endpoints/transversal/app.test.js`.
+
 ## Como rodar
 
 ```bash

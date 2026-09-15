@@ -9,9 +9,14 @@ resposta a token inválido. Fontes: `src/app.js`, `src/routes/index.js`,
 Esta suíte substitui `test/ordemDeRotas.test.js` (que testava a ordem de registro lendo o
 texto-fonte de `src/routes/index.js`) por uma verificação de comportamento real via HTTP.
 
+Exceção à convenção de um arquivo por endpoint: todos os cenários APP-* abaixo (health, rota
+inexistente, JSON inválido, ordem de rotas, 401) vivem num único arquivo,
+`test/endpoints/transversal/app.test.js`, porque nenhum é uma rota de domínio própria — são
+comportamentos do `app.js`/middlewares compartilhados por toda a API.
+
 ## GET /health
 
-Arquivo: `test/endpoints/transversal/get-health.test.js`
+Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -19,7 +24,7 @@ Arquivo: `test/endpoints/transversal/get-health.test.js`
 
 ## Rota inexistente
 
-Arquivo: `test/endpoints/transversal/rota-inexistente.test.js`
+Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -28,7 +33,7 @@ Arquivo: `test/endpoints/transversal/rota-inexistente.test.js`
 
 ## JSON inválido
 
-Arquivo: `test/endpoints/transversal/json-invalido.test.js`
+Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -36,7 +41,7 @@ Arquivo: `test/endpoints/transversal/json-invalido.test.js`
 
 ## Ordem de rotas — específicas antes de `/:id`
 
-Arquivo: `test/endpoints/transversal/ordem-de-rotas.test.js`
+Arquivo: `test/endpoints/transversal/app.test.js`
 
 Cobre a armadilha documentada em `src/routes/index.js:76-83`: rotas com segmento fixo (ex.:
 `/pastagens/manejos`) precisam estar registradas **antes** da rota genérica `/pastagens/:id`,
@@ -48,17 +53,26 @@ senão o segmento fixo é interpretado como valor de `:id`.
 | APP-GET-05 | `GET /v1/rebanhos/manejos` | — | 200 | idem, não cai em `/rebanhos/:id` |
 | APP-GET-06 | `GET /v1/rebanhos/movimentacoes` | — | 200 | idem |
 | APP-GET-07 | `GET /v1/rebanhos/regimes-consumo` | — | 200 | idem — `regimeConsumoRoutes` precisa vir antes de `rebanhoRoutes` |
-| APP-GET-08 | `GET /v1/insumos/movimentacoes` | — | 200 | idem, não cai em `/insumos/:id` |
+| APP-GET-08 | `GET /v1/insumos/movimentacoes?atualizadoDesde=1970-01-01T00:00:00.000Z` | — | 200 | idem, não cai em `/insumos/:id` — query obrigatória, ver nota abaixo |
+
+**Nota sobre APP-GET-08**: `MovimentacaoInsumoService.list` recusa listar sem `insumoId` OU
+`atualizadoDesde` (400 `validationError`, "Informe o insumo, ou use atualizadoDesde para a
+leitura por diferença."), então `GET /v1/insumos/movimentacoes` sem query nenhuma não
+retorna 200. O teste usa `?atualizadoDesde=1970-01-01T00:00:00.000Z` (leitura por diferença,
+sem depender de um insumo existir) só para satisfazer essa validação — o que a linha
+continua provando é a ordem de rotas: se `/insumos/movimentacoes` caísse em `/insumos/:id`,
+o erro seria "ID de insumo inválido. Deve ser um UUID válido." (400 de formato), não o 400 de
+"informe o insumo" nem um 200 de listagem real.
 
 ## 401 com token inválido
 
-Arquivo: `test/endpoints/transversal/token-invalido.test.js`
+Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | APP-GET-09 | requisição a rota protegida (`GET /v1/propriedades`) sem header `Authorization` e sem cookie de sessão | — | 401 | `tipo` = `unauthorized`; `recuperavel` = `true`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
 | APP-GET-10 | requisição a rota protegida com `Authorization: Bearer token-invalido` | — | 401 | mesma resposta do cenário anterior — `AuthMiddleware` chama `auth.api.getSession`, que devolve sessão nula para token não reconhecido pelo BetterAuth |
-| APP-GET-11 | requisição a rota protegida com cookie de sessão expirado/revogado | sessão de A expirada ou removida | 401 | mesma resposta — qualquer rota autenticada (não só `/propriedades`) reage igual, pois a checagem é feita pelo `AuthMiddleware` comum a todas |
+| APP-GET-11 | requisição a rota protegida com bearer token de uma sessão revogada | sessão de A removida diretamente via Prisma (`session.deleteMany({ where: { userId } })`) antes da requisição | 401 | mesma resposta — qualquer rota autenticada (não só `/propriedades`) reage igual, pois a checagem é feita pelo `AuthMiddleware` comum a todas. Não há endpoint de revogação de sessão na API para simular isso via HTTP puro, então o teste apaga a sessão direto no banco para reproduzir "token que já foi válido, mas não é mais" |
 
 ## Divergências
 
