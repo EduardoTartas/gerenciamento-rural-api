@@ -8,9 +8,9 @@ describe('UserService.registrarFoto', () => {
 
     beforeEach(async () => {
         process.env.GARAGE_PUBLIC_URL = BUCKET_URL;
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: UserService } = await import('../../src/service/UserService.js');
+        const { default: UserService } = await import('../../../src/service/UserService.js');
         service = new UserService();
         service.uploadService = {
             deletarImagem: vi.fn().mockResolvedValue(undefined),

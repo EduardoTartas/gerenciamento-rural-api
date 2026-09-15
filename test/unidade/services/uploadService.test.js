@@ -13,7 +13,7 @@ describe('UploadService', () => {
 
     beforeEach(async () => {
         vi.resetModules();
-        const { default: UploadService } = await import('../../src/service/UploadService.js');
+        const { default: UploadService } = await import('../../../src/service/UploadService.js');
         service = new UploadService();
         service.repository = {
             uploadFile: vi.fn().mockResolvedValue('https://garage.exemplo.com/pastolivre-avatars/foo.jpeg'),

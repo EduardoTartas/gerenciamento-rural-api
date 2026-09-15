@@ -5,7 +5,7 @@ import {
     calcularConsumoDiaTotal,
     calcularSaldos,
     calcularSaldosComResumo,
-} from '../../src/service/insumo/calculoSaldo.js';
+} from '../../../src/service/insumo/calculoSaldo.js';
 
 const dia = (iso) => new Date(`${iso}T00:00:00Z`);
 

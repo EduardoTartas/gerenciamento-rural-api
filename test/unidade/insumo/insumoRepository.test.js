@@ -4,9 +4,9 @@ describe('InsumoRepository.anexarResumoLedger', () => {
     let repository;
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: InsumoRepository } = await import('../../src/repository/InsumoRepository.js');
+        const { default: InsumoRepository } = await import('../../../src/repository/InsumoRepository.js');
         repository = new InsumoRepository();
     });
 

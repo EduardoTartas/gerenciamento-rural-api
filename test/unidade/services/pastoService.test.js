@@ -10,9 +10,9 @@ describe('PastoService', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: PastoService } = await import('../../src/service/PastoService.js');
+        const { default: PastoService } = await import('../../../src/service/PastoService.js');
         service = new PastoService();
     });
 

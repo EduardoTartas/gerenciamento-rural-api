@@ -5,9 +5,9 @@ describe('MovimentacaoInsumoService', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: MovimentacaoInsumoService } = await import('../../src/service/MovimentacaoInsumoService.js');
+        const { default: MovimentacaoInsumoService } = await import('../../../src/service/MovimentacaoInsumoService.js');
         service = new MovimentacaoInsumoService();
     });
 

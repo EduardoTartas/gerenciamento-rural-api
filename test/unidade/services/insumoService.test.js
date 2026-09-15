@@ -5,9 +5,9 @@ describe('InsumoService', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: InsumoService } = await import('../../src/service/InsumoService.js');
+        const { default: InsumoService } = await import('../../../src/service/InsumoService.js');
         service = new InsumoService();
     });
 

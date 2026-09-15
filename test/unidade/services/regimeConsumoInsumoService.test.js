@@ -9,9 +9,9 @@ describe('RegimeConsumoInsumoService', () => {
     };
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: {} } }));
         vi.resetModules();
-        const { default: RegimeConsumoInsumoService } = await import('../../src/service/RegimeConsumoInsumoService.js');
+        const { default: RegimeConsumoInsumoService } = await import('../../../src/service/RegimeConsumoInsumoService.js');
         service = new RegimeConsumoInsumoService();
         // comTransacao sem tx externa chama prisma.$transaction(cb) -> aqui roda cb com um "tx" fake
         service.prisma = { $transaction: (cb) => cb('TX') };

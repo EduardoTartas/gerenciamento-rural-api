@@ -5,9 +5,9 @@ describe('ManejoPastoService — itens de insumo', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: { $transaction: (cb) => cb('TX') } } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: { $transaction: (cb) => cb('TX') } } }));
         vi.resetModules();
-        const { default: ManejoPastoService } = await import('../../src/service/ManejoPastoService.js');
+        const { default: ManejoPastoService } = await import('../../../src/service/ManejoPastoService.js');
         service = new ManejoPastoService();
         service.prisma = { $transaction: (cb) => cb('TX') };
     });
@@ -112,9 +112,9 @@ describe('ManejoRebanhoService — itens de insumo', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({ default: { prisma: { $transaction: (cb) => cb('TX') } } }));
+        vi.doMock('../../../src/config/dbConnect.js', () => ({ default: { prisma: { $transaction: (cb) => cb('TX') } } }));
         vi.resetModules();
-        const { default: ManejoRebanhoService } = await import('../../src/service/ManejoRebanhoService.js');
+        const { default: ManejoRebanhoService } = await import('../../../src/service/ManejoRebanhoService.js');
         service = new ManejoRebanhoService();
         service.prisma = { $transaction: (cb) => cb('TX') };
     });

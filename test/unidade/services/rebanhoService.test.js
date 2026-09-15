@@ -10,12 +10,12 @@ describe('RebanhoService', () => {
     const req = (usuarioId = 'dono') => ({ user: { id: usuarioId }, params: {}, query: {} });
 
     beforeEach(async () => {
-        vi.doMock('../../src/config/dbConnect.js', () => ({
+        vi.doMock('../../../src/config/dbConnect.js', () => ({
             default: { prisma: { $transaction: async (cb) => cb({}) } },
         }));
         vi.resetModules();
         const { default: RebanhoService } = await import(
-            '../../src/service/RebanhoService.js'
+            '../../../src/service/RebanhoService.js'
         );
         service = new RebanhoService();
     });
