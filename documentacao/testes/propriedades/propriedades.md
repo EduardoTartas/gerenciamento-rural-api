@@ -43,7 +43,7 @@ Arquivo: `test/endpoints/propriedades/get-propriedades.test.js`
 | PROP-GET-04 | filtro `localizacao` (substring, case-insensitive) | — | 200 | filtra pelo texto de `localizacao` |
 | PROP-GET-05 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhuma propriedade encontrada com os filtros informados." |
 | PROP-GET-06 | paginação `page=2` | A tem 15 propriedades, `limit` padrão 10 | 200 | `data.docs.length` = 5; `data.page` = 2; `data.totalPages` = 2 |
-| PROP-GET-07 | `limit` acima de 100 é truncado para 100 | A tem mais de 100 propriedades | 200 | `data.limit` = 100, mesmo pedindo `?limit=500` (`PropriedadeService.list`, `Math.min(...,100)`) |
+| PROP-GET-07 | `limit` acima de 100 — **divergência**: `PropriedadeQuerySchema` já rejeita antes de chegar ao truncamento do service | — | 400 | issue Zod `limit`, "Too big"; `PropriedadeService.list` teria truncado para 100 (`Math.min(...,100)`), mas o código nunca chega lá; ver `## Divergências` |
 | PROP-GET-08 | `?ativo=false` não filtra nada — **divergência conhecida** | A tem propriedades ativas e inativas | 200 | resposta continua trazendo só as ativas; ver `## Divergências` |
 | PROP-GET-09 | multi-tenancy: B não vê propriedades de A | A e B com propriedades próprias | 200 | `data.docs` de B não contém nenhuma propriedade de A |
 | PROP-GET-10 | leitura por diferença: `atualizadoDesde` traz também as inativas | A tem propriedade excluída (soft-delete) após a marca de tempo | 200 | `data.docs` inclui a propriedade com `ativo: false` e `updatedAt` mais recente que `atualizadoDesde` |
@@ -102,6 +102,13 @@ Arquivo: `test/endpoints/propriedades/delete-propriedades-id.test.js`
 
 ## Divergências
 
+- `GET /propriedades?limit=500` responde 400 em vez de truncar para 100.
+  `PropriedadeQuerySchema` (`src/utils/validators/schemas/zod/querys/PropriedadeQuerySchema.js:28`)
+  valida `limit` com `.max(100)`, então valores acima de 100 são rejeitados pelo Zod antes de
+  chegar ao service. O truncamento `Math.min(parseInt(limit,10) || 10, 100)` em
+  `PropriedadeService.list` (`src/service/PropriedadeService.js:38`) é código morto — nunca
+  recebe um valor maior que 100, pois o controller já teria lançado `ZodError`. Coberto por
+  `PROP-GET-07` (`it.fails`).
 - `GET /propriedades?ativo=false` não filtra propriedades inativas apesar de o schema aceitar
   o parâmetro. `PropriedadeController.list` (`src/controllers/PropriedadeController.js:32-35`)
   só atribui `req._parsedQuery` quando a query recebida não está vazia, e mesmo quando
