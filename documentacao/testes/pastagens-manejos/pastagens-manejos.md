@@ -21,7 +21,7 @@ Arquivo: `test/endpoints/pastagens-manejos/post-pastagens-manejos.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | MPAS-POST-01 | cria manejo sem `itens` | pasto ativo de A, tipo de manejo ativo | 201 | envelope; `data.itens` = `[]` |
-| MPAS-POST-02 | cria manejo com 1 item de insumo `destino: "Pasto"` | insumo da mesma propriedade do pasto | 201 | `data.itens[0]` presente; DB: `historicoMovimentacao` criada com `tipo: "Saida"`, `origem: "ManejoPasto"`, `manejoPastoId` = id do manejo, `pastoId` = pasto informado |
+| MPAS-POST-02 | cria manejo com 1 item de insumo `destino: "Pasto"` | insumo da mesma propriedade do pasto | 201 | `data.itens[0]` presente; DB: `movimentacaoInsumo` criada com `tipo: "Saida"`, `origem: "ManejoPasto"`, `manejoPastoId` = id do manejo, `pastoId` = pasto informado |
 | MPAS-POST-03 | cria manejo com item de insumo `destino: "Ambos"` | — | 201 | mesma verificação do cenário anterior — `destino` aceito quando é `"Pasto"` ou `"Ambos"` |
 | MPAS-POST-04 | aceita `id` do manejo gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao enviado |
 | MPAS-POST-05 | aceita `id` do item gerado pelo cliente | — | 201 | a movimentação de saída criada no banco tem o mesmo `id` do item enviado |
@@ -34,7 +34,7 @@ Arquivo: `test/endpoints/pastagens-manejos/post-pastagens-manejos.test.js`
 | MPAS-POST-12 | item de `itens` com campo extra (`.strict()` no item) | — | 400 | issue `unrecognized_keys` dentro de `itens[0]` |
 | MPAS-POST-13 | mais de 50 itens em `itens` | — | 400 | issue "No máximo 50 itens de insumo por manejo." |
 | MPAS-POST-14 | item com `quantidade` zero ou negativa | — | 400 | issue `itens[0].quantidade` |
-| MPAS-POST-15 | `pastoId` inexistente | — | 404 | `tipo` = `resourceNotFound`; `message` = "Recurso não encontrado em Pastagem." |
+| MPAS-POST-15 | `pastoId` inexistente | — | 404 | `tipo` = `resourceNotFound`; `message` = "Pastagem não encontrada ou não pertence ao usuário autenticado." |
 | MPAS-POST-16 | multi-tenancy: B tenta criar manejo em pasto de A | — | 404 | mesma resposta do cenário anterior — `ensurePastoExists` filtra por `usuarioId` |
 | MPAS-POST-17 | `pastoId` aponta para pasto inativo | — | 400 | `tipo` = `validationError`; `errors[0].path` = `pastoId`; `message` = "Pasto está inativo." |
 | MPAS-POST-18 | `tipoManejoId` inexistente ou inativo no catálogo | — | 404 | `tipo` = `resourceNotFound`; `errors[0].path` = `tipoManejoId` |
@@ -105,7 +105,7 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | MPAS-DELETE-ID-01 | exclui manejo sem itens | — | 200 | DB: `ativo` = `false` — a linha **continua existindo** (soft-delete, não remoção física; ver `## Divergências`) |
-| MPAS-DELETE-ID-02 | exclui manejo com itens de insumo vinculados | manejo com 1+ movimentações de saída | 200 | DB: `historicoMovimentacao` das movimentações originadas desse manejo também fica `ativo: false` (`movimentacaoInsumoRepository.desativarPorManejo`) — o saldo do insumo deixa de ser debitado por elas |
+| MPAS-DELETE-ID-02 | exclui manejo com itens de insumo vinculados | manejo com 1+ movimentações de saída | 200 | DB: `movimentacaoInsumo` das movimentações originadas desse manejo também fica `ativo: false` (`movimentacaoInsumoRepository.desativarPorManejo`) — o saldo do insumo deixa de ser debitado por elas |
 | MPAS-DELETE-ID-03 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | MPAS-DELETE-ID-04 | multi-tenancy: B tenta excluir manejo de A | — | 404 | mesma resposta do cenário anterior |
 | MPAS-DELETE-ID-05 | `:id` não é UUID válido | — | 400 | issue de `ManejoPastoIdSchema` |
@@ -113,6 +113,22 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
 
 ## Divergências
 
+- MPAS-GET-09 (`limit` acima de 100 é truncado para 100): o código não trunca. O `.md`
+  original descrevia a intenção do `Math.min(..., 100)` em `ManejoPastoService.list`
+  (`src/service/ManejoPastoService.js:54`), mas `ManejoPastoQuerySchema.limit`
+  (`src/utils/validators/schemas/zod/querys/ManejoPastoQuerySchema.js:31`) já tem
+  `.max(100)` — `?limit=500` nunca chega ao service, cai em 400 `validationError` antes.
+  O teste (`test/endpoints/pastagens-manejos/get-pastagens-manejos.test.js`) usa
+  `it.fails` documentando o comportamento real.
+- MPAS-POST-15/16 (`pastoId` inexistente): a mensagem real de
+  `ManejoPastoService.ensurePastoExists` (`src/service/ManejoPastoService.js:194-206`) é
+  "Pastagem não encontrada ou não pertence ao usuário autenticado.", não o texto genérico
+  de `messages.error.resourceNotFound('Pastagem')` ("Recurso não encontrado em
+  Pastagem.") que a linha original do `.md` assumia. Corrigido nas duas linhas.
+- MPAS-POST-02/03/DELETE-ID-02: o `.md` original citava a tabela `historicoMovimentacao`
+  como destino da movimentação de saída — essa tabela é exclusiva de
+  `rebanhos/movimentacoes` (troca de pasto do rebanho). O ledger de insumo usado aqui é
+  `movimentacaoInsumo` (`prisma/schema.prisma:345`). Corrigido nas três linhas.
 - `CLAUDE.md` ("Soft-delete") afirma que "Manejos são excluídos de verdade (não têm
   dependentes)". O código faz o oposto: `ManejoPastoRepository.remove`
   (`src/repository/ManejoPastoRepository.js:128-133`) marca `ativo: false` — nunca chama
