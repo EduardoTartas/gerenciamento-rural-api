@@ -13,7 +13,7 @@ Spec: `docs/superpowers/specs/2026-09-15-testes-endpoint-por-rota-design.md` · 
 ## Global Constraints
 
 - Branch `41-test-endpoints-por-rota`; commits `tipo: descrição` **sem escopo**, sem emoji, máx. 4 palavras, sem co-autoria de IA.
-- Documentação de teste: **um `.md` por rota** em `documentacao/testes/`, **uma tabela por método HTTP**.
+- Documentação de teste: **um `.md` por rota**, dentro da pasta da rota: `documentacao/testes/<rota>/<rota>.md`, **uma tabela por método HTTP**.
 - Código de teste: `test/endpoints/<rota>/<metodo>-<caminho>.test.js` (um arquivo por endpoint).
 - ID de cenário: `<SIGLA>-<MÉTODO>[-ID]-NN`, e o `it` começa pelo ID.
 - Não mudar comportamento de endpoint. Divergência encontrada = linha na seção "Divergências" do `.md` + `it.fails` com o ID e comentário; nunca ajustar o teste para "passar" o bug.
@@ -28,7 +28,7 @@ Siglas: `PROP` propriedades · `PAST` pastagens · `MPAS` pastagens/manejos · `
 
 **Files:**
 - Create: `documentacao/testes/README.md`
-- Create: `documentacao/testes/{propriedades,pastagens,pastagens-manejos,rebanhos,rebanhos-manejos,rebanhos-movimentacoes,rebanhos-regimes-consumo,insumos,insumos-movimentacoes,catalogos,usuarios,uploads,sync,transversal}.md`
+- Create: `documentacao/testes/<rota>/<rota>.md` para cada rota (propriedades, pastagens, pastagens-manejos, rebanhos, rebanhos-manejos, rebanhos-movimentacoes, rebanhos-regimes-consumo, insumos, insumos-movimentacoes, catalogos, usuarios, uploads, sync, transversal)
 
 **Interfaces:**
 - Produces: tabela de cenários com IDs, consumida pelas Tasks 3–15.
@@ -324,7 +324,7 @@ Uma task por rota, na ordem: 3 propriedades · 4 pastagens · 5 pastagens-manejo
 
 **Files (por rota `<r>`):**
 - Create: `test/endpoints/<r>/<metodo>-<caminho>.test.js` — um por seção do `.md`
-- Modify: `documentacao/testes/<r>.md` (ajustes de cenário descobertos ao implementar)
+- Modify: `documentacao/testes/<r>/<r>.md` (ajustes de cenário descobertos ao implementar)
 - Modify (se necessário): `test/apoio/fabricas.js` (só adicionar funções)
 - Delete: unitários de `test/unidade/` cujos cenários ficaram 100% cobertos (listar no corpo do commit)
 
@@ -397,14 +397,14 @@ Run: `npx vitest run --project endpoints test/endpoints/<r>` · Expected: todos 
 
 - [ ] **Step 3: Conferir `.md` × código** — todo ID do `.md` existe em um `it` e vice-versa:
 
-Run: `grep -ohE "<SIGLA>-[A-Z]+(-ID)?-[0-9]+" documentacao/testes/<r>.md | sort -u` comparado com o mesmo grep em `test/endpoints/<r>`. Expected: listas iguais.
+Run: `grep -ohE "<SIGLA>-[A-Z]+(-ID)?-[0-9]+" documentacao/testes/<r>/<r>.md | sort -u` comparado com o mesmo grep em `test/endpoints/<r>`. Expected: listas iguais.
 
 - [ ] **Step 4: Apagar unitários cobertos** e rodar `npm test`. Expected: PASS.
 
 - [ ] **Step 5: Commit**
 
 ```bash
-git add -A documentacao/testes/<r>.md test
+git add -A documentacao/testes/<r>/<r>.md test
 git commit -m "test: endpoints de <r>"
 ```
 
@@ -417,7 +417,7 @@ git commit -m "test: endpoints de <r>"
 - Modify: `CLAUDE.md` (substituir "Não há suíte de testes configurada" por seção de testes), `README.md` (seção Testes), `documentacao/testes/README.md` (lista final dos unitários mantidos e por quê)
 
 - [ ] **Step 1:** Remover `lote.e2e.js` e script; revisar `test/unidade/` restante — cada arquivo mantido precisa de justificativa no README de testes (lógica pura sem rota equivalente).
-- [ ] **Step 2:** Atualizar `CLAUDE.md` e `README.md`: `docker compose -f docker-compose.dev.yml up -d postgresql`, `npm run test:endpoints`, `DATABASE_URL_TESTE`, regra "ao alterar endpoint, atualizar `documentacao/testes/<r>.md` e a suíte".
+- [ ] **Step 2:** Atualizar `CLAUDE.md` e `README.md`: `docker compose -f docker-compose.dev.yml up -d postgresql`, `npm run test:endpoints`, `DATABASE_URL_TESTE`, regra "ao alterar endpoint, atualizar `documentacao/testes/<r>/<r>.md` e a suíte".
 - [ ] **Step 3:** Verificação completa.
 
 Run: `npm test` · Expected: todos os projetos PASS.

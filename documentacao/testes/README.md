@@ -65,20 +65,20 @@ não para corrigir o código.
 
 | Rota | Arquivo | Sigla |
 | :--- | :--- | :--- |
-| `/propriedades` | [propriedades.md](./propriedades.md) | PROP |
-| `/pastagens` | [pastagens.md](./pastagens.md) | PAST |
-| `/pastagens/manejos` | [pastagens-manejos.md](./pastagens-manejos.md) | MPAS |
-| `/rebanhos` | [rebanhos.md](./rebanhos.md) | REB |
-| `/rebanhos/manejos` | [rebanhos-manejos.md](./rebanhos-manejos.md) | MREB |
-| `/rebanhos/movimentacoes` | [rebanhos-movimentacoes.md](./rebanhos-movimentacoes.md) | MOV |
-| `/rebanhos/regimes-consumo` | [rebanhos-regimes-consumo.md](./rebanhos-regimes-consumo.md) | REG |
-| `/insumos` | [insumos.md](./insumos.md) | INS |
-| `/insumos/movimentacoes` | [insumos-movimentacoes.md](./insumos-movimentacoes.md) | MINS |
-| `/catalogos/:entidade` | [catalogos.md](./catalogos.md) | CAT |
-| `/usuarios` | [usuarios.md](./usuarios.md) | USR |
-| `/uploads` | [uploads.md](./uploads.md) | UPL |
-| `/sync` | [sync.md](./sync.md) | SYNC |
-| Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [transversal.md](./transversal.md) | APP |
+| `/propriedades` | [propriedades.md](./propriedades/propriedades.md) | PROP |
+| `/pastagens` | [pastagens.md](./pastagens/pastagens.md) | PAST |
+| `/pastagens/manejos` | [pastagens-manejos.md](./pastagens-manejos/pastagens-manejos.md) | MPAS |
+| `/rebanhos` | [rebanhos.md](./rebanhos/rebanhos.md) | REB |
+| `/rebanhos/manejos` | [rebanhos-manejos.md](./rebanhos-manejos/rebanhos-manejos.md) | MREB |
+| `/rebanhos/movimentacoes` | [rebanhos-movimentacoes.md](./rebanhos-movimentacoes/rebanhos-movimentacoes.md) | MOV |
+| `/rebanhos/regimes-consumo` | [rebanhos-regimes-consumo.md](./rebanhos-regimes-consumo/rebanhos-regimes-consumo.md) | REG |
+| `/insumos` | [insumos.md](./insumos/insumos.md) | INS |
+| `/insumos/movimentacoes` | [insumos-movimentacoes.md](./insumos-movimentacoes/insumos-movimentacoes.md) | MINS |
+| `/catalogos/:entidade` | [catalogos.md](./catalogos/catalogos.md) | CAT |
+| `/usuarios` | [usuarios.md](./usuarios/usuarios.md) | USR |
+| `/uploads` | [uploads.md](./uploads/uploads.md) | UPL |
+| `/sync` | [sync.md](./sync/sync.md) | SYNC |
+| Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [transversal.md](./transversal/transversal.md) | APP |
 
 ## Sigla por rota
 

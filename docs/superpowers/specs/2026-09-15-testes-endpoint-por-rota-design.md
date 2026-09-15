@@ -13,7 +13,7 @@ os cenários de cada rota, com documentação dos testes existentes em `document
 | :--- | :--- |
 | Alvo | `supertest` sobre `src/app.js`, contra **Postgres real** (`pasto_livre_teste`) |
 | Auth | BetterAuth real: `POST /api/auth/sign-up/email` → token bearer. Admin promovido via Prisma (`admin` tem `input: false`) |
-| Documentação | **Um `.md` por rota** (recurso), **uma tabela por método HTTP** |
+| Documentação | **Um `.md` por rota**, dentro da pasta da rota (`documentacao/testes/<rota>/<rota>.md`), **uma tabela por método HTTP** |
 | Código | Pasta por recurso, **um `.test.js` por endpoint** |
 | Rate limit | `authRateLimit` e `strictRateLimit` pulados quando `NODE_ENV === 'test'` |
 | Garage | Env vars fictícias no `preparo.js`; `getGarageClient` mockado nos testes de upload |
@@ -24,19 +24,21 @@ os cenários de cada rota, com documentação dos testes existentes em `document
 ```
 documentacao/testes/
   README.md                    # como rodar, convenções, índice
-  propriedades.md              # uma tabela por método: POST, GET, GET /:id, PATCH /:id, DELETE /:id
-  pastagens.md
-  pastagens-manejos.md
-  rebanhos.md
-  rebanhos-manejos.md
-  rebanhos-movimentacoes.md
-  rebanhos-regimes-consumo.md
-  insumos.md
-  insumos-movimentacoes.md
-  catalogos.md
-  usuarios.md
-  uploads.md
-  sync.md
+  propriedades/
+    propriedades.md            # uma tabela por método: POST, GET, GET /:id, PATCH /:id, DELETE /:id
+  pastagens/pastagens.md
+  pastagens-manejos/pastagens-manejos.md
+  rebanhos/rebanhos.md
+  rebanhos-manejos/rebanhos-manejos.md
+  rebanhos-movimentacoes/rebanhos-movimentacoes.md
+  rebanhos-regimes-consumo/rebanhos-regimes-consumo.md
+  insumos/insumos.md
+  insumos-movimentacoes/insumos-movimentacoes.md
+  catalogos/catalogos.md
+  usuarios/usuarios.md
+  uploads/uploads.md
+  sync/sync.md
+  transversal/transversal.md
 test/
   apoio/                       # app, banco (limpeza), auth, fábricas
   endpoints/
