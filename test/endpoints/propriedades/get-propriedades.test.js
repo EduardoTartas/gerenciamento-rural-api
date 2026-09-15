@@ -65,13 +65,11 @@ describe('GET /v1/propriedades', () => {
         expect(r.body.data.totalPages).toBe(2);
     });
 
-    // Divergência: PropriedadeQuerySchema valida `limit` com `.max(100)`, então
-    // `?limit=500` nunca chega ao truncamento `Math.min(...,100)` de
-    // PropriedadeService.list — o Zod rejeita antes com 400. Ver Divergências.
-    it.fails('PROP-GET-07 limit acima de 100 é truncado para 100', async () => {
+    it('PROP-GET-07 limit acima de 100 responde 400 (Zod rejeita antes do truncamento do service)', async () => {
         const r = await get(a, '?limit=500');
-        expect(r.status).toBe(200);
-        expect(r.body.data.limit).toBe(100);
+        expect(r.status).toBe(400);
+        expect(r.body.tipo).toBe('validationError');
+        expect(r.body.errors[0].path).toBe('limit');
     });
 
     it('PROP-GET-08 ?ativo=false não filtra nada (divergência conhecida)', async () => {
@@ -107,6 +105,10 @@ describe('GET /v1/propriedades', () => {
         const r = await get(a, '?page=0');
         expect(r.status).toBe(400);
         expect(r.body.errors[0].path).toBe('page');
+
+        const r2 = await get(a, '?limit=-1');
+        expect(r2.status).toBe(400);
+        expect(r2.body.errors[0].path).toBe('limit');
     });
 
     it('PROP-GET-12 atualizadoDesde fora do formato ISO 8601', async () => {

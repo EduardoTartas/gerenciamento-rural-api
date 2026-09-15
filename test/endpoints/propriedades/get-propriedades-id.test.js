@@ -16,9 +16,7 @@ describe('GET /v1/propriedades/:id', () => {
         const r = await get(a, propriedade.id);
         expect(r.status).toBe(200);
         expect(r.body.message).toBe('Propriedade encontrada com sucesso.');
-        expect(r.body.data.usuario).toMatchObject({ id: a.id });
-        expect(r.body.data.usuario.email).toBeDefined();
-        expect(r.body.data.usuario.name).toBeDefined();
+        expect(r.body.data.usuario).toMatchObject({ id: a.id, name: 'Produtor Teste', email: a.email });
     });
 
     it('PROP-GET-ID-02 propriedade inativa (soft-deleted) do próprio dono ainda pode ser lida por id', async () => {

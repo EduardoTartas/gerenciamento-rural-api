@@ -108,7 +108,7 @@ Arquivo: `test/endpoints/propriedades/delete-propriedades-id.test.js`
   chegar ao service. O truncamento `Math.min(parseInt(limit,10) || 10, 100)` em
   `PropriedadeService.list` (`src/service/PropriedadeService.js:38`) é código morto — nunca
   recebe um valor maior que 100, pois o controller já teria lançado `ZodError`. Coberto por
-  `PROP-GET-07` (`it.fails`).
+  `PROP-GET-07`.
 - `GET /propriedades?ativo=false` não filtra propriedades inativas apesar de o schema aceitar
   o parâmetro. `PropriedadeController.list` (`src/controllers/PropriedadeController.js:32-35`)
   só atribui `req._parsedQuery` quando a query recebida não está vazia, e mesmo quando
