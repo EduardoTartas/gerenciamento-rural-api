@@ -15,6 +15,8 @@
     "test": "vitest run",
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
+    "test:unidade": "vitest run --project unidade",
+    "test:endpoints": "vitest run --project endpoints",
     "test:e2e": "node test/e2e/lote.e2e.js"
   },
   "repository": {
@@ -55,6 +57,7 @@
     "dotenv": "^17.3.1",
     "nodemon": "^3.1.14",
     "prisma": "^7.5.0",
+    "supertest": "^7.2.2",
     "vitest": "^4.1.10"
   },
   "overrides": {
