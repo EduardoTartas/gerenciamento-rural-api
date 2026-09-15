@@ -17,7 +17,7 @@ Arquivo: `test/endpoints/propriedades/post-propriedades.test.js`
 | PROP-POST-02 | cria com `localizacao` e `areaTotalHa` válidos | — | 201 | `data.localizacao` presente; `data.areaTotalHa` presente |
 | PROP-POST-03 | `localizacao` "vilhena,ro" é normalizada | — | 201 | `data.localizacao` = `"Vilhena,RO"` (ver `formatLocalizacao` em `PropriedadeSchema.js:10`) |
 | PROP-POST-04 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao UUID enviado no corpo |
-| PROP-POST-05 | corpo vazio (`{}`) | — | 400 | `errorType` = `validationError`; `field` = `body`; `message` = "Forneça os dados da propriedade." |
+| PROP-POST-05 | corpo vazio (`{}`) | — | 400 | `tipo` = `validationError`; `errors[0].path` = `body`; `message` = "Forneça os dados da propriedade." |
 | PROP-POST-06 | sem `nome` (obrigatório) | — | 400 | issue Zod com `path` = `nome` |
 | PROP-POST-07 | `nome` com 1 caractere (abaixo do mínimo de 2) | — | 400 | issue `nome`, mensagem "pelo menos 2 caracteres" |
 | PROP-POST-08 | `nome` com mais de 150 caracteres | — | 400 | issue `nome`, mensagem "no máximo 150 caracteres" |
@@ -25,9 +25,9 @@ Arquivo: `test/endpoints/propriedades/post-propriedades.test.js`
 | PROP-POST-10 | `localizacao` fora do formato "Cidade,UF" | — | 400 | issue `localizacao` com a mensagem do regex |
 | PROP-POST-11 | `areaTotalHa` negativo ou zero | — | 400 | issue `areaTotalHa`, mensagem "deve ser um número positivo" |
 | PROP-POST-12 | `id` enviado não é UUID válido | — | 400 | issue `id`, mensagem "deve ser um UUID válido" |
-| PROP-POST-13 | sem header de autenticação | — | 401 | `errorType` = `unauthorized` |
-| PROP-POST-14 | token inválido/expirado | — | 401 | `errorType` = `unauthorized`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
-| PROP-POST-15 | nome duplicado: já existe propriedade **ativa** com o mesmo nome para o mesmo usuário (case-insensitive) | usuário A já tem propriedade "Fazenda X" ativa | 409 | `errorType` = `conflict`; `field` = `nome`; `message` = "Já existe uma propriedade com este nome para este usuário." |
+| PROP-POST-13 | sem header de autenticação | — | 401 | `tipo` = `unauthorized` |
+| PROP-POST-14 | token inválido/expirado | — | 401 | `tipo` = `unauthorized`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
+| PROP-POST-15 | nome duplicado: já existe propriedade **ativa** com o mesmo nome para o mesmo usuário (case-insensitive) | usuário A já tem propriedade "Fazenda X" ativa | 409 | `tipo` = `conflict`; `errors[0].path` = `nome`; `message` = "Já existe uma propriedade com este nome para este usuário." |
 | PROP-POST-16 | mesmo nome de uma propriedade **inativa** (arquivada) do mesmo usuário | A tem "Fazenda X" com `ativo: false` | 201 | cria normalmente — `PropriedadeRepository.findByNome` só considera `ativo: true` |
 | PROP-POST-17 | mesmo nome, usuários diferentes (A e B) | — | 201 para ambos | unicidade de nome é escopada por `usuarioId`, não global |
 
@@ -49,7 +49,7 @@ Arquivo: `test/endpoints/propriedades/get-propriedades.test.js`
 | PROP-GET-10 | leitura por diferença: `atualizadoDesde` traz também as inativas | A tem propriedade excluída (soft-delete) após a marca de tempo | 200 | `data.docs` inclui a propriedade com `ativo: false` e `updatedAt` mais recente que `atualizadoDesde` |
 | PROP-GET-11 | `limit` ou `page` inválidos (ex.: `page=0`, `limit=-1`) | — | 400 | issue Zod no campo correspondente |
 | PROP-GET-12 | `atualizadoDesde` fora do formato ISO 8601 | — | 400 | issue `atualizadoDesde` |
-| PROP-GET-13 | sem token | — | 401 | `errorType` = `unauthorized` |
+| PROP-GET-13 | sem token | — | 401 | `tipo` = `unauthorized` |
 
 ## GET /propriedades/:id
 
@@ -59,11 +59,11 @@ Arquivo: `test/endpoints/propriedades/get-propriedades-id.test.js`
 | :--- | :--- | :--- | :--- | :--- |
 | PROP-GET-ID-01 | retorna propriedade existente do usuário autenticado | — | 200 | `message` = "Propriedade encontrada com sucesso."; `data` inclui `usuario.{id,name,email}` |
 | PROP-GET-ID-02 | propriedade inativa (soft-deleted) do próprio dono ainda pode ser lida por id | propriedade de A com `ativo: false` | 200 | `data.ativo` = `false` (leitura por id não filtra `ativo`) |
-| PROP-GET-ID-03 | id inexistente (UUID válido, sem registro) | — | 404 | `errorType` = `resourceNotFound`; `field` = `Propriedade` |
+| PROP-GET-ID-03 | id inexistente (UUID válido, sem registro) | — | 404 | `tipo` = `resourceNotFound`; `message` = "Recurso não encontrado em Propriedade." |
 | PROP-GET-ID-04 | multi-tenancy: B tenta ler propriedade de A | — | 404 | mesma resposta do cenário anterior — `findById` filtra por `usuarioId` |
-| PROP-GET-ID-05 | `:id` não é UUID válido | — | 400 | `errorType` = `validationError`; mensagem "ID de propriedade inválido. Deve ser um UUID válido." |
-| PROP-GET-ID-06 | sem token | — | 401 | `errorType` = `unauthorized` |
-| PROP-GET-ID-07 | token inválido | — | 401 | `errorType` = `unauthorized` |
+| PROP-GET-ID-05 | `:id` não é UUID válido | — | 400 | `tipo` = `validationError`; mensagem "ID de propriedade inválido. Deve ser um UUID válido." |
+| PROP-GET-ID-06 | sem token | — | 401 | `tipo` = `unauthorized` |
+| PROP-GET-ID-07 | token inválido | — | 401 | `tipo` = `unauthorized` |
 
 ## PATCH /propriedades/:id
 
@@ -74,17 +74,17 @@ Arquivo: `test/endpoints/propriedades/patch-propriedades-id.test.js`
 | PROP-PATCH-ID-01 | atualiza `nome` | — | 200 | `data.nome` atualizado; persistido no banco |
 | PROP-PATCH-ID-02 | atualiza `localizacao` (normalizada) | — | 200 | `data.localizacao` no formato "Cidade,UF" |
 | PROP-PATCH-ID-03 | atualiza `areaTotalHa` | — | 200 | `data.areaTotalHa` atualizado |
-| PROP-PATCH-ID-04 | corpo vazio (`{}`) | — | 400 | `field` = `body`; `message` = "Forneça pelo menos um campo para atualizar." |
+| PROP-PATCH-ID-04 | corpo vazio (`{}`) | — | 400 | `errors[0].path` = `body`; `message` = "Forneça pelo menos um campo para atualizar." |
 | PROP-PATCH-ID-05 | campo extra no corpo (`.strict()`) | — | 400 | issue `unrecognized_keys` |
-| PROP-PATCH-ID-06 | id inexistente | — | 404 | `errorType` = `resourceNotFound` |
+| PROP-PATCH-ID-06 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | PROP-PATCH-ID-07 | multi-tenancy: B tenta editar propriedade de A | — | 404 | mesma resposta do cenário anterior |
-| PROP-PATCH-ID-08 | `nome` já usado por outra propriedade ativa do mesmo usuário | A tem "Fazenda X" e "Fazenda Y" ativas | 409 | `errorType` = `conflict`; `field` = `nome` |
+| PROP-PATCH-ID-08 | `nome` já usado por outra propriedade ativa do mesmo usuário | A tem "Fazenda X" e "Fazenda Y" ativas | 409 | `tipo` = `conflict`; `errors[0].path` = `nome` |
 | PROP-PATCH-ID-09 | reenviar o próprio `nome` atual (sem mudar) | — | 200 | não gera 409 — `validateUniqueNome` exclui o próprio id (`excludeId`) |
-| PROP-PATCH-ID-10 | `ativo: false` com rebanhos ativos vinculados (via pasto) | propriedade de A tem pasto com rebanho ativo | 400 | `errorType` = `validationError`; `field` = `ativo`; `message` = "A propriedade ainda possui rebanhos vinculados a ela." |
+| PROP-PATCH-ID-10 | `ativo: false` com rebanhos ativos vinculados (via pasto) | propriedade de A tem pasto com rebanho ativo | 400 | `tipo` = `validationError`; `errors[0].path` = `ativo`; `message` = "A propriedade ainda possui rebanhos vinculados a ela." |
 | PROP-PATCH-ID-11 | `ativo: false` sem rebanhos ativos | — | 200 | `data.ativo` = `false`; persistido |
 | PROP-PATCH-ID-12 | reativa (`ativo: true`) uma propriedade inativa | — | 200 | `data.ativo` = `true` |
 | PROP-PATCH-ID-13 | `:id` não é UUID válido | — | 400 | issue de `PropriedadeIdSchema` |
-| PROP-PATCH-ID-14 | sem token | — | 401 | `errorType` = `unauthorized` |
+| PROP-PATCH-ID-14 | sem token | — | 401 | `tipo` = `unauthorized` |
 
 ## DELETE /propriedades/:id
 
@@ -93,12 +93,12 @@ Arquivo: `test/endpoints/propriedades/delete-propriedades-id.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | PROP-DELETE-ID-01 | exclui (soft-delete) propriedade sem rebanhos ativos | — | 200 | DB: `ativo` = `false`; `message` = "Propriedade excluída com sucesso." |
-| PROP-DELETE-ID-02 | recusa exclusão com rebanhos ativos na propriedade | mesma trava do PATCH (`remove` delega para `update({ativo:false})`) | 400 | `errorType` = `validationError`; `field` = `ativo` |
-| PROP-DELETE-ID-03 | id inexistente | — | 404 | `errorType` = `resourceNotFound` |
+| PROP-DELETE-ID-02 | recusa exclusão com rebanhos ativos na propriedade | mesma trava do PATCH (`remove` delega para `update({ativo:false})`) | 400 | `tipo` = `validationError`; `errors[0].path` = `ativo` |
+| PROP-DELETE-ID-03 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | PROP-DELETE-ID-04 | multi-tenancy: B tenta excluir propriedade de A | — | 404 | mesma resposta do cenário anterior |
 | PROP-DELETE-ID-05 | `:id` não é UUID válido | — | 400 | issue de `PropriedadeIdSchema` |
 | PROP-DELETE-ID-06 | excluir propriedade já inativa | propriedade de A com `ativo: false` | 200 | idempotente — continua `ativo: false`, sem erro |
-| PROP-DELETE-ID-07 | sem token | — | 401 | `errorType` = `unauthorized` |
+| PROP-DELETE-ID-07 | sem token | — | 401 | `tipo` = `unauthorized` |
 
 ## Divergências
 

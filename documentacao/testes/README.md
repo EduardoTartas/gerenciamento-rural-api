@@ -11,6 +11,10 @@ docker compose -f docker-compose.dev.yml up -d postgresql
 npm run test:endpoints
 ```
 
+Os scripts `test:endpoints` (esta suíte) e `test:unidade` (testes unitários existentes) são
+criados pela infraestrutura de testes da Task 2 — não existem no `package.json` até essa task
+ser concluída.
+
 O banco de teste é `pasto_livre_teste` — separado do banco de desenvolvimento. Por padrão a
 suíte conecta em `postgresql://localhost:5432/pasto_livre_teste` (ajustado pelo setup da
 Task 2); para apontar para outra instância, defina a variável de ambiente opcional:
@@ -18,6 +22,70 @@ Task 2); para apontar para outra instância, defina a variável de ambiente opci
 ```bash
 DATABASE_URL_TESTE=postgresql://usuario:senha@host:5432/pasto_livre_teste npm run test:endpoints
 ```
+
+## Envelope de resposta
+
+Todo endpoint responde através de `CommonResponse` (`src/utils/helpers/CommonResponse.js`).
+Os testes devem asserir só sobre estas chaves — `CustomError.errorType`/`.field` são internos
+ao backend e **nunca** são serializados na resposta HTTP.
+
+Sucesso:
+
+```json
+{ "message": "3 pastagem(ns) encontrada(s).", "data": { }, "errors": [] }
+```
+
+Erro:
+
+```json
+{
+  "message": "Erro de validação. 1 campo(s) inválido(s).",
+  "data": null,
+  "errors": [{ "path": "nome", "message": "O campo nome é obrigatório." }],
+  "tipo": "validationError",
+  "recuperavel": false
+}
+```
+
+- `tipo` e `recuperavel` vêm de `descreverErro(errorType)` (`src/utils/helpers/tiposDeErro.js`) —
+  é o valor de `tipo` que a tabela abaixo mostra, não o `errorType` interno passado a
+  `CustomError`/`CommonResponse.error` (eles coincidem para todo tipo listado na tabela; um
+  `errorType` desconhecido cai no fallback `serverError`).
+- Informação de campo só existe via `errors[0].path` (ou de outro índice, se houver mais de um
+  problema) — e só quando o erro carrega `details` com `path` (issues do Zod, ou `CustomError`
+  com `details: [{ path, message }]`). Vários erros de domínio (ex.: recurso "não encontrado"
+  via `ensure*Exists`) lançam `details: []` — nesse caso não há `errors[].path` para asserir,
+  só `tipo` e `message`.
+- A rota síncrona (`sync.md`) é a exceção: dentro de `data.resultados[].erro`, o formato é
+  `{ tipo, campo, mensagem, recuperavel }` (chaves em português, `campo` em vez de `path`) —
+  esse formato é próprio do lote, não do envelope de erro HTTP acima.
+
+### Tabela `errorType` (interno) → `tipo`/`recuperavel` (no envelope)
+
+| `errorType` interno | HTTP | `tipo` no envelope | `recuperavel` |
+| :--- | :--- | :--- | :--- |
+| `validationError` | 400 | `validationError` | `false` |
+| `unauthorized` | 401 | `unauthorized` | `true` |
+| `forbidden` | 403 | `forbidden` | `false` |
+| `notFound` | 404 | `notFound` | `false` |
+| `resourceNotFound` | 404 | `resourceNotFound` | `false` |
+| `conflict` | 409 | `conflict` | `false` |
+| `rateLimit` | 429 | `rateLimit` | `true` |
+| `serverError` | 500 | `serverError` | `true` |
+| `uniqueConstraintViolation` (Prisma P2002) | 409 | `uniqueConstraintViolation` | `false` |
+| `foreignKeyViolation` (Prisma P2003) | 409 | `foreignKeyViolation` | `false` |
+| `recordNotFound` (Prisma P2025) | 404 | `recordNotFound` | `false` |
+| `databaseError` (Prisma — conexão/inicialização) | 500 | `databaseError` | `true` |
+| `tokenExpired` | 401 | `tokenExpired` | `true` |
+| `authError` (fallback do BetterAuth) | 401 | `authError` | `true` |
+| `operationalError` (fallback do `errorHandler`) | 500 | `operationalError` | `true` |
+| `storageError` (Garage/MinIO) | 503 | `storageError` | `true` |
+| qualquer `errorType` não listado acima | — | `serverError` (fallback) | `true` |
+
+`descreverErro` trata ainda os códigos brutos do Prisma que `CustomError.fromPrisma` não
+mapeia para um nome próprio: viram `prisma:P20xx` e caem em `tipo: validationError`, exceto
+`P2024`/`P2028`/`P2034` (pool esgotado, erro de transação, conflito de escrita), que caem em
+`tipo: databaseError` — ver comentários em `src/utils/helpers/tiposDeErro.js`.
 
 Pré-condição comum a toda a suíte: usuário **A**, usuário **B** e um usuário **admin**
 autenticados via BetterAuth antes de cada bateria de testes. Salvo indicação em contrário,
@@ -47,7 +115,12 @@ endpoint:
 - **Validação de body/query/params** — inclusive `.strict()` (campo extra rejeitado) e corpo
   vazio.
 - **401** — sem token e com token inválido/expirado.
-- **403 admin** — endpoints restritos a admin (ver `usuarios.md`, `catalogos.md`).
+- **403 admin** — só existe linha de cenário 403 nas rotas efetivamente protegidas por
+  `AdminMiddleware` (`GET /usuarios` e as escritas de `/catalogos/:entidade` — ver
+  `usuarios.md`, `catalogos.md`). Nas demais rotas, um usuário `admin: true` não tem bypass de
+  multi-tenancy: ele é testado como um usuário comum não-dono, recebendo 404 ao mexer em
+  recurso de outro usuário (ver cenários "admin (não dono)" em `rebanhos.md` e afins) — não
+  gera uma categoria 403 própria.
 - **Multi-tenancy** — usuário B recebe 404 ao ler/alterar/remover recurso de A; B não vê
   recursos de A na listagem; B não consegue criar um filho apontando para um pai (propriedade,
   pasto, rebanho, insumo...) que pertence a A.

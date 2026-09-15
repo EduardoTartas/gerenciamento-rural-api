@@ -33,12 +33,12 @@ Arquivo: `test/endpoints/sync/post-sync.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-01 | lote bem formado com uma mutação | A autenticado; 1 mutação `pastos:CREATE` válida | 200 | envelope; `data.resultados` com 1 item, `situacao: aceito` |
-| SYNC-POST-02 | `mutacoes` vazio | A; `{ mutacoes: [] }` | 400 | mensagem "Envie ao menos uma mutação."; `errorType` `validationError` |
+| SYNC-POST-02 | `mutacoes` vazio | A; `{ mutacoes: [] }` | 400 | mensagem "Envie ao menos uma mutação."; `tipo` `validationError`; `errors[0].path` = `mutacoes` |
 | SYNC-POST-03 | mais de 100 mutações no lote | A; 101 mutações | 400 | mensagem cita o teto de `MAXIMO_DE_MUTACOES` (100) |
 | SYNC-POST-04 | `acao` fora de `CREATE`/`UPDATE`/`DELETE` | A; mutação com `acao: "UPSERT"` | 400 | mensagem "A ação deve ser CREATE, UPDATE ou DELETE." |
 | SYNC-POST-05 | `id` da mutação não é UUID | A; mutação com `id: "abc"` | 400 | mensagem "O id da mutação deve ser um UUID válido." |
 | SYNC-POST-06 | `entidadeId` não é UUID | A; mutação com `entidadeId: "abc"` | 400 | mensagem "O id da entidade deve ser um UUID válido." |
-| SYNC-POST-07 | campo extra na mutação (`.strict()`) | A; mutação com campo desconhecido no nível raiz | 400 | `errorType` `validationError` |
+| SYNC-POST-07 | campo extra na mutação (`.strict()`) | A; mutação com campo desconhecido no nível raiz | 400 | `tipo` `validationError` |
 | SYNC-POST-08 | corpo vazio (`{}`) | A; `{}` | 400 | Zod recusa por `mutacoes` ausente/obrigatório |
 | SYNC-POST-09 | `CREATE` sem `dados` | A; mutação `CREATE` sem o campo `dados` | 400 | mensagem "CREATE e UPDATE exigem o campo dados." |
 | SYNC-POST-10 | `UPDATE` sem `dados` | A; mutação `UPDATE` sem o campo `dados` | 400 | mesma mensagem de SYNC-POST-09 |

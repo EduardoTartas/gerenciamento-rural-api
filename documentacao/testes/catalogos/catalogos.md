@@ -31,7 +31,7 @@ Arquivo: `test/endpoints/catalogos/get-catalogos-entidade.test.js`
 | CAT-GET-05 | pagina com `page`/`limit` | ≥ 11 itens cadastrados | 200 | `data.limit`, `data.page`, `data.totalPages` coerentes; `docs.length <= limit` |
 | CAT-GET-06 | `limit` acima de 100 é rejeitado pelo schema | — | 400 | `errors` cita `limit`; `CatalogoQuerySchema.max(100)` recusa antes do service capar |
 | CAT-GET-07 | `ativo` com valor fora de `true`/`false` | `?ativo=talvez` | 400 | mensagem "O filtro 'ativo' deve ser 'true' ou 'false'" |
-| CAT-GET-08 | campo de query não reconhecido (`.strict()`) | `?foo=bar` | 400 | `errorType` `validationError`; `errors[0].path` inclui `foo` |
+| CAT-GET-08 | campo de query não reconhecido (`.strict()`) | `?foo=bar` | 400 | `tipo` `validationError`; `errors[0].path` inclui `foo` |
 | CAT-GET-09 | `:entidade` inexistente | `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound`; mensagem lista as entidades disponíveis |
 | CAT-GET-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized`; `recuperavel === true` |
 | CAT-GET-11 | leitura não exige admin | usuário comum A autenticado (não admin) | 200 | lista normalmente, sem 403 |
@@ -44,7 +44,7 @@ Arquivo: `test/endpoints/catalogos/get-catalogos-entidade-id.test.js`
 | :--- | :--- | :--- | :--- | :--- |
 | CAT-GET-ID-01 | busca item existente por ID | item ativo cadastrado | 200 | envelope; `data.id`, `data.nome`; mensagem `"<nome> encontrado(a) com sucesso."` |
 | CAT-GET-ID-02 | item inativo também é encontrado por ID | item com `ativo: false` | 200 | `data.ativo === false` — `findById` não filtra por `ativo` (só a listagem filtra) |
-| CAT-GET-ID-03 | ID em formato inválido (não UUID) | `/catalogos/racas/abc` | 400 | `CatalogoIdSchema` recusa via Zod; `errorType` `validationError` |
+| CAT-GET-ID-03 | ID em formato inválido (não UUID) | `/catalogos/racas/abc` | 400 | `CatalogoIdSchema` recusa via Zod; `tipo` `validationError` |
 | CAT-GET-ID-04 | UUID válido mas inexistente | UUID aleatório | 404 | `tipo` `resourceNotFound`; mensagem cita o label da entidade (ex.: "Raça") |
 | CAT-GET-ID-05 | `:entidade` inexistente com `:id` válido | `/catalogos/nao-existe/<uuid>` | 404 | recusado na resolução da entidade, antes de consultar o item |
 | CAT-GET-ID-06 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
@@ -57,11 +57,11 @@ Arquivo: `test/endpoints/catalogos/post-catalogos-entidade.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | CAT-POST-01 | admin cria item com `nome` válido | usuário admin | 201 | envelope; `data.id`, `data.nome`, `data.ativo === true`; mensagem "Item de catálogo criado com sucesso." |
-| CAT-POST-02 | corpo vazio | admin; `{}` | 400 | mensagem "Forneça os dados do item de catálogo."; `errorType` `validationError` |
+| CAT-POST-02 | corpo vazio | admin; `{}` | 400 | mensagem "Forneça os dados do item de catálogo."; `tipo` `validationError`; `errors[0].path` = `body` |
 | CAT-POST-03 | `nome` ausente | admin; body sem `nome` | 400 | erro de validação Zod aponta `nome` |
 | CAT-POST-04 | `nome` com menos de 2 caracteres | admin; `{ nome: "A" }` | 400 | mensagem "O nome deve ter pelo menos 2 caracteres." |
 | CAT-POST-05 | `nome` com mais de 100 caracteres | admin; nome com 101 chars | 400 | mensagem "O nome deve ter no máximo 100 caracteres." |
-| CAT-POST-06 | campo extra no corpo (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `errorType` `validationError`; cita `extra` |
+| CAT-POST-06 | campo extra no corpo (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `tipo` `validationError`; cita `extra` |
 | CAT-POST-07 | nome duplicado (case-insensitive) | admin; já existe item "Nelore" ativo; envia "nelore" | 409 | `tipo` `conflict`; mensagem "Já existe um(a) <label> com este nome." |
 | CAT-POST-08 | nome igual a item inativo é aceito | admin; item "Nelore" com `ativo: false` | 201 | `findByNome` só considera `ativo: true`; criação não colide |
 | CAT-POST-09 | `:entidade` inexistente | admin; `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound` |
@@ -78,10 +78,10 @@ Arquivo: `test/endpoints/catalogos/patch-catalogos-entidade-id.test.js`
 | CAT-PATCH-02 | admin reativa item (`ativo: true`) | admin; item com `ativo: false` | 200 | `data.ativo === true` |
 | CAT-PATCH-03 | admin arquiva via `ativo: false` | admin; item ativo | 200 | `data.ativo === false` |
 | CAT-PATCH-04 | corpo vazio | admin; `{}` | 400 | mensagem "Forneça pelo menos um campo para atualizar." |
-| CAT-PATCH-05 | campo extra (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `errorType` `validationError` |
+| CAT-PATCH-05 | campo extra (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `tipo` `validationError` |
 | CAT-PATCH-06 | `nome` duplicado ao renomear | admin; existe outro item ativo com o novo nome | 409 | `tipo` `conflict` |
 | CAT-PATCH-07 | renomear para o próprio nome atual | admin; item existente | 200 | `validateUniqueNome` exclui o próprio `id` (`excludeId`) — não recusa |
-| CAT-PATCH-08 | ID em formato inválido | admin; `/catalogos/racas/abc` | 400 | `errorType` `validationError` |
+| CAT-PATCH-08 | ID em formato inválido | admin; `/catalogos/racas/abc` | 400 | `tipo` `validationError` |
 | CAT-PATCH-09 | UUID válido mas inexistente | admin; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | CAT-PATCH-10 | `:entidade` inexistente | admin | 404 | `tipo` `resourceNotFound` |
 | CAT-PATCH-11 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
@@ -95,7 +95,7 @@ Arquivo: `test/endpoints/catalogos/delete-catalogos-entidade-id.test.js`
 | :--- | :--- | :--- | :--- | :--- |
 | CAT-DELETE-01 | admin arquiva item sem dependentes | admin; item de catálogo sem uso | 200 | resposta com `data.ativo === false`; no banco, linha continua existindo com `ativo: false` (soft-delete); mensagem "Item de catálogo removido com sucesso." |
 | CAT-DELETE-02 | trava de dependência (409) | admin; item vinculado (ex.: raça usada por um rebanho) | 409 | `tipo` `conflict`; mensagem cita quantidade de registros dependentes; no banco, item continua `ativo: true` |
-| CAT-DELETE-03 | ID em formato inválido | admin; `/catalogos/racas/abc` | 400 | `errorType` `validationError` |
+| CAT-DELETE-03 | ID em formato inválido | admin; `/catalogos/racas/abc` | 400 | `tipo` `validationError` |
 | CAT-DELETE-04 | UUID válido mas inexistente | admin; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | CAT-DELETE-05 | `:entidade` inexistente | admin | 404 | `tipo` `resourceNotFound` |
 | CAT-DELETE-06 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |

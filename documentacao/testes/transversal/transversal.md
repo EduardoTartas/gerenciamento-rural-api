@@ -32,7 +32,7 @@ Arquivo: `test/endpoints/transversal/json-invalido.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| APP-POST-01 | `POST /v1/propriedades` com `Content-Type: application/json` e corpo malformado (ex.: `{nome:}`) | usuário autenticado | 400 | `errorType`/`tipo` = `validationError`; `field` = `body`; `message` do envelope = "Formato JSON inválido."; `errors[0].message` = "JSON inválido. Verifique a sintaxe do corpo da requisição." — o erro de parsing do `express.json()` é interceptado pelo `errorHandler` antes de chegar ao controller |
+| APP-POST-01 | `POST /v1/propriedades` com `Content-Type: application/json` e corpo malformado (ex.: `{nome:}`) | usuário autenticado | 400 | `tipo` = `validationError`; `errors[0].path` = `body`; `message` do envelope = "Formato JSON inválido."; `errors[0].message` = "JSON inválido. Verifique a sintaxe do corpo da requisição." — o erro de parsing do `express.json()` é interceptado pelo `errorHandler` antes de chegar ao controller |
 
 ## Ordem de rotas — específicas antes de `/:id`
 
@@ -56,7 +56,7 @@ Arquivo: `test/endpoints/transversal/token-invalido.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| APP-GET-09 | requisição a rota protegida (`GET /v1/propriedades`) sem header `Authorization` e sem cookie de sessão | — | 401 | `errorType`/`tipo` = `unauthorized`; `recuperavel` = `true`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
+| APP-GET-09 | requisição a rota protegida (`GET /v1/propriedades`) sem header `Authorization` e sem cookie de sessão | — | 401 | `tipo` = `unauthorized`; `recuperavel` = `true`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
 | APP-GET-10 | requisição a rota protegida com `Authorization: Bearer token-invalido` | — | 401 | mesma resposta do cenário anterior — `AuthMiddleware` chama `auth.api.getSession`, que devolve sessão nula para token não reconhecido pelo BetterAuth |
 | APP-GET-11 | requisição a rota protegida com cookie de sessão expirado/revogado | sessão de A expirada ou removida | 401 | mesma resposta — qualquer rota autenticada (não só `/propriedades`) reage igual, pois a checagem é feita pelo `AuthMiddleware` comum a todas |
 
