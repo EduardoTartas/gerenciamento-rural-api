@@ -59,7 +59,7 @@ Arquivo: `test/endpoints/pastagens-manejos/get-pastagens-manejos.test.js`
 | MPAS-GET-06 | filtro `dataInicio`/`dataFim` | — | 200 | só devolve manejos com `dataAtividade` no intervalo |
 | MPAS-GET-07 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhum manejo de pasto encontrado com os filtros informados." |
 | MPAS-GET-08 | paginação `page=2` | A tem 15 manejos | 200 | `data.page` = 2 |
-| MPAS-GET-09 | `limit` acima de 100 é truncado para 100 | — | 200 | `data.limit` = 100 |
+| MPAS-GET-09 | `limit` acima de 100 é recusado | — | 400 | `tipo` = `validationError`; issue `limit` |
 | MPAS-GET-10 | `?ativo=false` filtra só os manejos excluídos | A tem manejo excluído (soft-delete) | 200 | `data.docs` só contém `ativo: false` |
 | MPAS-GET-11 | multi-tenancy: B não vê manejos de pastos de A | — | 200 | `data.docs` de B não contém manejos de pastos de A |
 | MPAS-GET-12 | leitura por diferença: `atualizadoDesde` traz vigentes e excluídos juntos | manejo de A excluído após a marca de tempo | 200 | `data.docs` inclui o manejo com `ativo: false` e `updatedAt`; filtro padrão de `ativo` não é aplicado |
@@ -113,13 +113,12 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
 
 ## Divergências
 
-- MPAS-GET-09 (`limit` acima de 100 é truncado para 100): o código não trunca. O `.md`
-  original descrevia a intenção do `Math.min(..., 100)` em `ManejoPastoService.list`
-  (`src/service/ManejoPastoService.js:54`), mas `ManejoPastoQuerySchema.limit`
+- `Math.min(parseInt(limit, 10) || 10, 100)` em `ManejoPastoService.list`
+  (`src/service/ManejoPastoService.js:54`) é código morto: `ManejoPastoQuerySchema.limit`
   (`src/utils/validators/schemas/zod/querys/ManejoPastoQuerySchema.js:31`) já tem
-  `.max(100)` — `?limit=500` nunca chega ao service, cai em 400 `validationError` antes.
-  O teste (`test/endpoints/pastagens-manejos/get-pastagens-manejos.test.js`) usa
-  `it.fails` documentando o comportamento real.
+  `.max(100)`, então `?limit=500` nunca chega ao service — cai em 400 `validationError`
+  antes. `limit` > 100 recusado com 400 é o contrato atual (decisão de projeto); ver
+  MPAS-GET-09.
 - MPAS-POST-15/16 (`pastoId` inexistente): a mensagem real de
   `ManejoPastoService.ensurePastoExists` (`src/service/ManejoPastoService.js:194-206`) é
   "Pastagem não encontrada ou não pertence ao usuário autenticado.", não o texto genérico

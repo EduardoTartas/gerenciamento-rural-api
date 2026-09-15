@@ -103,13 +103,11 @@ describe('GET /v1/pastagens/manejos', () => {
         expect(r.body.data.page).toBe(2);
     });
 
-    // Divergência: `ManejoPastoQuerySchema.limit` tem `.max(100)`, então
-    // `limit=500` é recusado com 400 antes de chegar ao service — nunca é
-    // truncado para 100. Ver `## Divergências` no .md.
-    it.fails('MPAS-GET-09 limit acima de 100 é truncado para 100', async () => {
+    it('MPAS-GET-09 limit acima de 100 é recusado', async () => {
         const r = await get(a, '?limit=500');
-        expect(r.status).toBe(200);
-        expect(r.body.data.limit).toBe(100);
+        expect(r.status).toBe(400);
+        expect(r.body.tipo).toBe('validationError');
+        expect(r.body.errors[0].path).toBe('limit');
     });
 
     it('MPAS-GET-10 ?ativo=false filtra só os manejos excluídos', async () => {
