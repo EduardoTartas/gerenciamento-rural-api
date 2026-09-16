@@ -16,8 +16,7 @@
     "test:watch": "vitest",
     "test:cov": "vitest run --coverage",
     "test:unidade": "vitest run --project unidade",
-    "test:endpoints": "vitest run --project endpoints",
-    "test:e2e": "node test/e2e/lote.e2e.js"
+    "test:endpoints": "vitest run --project endpoints"
   },
   "repository": {
     "type": "git",
