@@ -95,7 +95,7 @@ Arquivo: `test/endpoints/rebanhos-movimentacoes/delete-rebanhos-movimentacoes-id
 | :--- | :--- | :--- | :--- | :--- |
 | MOV-DELETE-ID-01 | desfaz a última movimentação do rebanho | movimentação é a mais recente ativa do rebanho | 200 | `message`: "Movimentação desfeita com sucesso."; no banco, movimentação fica `ativo:false`; `rebanho.pastoAtualId` volta ao `pastoOrigemId`; `rebanho.dataEntradaPastoAtual` = `dataMovimentacao` da desfeita |
 | MOV-DELETE-ID-02 | tenta desfazer uma movimentação que não é a última | rebanho tem 2+ movimentações, alvo não é a mais recente | 409 | `tipo: conflict`, `errors[0].path: id`, mensagem cita o id da última válida |
-| MOV-DELETE-ID-03 | pasto de origem fica sem rebanhos ativos após a reversão | rebanho volta a ser o único que ocupava a origem | 200 | `GET /pastagens/:id` da origem mostra `status: "Descanso"`, `dataUltimaSaida` atualizada |
+| MOV-DELETE-ID-03 | pasto de origem volta a ficar ocupado após a reversão | pasto de origem estava vazio (`Descanso`) antes do desfazer — o rebanho volta a ser o único ocupante | 200 | `GET /pastagens/:id` da origem mostra `status: "Ocupado"` |
 | MOV-DELETE-ID-04 | pasto de origem continua ocupado após a reversão | outro rebanho ativo já estava na origem | 200 | `status` da origem permanece/volta a `Ocupado` |
 | MOV-DELETE-ID-05 | pasto de destino (de onde o lote saiu ao desfazer) fica sem rebanhos ativos | rebanho desfeito era o único no destino | 200 | `status` do destino recalculado para `Descanso`, `dataUltimaSaida` atualizada |
 | MOV-DELETE-ID-06 | pasto de destino continua ocupado após a reversão | outro rebanho ativo permanece no destino | 200 | `status` do destino permanece `Ocupado` |
@@ -107,7 +107,17 @@ Arquivo: `test/endpoints/rebanhos-movimentacoes/delete-rebanhos-movimentacoes-id
 
 ## Divergências
 
-Nenhuma divergência de comportamento encontrada entre o código, `rotas_pastolivre.md` § 6 e
+Correção de cenário: a linha original de MOV-DELETE-ID-03 descrevia "pasto de origem fica
+sem rebanhos ativos após a reversão" com pré-condição "rebanho volta a ser o único que
+ocupava a origem" — cenário logicamente impossível. Em `desfazerComTransacao`
+(`src/repository/MovimentacaoRepository.js:150-201`), o rebanho é devolvido ao
+`pastoOrigemId` da movimentação desfeita, então esse pasto **sempre ganha** um ocupante na
+reversão (nunca fica vazio por causa dela); quem pode ficar vazio é o `pastoDestinoId` (de
+onde o lote saiu ao desfazer — já coberto por MOV-DELETE-ID-05). A linha foi corrigida para
+testar o caso real e complementar a MOV-DELETE-ID-04: o pasto de origem, que estava vazio
+(`Descanso`), volta a `Ocupado` ao receber o rebanho de volta.
+
+Nenhuma outra divergência de comportamento encontrada entre o código, `rotas_pastolivre.md` § 6 e
 `CLAUDE.md` para esta rota — `createComTransacao` e `desfazerComTransacao` implementam
 exatamente as regras documentadas (transação atômica, contagem de ocupantes dentro da
 transação, reconferência da "última movimentação" com o cliente transacional).
