@@ -30,10 +30,10 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | MINS-POST-10 | `insumoId` ausente | — | 400 | validationError; path `insumoId` |
 | MINS-POST-11 | `tipo` ausente ou fora do enum | — | 400 | validationError; path `tipo` |
 | MINS-POST-12 | `quantidade` ausente ou não numérica | — | 400 | validationError; path `quantidade` |
-| MINS-POST-13 | `quantidade` = 0 | — | 400 | mensagem "A quantidade não pode ser zero."; path `quantidade` |
-| MINS-POST-14 | `quantidade` negativa em `Entrada` | — | 400 | mensagem "Quantidade deve ser maior que zero para Entrada e Saída." |
+| MINS-POST-13 | `quantidade` = 0 | — | 400 | `errors[0].message` = "A quantidade não pode ser zero."; path `quantidade` |
+| MINS-POST-14 | `quantidade` negativa em `Entrada` | — | 400 | `errors[0].message` = "Quantidade deve ser maior que zero para Entrada e Saída." |
 | MINS-POST-15 | `quantidade` negativa em `Saida` | — | 400 | mesma mensagem de MINS-POST-14 |
-| MINS-POST-16 | `data` no futuro (mais de 5 minutos) | — | 400 | mensagem "A data não pode ser no futuro." |
+| MINS-POST-16 | `data` no futuro (mais de 5 minutos) | — | 400 | `errors[0].message` = "A data não pode ser no futuro." |
 | MINS-POST-17 | `data` até 5 minutos no futuro (tolerância do relógio do app offline) | — | 201 | cria normalmente |
 | MINS-POST-18 | `origem` fora do enum (`Compra`, `CadastroInicial`, `ConsumoRebanho`, `AjusteContagem`, `Perda`) | — | 400 | validationError; path `origem` |
 | MINS-POST-19 | `origem` = `ManejoRebanho` ou `ManejoPasto` | — | 400 | recusada — essas origens só nascem pelo fluxo de manejo (`MovimentacaoInsumoSchema.js:7`) |
@@ -93,6 +93,8 @@ Arquivo: `test/endpoints/insumos-movimentacoes/delete-insumos-movimentacoes-id.t
 | MINS-DELETE-ID-05 | multi-tenancy: B exclui `id` de movimentação de A | — | 404 | mesma mensagem de MINS-DELETE-ID-04 |
 
 ## Divergências
+
+- `MovimentacaoInsumoCreateSchema` lança `ZodError` bruto (`.parse()` no controller, não `CustomError`) para as validações de `.refine()` (quantidade zero/negativa, data futura). O `errorHandler` trata isso como qualquer outro erro de Zod: `message` do envelope fica genérica ("Erro de validação. N campo(s) inválido(s)."), e o texto específico do `.refine()` só aparece em `errors[0].message`. As linhas MINS-POST-13/14/15/16 foram ajustadas para verificar `errors[0].message` em vez de `message` — não é um bug, é o mesmo comportamento de qualquer violação de schema Zod nesta API.
 
 - Não há `AdminMiddleware` nas rotas `/insumos/movimentacoes*` — a categoria "403 admin" não se aplica a este arquivo.
 - Não há `PATCH /insumos/movimentacoes/:id` — recurso imutável por design (`src/routes/insumoRoutes.js:14-18`, confirmado por `rotas_pastolivre.md:460`). Não é uma divergência, é a regra documentada; registrado aqui só para deixar claro que a ausência é intencional e não um cenário faltante.
