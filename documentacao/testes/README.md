@@ -22,8 +22,8 @@ docker compose -f docker-compose.dev.yml up -d postgresql
 npm run test:endpoints
 ```
 
-`npm test` roda tudo; `npm run test:endpoints` roda só esta suíte e `npm run test:unidade` só os
-testes unitários restantes (lógica pura, sem rota equivalente).
+`npm test` e `npm run test:endpoints` rodam a mesma coisa: esta suíte é a única do repositório.
+Não há testes unitários — todo comportamento é verificado por HTTP, contra o banco.
 
 O banco de teste é `pasto_livre_teste` — separado do banco de desenvolvimento, criado e migrado
 pelo `globalSetup` e truncado antes de cada teste. Rodando pelo host, a suíte usa o PostgreSQL do
@@ -42,7 +42,7 @@ Duas notas práticas:
 
 - Se o Prisma Client estiver desatualizado depois de uma migration nova, rode `npx prisma generate`
   antes: o `globalSetup` só aplica `prisma migrate deploy`.
-- `npm run test:cov` roda os dois projetos, então também exige o PostgreSQL no ar.
+- `npm run test:cov` roda a mesma suíte com cobertura, então também exige o PostgreSQL no ar.
 
 ## Zod v4: onde o nome do campo aparece
 

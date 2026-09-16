@@ -111,9 +111,11 @@ repositório e banco.
 de cadastro do BetterAuth. Cobrem todos os endpoints da API. São de responsabilidade dos
 desenvolvedores.
 
-**Testes unitários**: mantidos apenas onde existe lógica pura sem equivalente observável por HTTP —
-cálculo de saldo de insumo, grafo de dependências da sincronização, catálogo de tipos de erro e
-schemas de validação.
+**Testes unitários**: o projeto não mantém nenhum. A decisão é consciente: a lógica pura do sistema
+— cálculo de saldo de insumo, grafo de dependências da sincronização, catálogo de tipos de erro e
+schemas de validação — é exercitada através dos endpoints que a consomem, de modo que cada
+verificação prova também a integração das camadas. Evita-se assim o cenário que originou esta
+suíte, em que testes isolados passavam enquanto o endpoint correspondente estava fora do ar.
 
 **Testes manuais**: realizados pontualmente pelo Swagger ou pelo Insomnia durante o
 desenvolvimento, e validação do fluxo completo com o aplicativo móvel em modo offline.
@@ -133,7 +135,7 @@ banco de teste é criado, migrado e limpo automaticamente, e é separado do banc
 
 | Ferramenta | Time | Descrição |
 | :--- | :--- | :--- |
-| Vitest | Desenvolvimento | Executor de testes, com projetos separados para endpoint e unidade |
+| Vitest | Desenvolvimento | Executor de testes, com os arquivos em série sobre o mesmo banco |
 | Supertest | Desenvolvimento | Requisições HTTP contra a aplicação Express, sem subir servidor |
 | PostgreSQL 17 (Docker Compose) | Desenvolvimento | Banco real de teste, truncado antes de cada caso |
 | Prisma Migrate | Desenvolvimento | Aplicação do schema no banco de teste |
@@ -142,9 +144,7 @@ banco de teste é criado, migrado e limpo automaticamente, e é separado do banc
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgresql
-npm test                  # tudo
-npm run test:endpoints    # só a suíte de endpoint
-npm run test:unidade      # só os testes unitários restantes
+npm test                  # suíte de endpoint (única do repositório)
 ```
 
 ## 7 - Classificação de Bugs

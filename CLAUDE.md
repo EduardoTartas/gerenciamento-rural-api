@@ -123,12 +123,14 @@ Health check em `/health` (verifica conexão real com o banco).
 
 ```bash
 docker compose -f docker-compose.dev.yml up -d postgresql   # banco (localhost:5433)
-npm test                 # tudo
-npm run test:endpoints    # suíte HTTP por rota (exige o PostgreSQL acima)
-npm run test:unidade      # testes unitários de lógica pura
+npm test                 # suíte de endpoint (exige o PostgreSQL acima)
 ```
 
-Os testes de endpoint rodam com `supertest` sobre o app, contra o banco `pasto_livre_teste`
+**Não há testes unitários neste repositório** — a verificação é toda por HTTP. Lógica pura
+(cálculo de saldo de insumo, grafo de dependências do sync, tipos de erro, schemas Zod) é
+exercitada pelos endpoints que a consomem.
+
+Os testes rodam com `supertest` sobre o app, contra o banco `pasto_livre_teste`
 (criado e migrado automaticamente, truncado antes de cada teste) e com usuários BetterAuth
 reais. `DATABASE_URL_TESTE` aponta para outra instância, se necessário.
 
