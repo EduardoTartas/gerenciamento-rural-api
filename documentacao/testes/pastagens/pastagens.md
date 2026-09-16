@@ -24,7 +24,7 @@ Arquivo: `test/endpoints/pastagens/post-pastagens.test.js`
 | PAST-POST-08 | `status` fora do enum (`Ocupado`/`Vazio`/`Descanso`) | — | 400 | issue `status` |
 | PAST-POST-09 | `extensaoHa` negativo ou zero | — | 400 | issue `extensaoHa` |
 | PAST-POST-10 | `propriedadeId` não é UUID válido | — | 400 | issue `propriedadeId` |
-| PAST-POST-11 | `propriedadeId` inexistente | — | 404 | `tipo` = `resourceNotFound`; `message` = "Recurso não encontrado em Propriedade." |
+| PAST-POST-11 | `propriedadeId` inexistente | — | 404 | `tipo` = `resourceNotFound`; `message` = "Propriedade não encontrada ou não pertence ao usuário autenticado." |
 | PAST-POST-12 | multi-tenancy: B tenta criar pasto em propriedade de A | propriedade de A | 404 | mesma resposta do cenário anterior — `PastoService.ensurePropriedadeExists` filtra por `usuarioId` |
 | PAST-POST-13 | `propriedadeId` aponta para propriedade inativa | propriedade de A com `ativo: false` | 400 | `tipo` = `validationError`; `errors[0].path` = `propriedadeId`; `message` = "Propriedade está inativa." |
 | PAST-POST-14 | nome duplicado: já existe pasto **ativo** com o mesmo nome na mesma propriedade | A tem pasto "Piquete 1" ativo nessa propriedade | 409 | `tipo` = `conflict`; `errors[0].path` = `nome` |
@@ -46,7 +46,7 @@ Arquivo: `test/endpoints/pastagens/get-pastagens.test.js`
 | PAST-GET-06 | filtro `tipoPastagem` (substring, case-insensitive) | — | 200 | filtra pelo texto |
 | PAST-GET-07 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhuma pastagem encontrada com os filtros informados." |
 | PAST-GET-08 | paginação `page=2` | A tem 15 pastos | 200 | `data.page` = 2; `data.docs.length` = 5 |
-| PAST-GET-09 | `limit` acima de 100 é truncado para 100 | — | 200 | `data.limit` = 100 mesmo pedindo `?limit=500` |
+| PAST-GET-09 | `limit` acima de 100 é recusado pela query | — | 400 | issue `limit` — `PastoQuerySchema` tem `.max(100)`, então `?limit=500` nunca chega ao truncamento de `PastoService.list` (ver `## Divergências`) |
 | PAST-GET-10 | `?ativo=false` filtra só os pastos inativos | A tem pastos ativos e inativos | 200 | `data.docs` só contém `ativo: false` — ao contrário de `/propriedades`, aqui o filtro funciona (`PastoService.list` repassa `ativo`) |
 | PAST-GET-11 | multi-tenancy: B não vê pastos de A | — | 200 | `data.docs` de B não contém pastos de A |
 | PAST-GET-12 | leitura por diferença: `atualizadoDesde` traz também os inativos | pasto de A excluído após a marca de tempo | 200 | `data.docs` inclui o pasto com `ativo: false` e `updatedAt` |
@@ -81,7 +81,7 @@ Arquivo: `test/endpoints/pastagens/patch-pastagens-id.test.js`
 | PAST-PATCH-ID-07 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | PAST-PATCH-ID-08 | multi-tenancy: B tenta editar pasto de A | — | 404 | mesma resposta do cenário anterior |
 | PAST-PATCH-ID-09 | `nome` já usado por outro pasto ativo na mesma propriedade | — | 409 | `tipo` = `conflict`; `errors[0].path` = `nome` |
-| PAST-PATCH-ID-10 | `status: "Vazio"` com rebanho ativo alocado no pasto | pasto tem rebanho ativo (`pastoAtualId`) | 400 | `tipo` = `validationError`; `errors[0].path` = `status`; `message` inclui "há rebanhos no pasto" |
+| PAST-PATCH-ID-10 | `status: "Vazio"` com rebanho ativo alocado no pasto | pasto tem rebanho ativo (`pastoAtualId`) | 400 | `tipo` = `validationError`; `errors[0].path` = `status`; `errors[0].message` inclui "há rebanhos no pasto" (top-level `message` = "Pasto está ocupado por um ou mais rebanhos.") |
 | PAST-PATCH-ID-11 | `status: "Descanso"` com rebanho ativo alocado | idem | 400 | mesma trava do cenário anterior |
 | PAST-PATCH-ID-12 | `ativo: false` com rebanho ativo no pasto | idem | 400 | `tipo` = `validationError`; `errors[0].path` = `ativo`; `message` = "Pasto ainda contém rebanhos vinculados." |
 | PAST-PATCH-ID-13 | `ativo: false` sem rebanhos | — | 200 | `data.ativo` = `false` |
@@ -104,6 +104,17 @@ Arquivo: `test/endpoints/pastagens/delete-pastagens-id.test.js`
 
 ## Divergências
 
+- `PastoService.ensurePropriedadeExists` (`src/service/PastoService.js:185-197`) lança
+  `customMessage: 'Propriedade não encontrada ou não pertence ao usuário autenticado.'`, e não
+  `messages.error.resourceNotFound('Propriedade')` (= "Recurso não encontrado em Propriedade.")
+  como `ensurePastoExists` do mesmo service usa para o próprio recurso. A linha `PAST-POST-11`
+  foi ajustada para a mensagem real.
+- `src/utils/validators/schemas/zod/querys/PastoQuerySchema.js:30` declara `limit` com
+  `.max(100)`, então `GET /pastagens?limit=500` é recusado com 400 antes de chegar ao service —
+  o truncamento em `PastoService.list` (`src/service/PastoService.js:42`,
+  `Math.min(parseInt(limit, 10) || 10, 100)`) é código morto para valores acima de 100 vindos
+  via HTTP (só seria alcançado se algo chamasse o service passando `req.query` sem o schema).
+  A linha `PAST-GET-09` foi ajustada para refletir o comportamento real (400).
 - `documentacao/rotas/rotas_pastolivre.md:110-114` descreve a transição de `status` como
   automática ("ao sair o último lote... o pasto passa a Descanso... ao receber lote, volta a
   Ocupado"), mas essa lógica vive em `MovimentacaoService`/`RebanhoService`, não em
