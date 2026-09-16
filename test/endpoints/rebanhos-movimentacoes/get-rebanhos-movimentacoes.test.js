@@ -155,9 +155,9 @@ describe('GET /v1/rebanhos/movimentacoes', () => {
 
         const r = await get(a, '?ativo=false');
         expect(r.status).toBe(200);
-        expect(r.body.data.docs.length).toBeGreaterThan(0);
-        expect(r.body.data.docs.every((m) => m.ativo === false)).toBe(true);
-        expect(r.body.data.docs.some((m) => m.id === mov1.id)).toBe(true);
+        expect(r.body.data.docs).toHaveLength(1);
+        expect(r.body.data.docs[0].id).toBe(mov1.id);
+        expect(r.body.data.docs[0].ativo).toBe(false);
     });
 
     it('MOV-GET-11 atualizadoDesde (delta) traz vigentes e desfeitas juntas', async () => {
@@ -175,8 +175,11 @@ describe('GET /v1/rebanhos/movimentacoes', () => {
         expect(r.status).toBe(200);
         const ids = r.body.data.docs.map((m) => m.id);
         expect(ids).toEqual(expect.arrayContaining([vigente.id, desfeita.id]));
+
+        const porId = Object.fromEntries(r.body.data.docs.map((m) => [m.id, m]));
+        expect(porId[vigente.id].ativo).toBe(true);
+        expect(porId[desfeita.id].ativo).toBe(false);
         for (const doc of r.body.data.docs) {
-            expect(doc.ativo).toBeDefined();
             expect(doc.updatedAt).toBeDefined();
         }
     });
@@ -219,13 +222,12 @@ describe('GET /v1/rebanhos/movimentacoes', () => {
         const pastoOrigemB = await criarPasto(propriedadeB.id);
         const pastoDestinoB = await criarPasto(propriedadeB.id);
         const rebanhoB = await criarRebanho(propriedadeB.id, pastoOrigemB.id);
-        const movB = await registrarMovimentacao(b, { rebanhoId: rebanhoB.id, pastoDestinoId: pastoDestinoB.id });
+        await registrarMovimentacao(b, { rebanhoId: rebanhoB.id, pastoDestinoId: pastoDestinoB.id });
 
         const admin = await criarUsuario({ admin: true });
         const r = await get(admin);
         expect(r.status).toBe(200);
-        const ids = r.body.data.docs.map((m) => m.id);
-        expect(ids).not.toContain(movB.id);
+        expect(r.body.data.docs).toEqual([]);
     });
 
     it('MOV-GET-17 multi-tenancy: B não vê movimentações de A', async () => {

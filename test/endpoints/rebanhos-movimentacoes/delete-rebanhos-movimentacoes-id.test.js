@@ -147,5 +147,8 @@ describe('DELETE /v1/rebanhos/movimentacoes/:id', () => {
         const r = await del(admin, mov.id);
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+
+        const movSalva = await DbConnect.prisma.historicoMovimentacao.findUnique({ where: { id: mov.id } });
+        expect(movSalva.ativo).toBe(true);
     });
 });

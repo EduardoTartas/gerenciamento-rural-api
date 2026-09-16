@@ -86,6 +86,13 @@ describe('POST /v1/rebanhos/movimentacoes', () => {
         const r = await post(admin, corpoBase());
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+
+        const rebanhoSalvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanhoA.id } });
+        expect(rebanhoSalvo.pastoAtualId).toBe(pastoOrigemA.id);
+        expect(rebanhoSalvo.dataEntradaPastoAtual).toEqual(rebanhoA.dataEntradaPastoAtual);
+
+        const historico = await DbConnect.prisma.historicoMovimentacao.findMany({ where: { rebanhoId: rebanhoA.id } });
+        expect(historico).toHaveLength(0);
     });
 
     it('MOV-POST-10 B tenta mover rebanho de A (rebanhoId de A)', async () => {
@@ -93,6 +100,13 @@ describe('POST /v1/rebanhos/movimentacoes', () => {
         const r = await post(b, corpoBase());
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+
+        const rebanhoSalvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanhoA.id } });
+        expect(rebanhoSalvo.pastoAtualId).toBe(pastoOrigemA.id);
+        expect(rebanhoSalvo.dataEntradaPastoAtual).toEqual(rebanhoA.dataEntradaPastoAtual);
+
+        const historico = await DbConnect.prisma.historicoMovimentacao.findMany({ where: { rebanhoId: rebanhoA.id } });
+        expect(historico).toHaveLength(0);
     });
 
     it('MOV-POST-11 rebanhoId inexistente', async () => {
@@ -123,6 +137,9 @@ describe('POST /v1/rebanhos/movimentacoes', () => {
         const r = await post(a, corpoBase({ pastoDestinoId: pastoB.id }));
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+
+        const pastoBSalvo = await DbConnect.prisma.pasto.findUnique({ where: { id: pastoB.id } });
+        expect(pastoBSalvo.status).toBe(pastoB.status);
     });
 
     it('MOV-POST-15 pasto de destino inativo', async () => {
