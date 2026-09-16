@@ -26,9 +26,12 @@ das rotas REST correspondentes — `propriedades.md`, `pastagens.md`, `rebanhos.
 
 ## POST /sync
 
-Arquivo: `test/endpoints/sync/post-sync.test.js`
+Suíte dividida em vários arquivos, um por sub-seção abaixo — o volume de cenários (76) não
+caberia com folga num arquivo só.
 
 ### Envelope
+
+Arquivo: `test/endpoints/sync/post-sync-envelope.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -49,6 +52,9 @@ Arquivo: `test/endpoints/sync/post-sync.test.js`
 
 ### Ordenação e dependência (grafo)
 
+Arquivo: `test/endpoints/sync/post-sync-dependencias.test.js` (cobre também a sub-seção
+"Resultados por mutação — bloqueio em cascata" abaixo, que depende do mesmo grafo)
+
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-15 | mutações independentes mantêm a ordem de envio na resposta | A; 3 mutações sem `dependeDe` | 200 | `data.resultados` na mesma ordem em que foram enviadas (não na ordem de execução) |
@@ -68,6 +74,8 @@ Arquivo: `test/endpoints/sync/post-sync.test.js`
 
 ### Idempotência
 
+Arquivo: `test/endpoints/sync/post-sync-idempotencia.test.js`
+
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-24 | reenvio do mesmo `id` de mutação já aceita devolve o resultado gravado, sem duplicar | A; enviar o mesmo lote (mesmo `id` de mutação) duas vezes seguidas | 200 (nas duas chamadas) | segunda resposta tem `situacao: aceito` idêntica à primeira; no banco, só existe **um** registro da entidade criada (sem duplicata); a mutação não é reexecutada no segundo envio (efeito colateral não se repete — ex.: contagem/soma que dobraria se reaplicada) |
@@ -75,6 +83,8 @@ Arquivo: `test/endpoints/sync/post-sync.test.js`
 | SYNC-POST-26 | registro de idempotência expira após a janela de retenção | A; mutação aplicada há mais de 30 dias (inserir diretamente via Prisma com `aplicadaEm` antigo) e reenviada com o mesmo `id` | 200 | a limpeza (`limparAntigas`, chamada a cada `POST /sync`) remove o registro antigo antes da checagem; reenvio é tratado como mutação nova, não como idempotente |
 
 ### Validação por entidade (schema do REST reaproveitado)
+
+Arquivo: `test/endpoints/sync/post-sync-validacao.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -96,6 +106,8 @@ Cada linha confirma que a combinação é roteada, validada e persistida correta
 específica de cada entidade já é coberta no `.md` da rota REST correspondente — aqui só confirma que o
 caminho do lote chega lá e grava).
 
+Arquivo: `test/endpoints/sync/post-sync-despacho.test.js`
+
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-38 | `propriedades:CREATE` | A; dados mínimos válidos, `entidadeId` gerado pelo cliente | 200 (`aceito`) | propriedade existe no banco com o `id` = `entidadeId` enviado (offline-first) e `usuarioId` = A |
@@ -109,10 +121,10 @@ caminho do lote chega lá e grava).
 | SYNC-POST-46 | `rebanhos:DELETE` | A; rebanho existente de A | 200 (`aceito`) | `ativo: false` |
 | SYNC-POST-47 | `manejo_pastos:CREATE` | A; pasto e tipo de manejo existentes | 200 (`aceito`) | manejo no banco |
 | SYNC-POST-48 | `manejo_pastos:UPDATE` | A; manejo de pasto existente | 200 (`aceito`) | campo atualizado |
-| SYNC-POST-49 | `manejo_pastos:DELETE` | A; manejo de pasto existente | 200 (`aceito`) | exclusão real (manejos não têm dependentes; sem `ativo`) |
+| SYNC-POST-49 | `manejo_pastos:DELETE` | A; manejo de pasto existente | 200 (`aceito`) | `ativo: false` no banco (soft-delete — ver `## Divergências`) |
 | SYNC-POST-50 | `manejo_rebanhos:CREATE` | A; rebanho e tipo de manejo existentes | 200 (`aceito`) | manejo no banco |
 | SYNC-POST-51 | `manejo_rebanhos:UPDATE` | A; manejo de rebanho existente | 200 (`aceito`) | campo atualizado |
-| SYNC-POST-52 | `manejo_rebanhos:DELETE` | A; manejo de rebanho existente | 200 (`aceito`) | exclusão real |
+| SYNC-POST-52 | `manejo_rebanhos:DELETE` | A; manejo de rebanho existente | 200 (`aceito`) | `ativo: false` no banco (soft-delete — ver `## Divergências`) |
 | SYNC-POST-53 | `historico_movimentacoes:CREATE` | A; rebanho e pasto destino existentes | 200 (`aceito`) | movimentação no banco; efeitos colaterais aplicados (pasto atual do rebanho, status dos pastos) |
 | SYNC-POST-54 | `historico_movimentacoes:DELETE` (desfazer última movimentação) | A; movimentação é a última do rebanho | 200 (`aceito`) | movimentação marcada `ativo: false`; efeitos revertidos |
 | SYNC-POST-55 | `insumos:CREATE` | A; propriedade existente | 200 (`aceito`) | insumo no banco |
@@ -125,6 +137,8 @@ caminho do lote chega lá e grava).
 | SYNC-POST-62 | `regimes_consumo_insumo:DELETE` | A; regime existente | 200 (`aceito`) | removido conforme regra do domínio |
 
 ### Contrato de erro tipado (`tipo`/`recuperavel` por mutação)
+
+Arquivo: `test/endpoints/sync/post-sync-erros.test.js` (cobre também a sub-seção "Transação" abaixo)
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
@@ -144,6 +158,9 @@ caminho do lote chega lá e grava).
 
 ### Multi-tenancy dentro das mutações
 
+Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a sub-seção
+"Autenticação" abaixo)
+
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-71 | `UPDATE` em recurso de outro usuário é recusado como não encontrado | B autenticado; mutação `pastos:UPDATE` com `entidadeId` de um pasto de A | 200 (`recusado`) | `erro.tipo: resourceNotFound` (o service de domínio escopa a busca por `usuarioId`, então o recurso de A "não existe" para B); pasto de A não é alterado |
@@ -160,6 +177,14 @@ caminho do lote chega lá e grava).
 
 ## Divergências
 
+- **SYNC-POST-49 e SYNC-POST-52 (corrigidas nesta task)**: a redação original dizia "exclusão real
+  (manejos não têm dependentes; sem `ativo`)" para `manejo_pastos:DELETE`/`manejo_rebanhos:DELETE`. Não
+  procede: os models `manejoPasto` e `manejoRebanho` (`prisma/schema.prisma`) têm coluna `ativo`, e
+  `ManejoPastoRepository.remove`/`ManejoRebanhoRepository.remove` fazem `update({ data: { ativo: false
+  } })`, não `delete`. É soft-delete, igual ao que `pastagens-manejos.md` (MPAS-DELETE-ID-01) e
+  `rebanhos-manejos.md` (MREB-DELETE-ID-01) já documentam como divergência própria (a linha do CLAUDE.md
+  "manejos são excluídos de verdade" está desatualizada). Linhas do `.md` corrigidas para refletir o
+  comportamento real.
 - **Limitação conhecida, documentada em `documentacao/sincronizacao.md` ("Limitação conhecida")**: a
   escrita da entidade (dentro do service de domínio) e o registro de idempotência não compartilham de
   fato a mesma conexão de transação — os services de domínio usam sua própria conexão Prisma e não
@@ -170,6 +195,23 @@ caminho do lote chega lá e grava).
   Não é um bug a corrigir nesta task — é risco aceito e documentado; os cenários SYNC-POST-68/69/70
   testam o caminho feliz da transação por item, não essa janela de corrida (que exigiria controle fino
   de timing fora do escopo de teste de endpoint via HTTP).
-- Nenhuma divergência de comportamento (código vs. documentação) foi encontrada além da acima — o
-  `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js` implementam exatamente o que
-  `documentacao/sincronizacao.md` descreve.
+- **Bug real — `SYNC-POST-46` (`rebanhos:DELETE`) nunca é aceito.** O despacho
+  (`src/service/sync/despacho.js:49`) chama `RebanhoService.remove`, que delega a `_inativar`
+  (`src/service/RebanhoService.js:184-215`), onde `comTransacao(this.prisma, executor, ...)` usa uma
+  variável `executor` que não existe no escopo do método. O `ReferenceError` é capturado por item pelo
+  lote e a mutação volta como `recusado` com `tipo: serverError`. É o mesmo bug que derruba
+  `DELETE /rebanhos/:id` no REST (ver `rebanhos.md`). Cenário marcado `it.fails` com a expectativa
+  correta (`aceito` + `ativo: false`).
+- **Bug real — `SYNC-POST-25`, idempotência escapa do escopo do usuário na gravação.** A leitura filtra
+  por `usuarioId` (`MutacaoAplicadaRepository.buscarPorIds`), mas `mutacaoAplicada.id` é chave primária
+  global (`prisma/schema.prisma:408-418`), sem `usuarioId` na chave. Como o id da mutação é gerado pelo
+  cliente, se dois usuários colidirem no mesmo id o `create` do segundo viola a PK e a mutação dele é
+  recusada — o dado de A não vaza para B, mas B é impedido de sincronizar por causa de um id alheio.
+  A chave deveria ser composta (`@@id([id, usuarioId])`). Cenário marcado `it.fails`.
+- **Bug real — `SYNC-POST-26`, a janela de retenção só vale no request seguinte.**
+  `limparAntigas` roda no fim do lote (`src/service/SyncService.js:79`), depois de `buscarPorIds`.
+  Um registro com mais de 30 dias ainda curto-circuita o reenvio no mesmo request, devolvendo o
+  resultado antigo; só a partir da próxima sincronização ele deixa de existir. Cenário marcado
+  `it.fails` com a expectativa documentada (reenvio tratado como mutação nova).
+- Fora esses três pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
+  implementam o que `documentacao/sincronizacao.md` descreve.
