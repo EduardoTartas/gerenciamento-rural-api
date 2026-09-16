@@ -117,7 +117,22 @@ npm run prisma:studio    # interface visual do banco
 A API sobe em `http://localhost:6060`. Swagger em `http://localhost:6060/docs`.
 Health check em `/health` (verifica conexão real com o banco).
 
-Não há suíte de testes configurada neste repositório.
+## Testes
+
+```bash
+docker compose -f docker-compose.dev.yml up -d postgresql   # banco (localhost:5433)
+npm test                 # tudo
+npm run test:endpoints    # suíte HTTP por rota (exige o PostgreSQL acima)
+npm run test:unidade      # testes unitários de lógica pura
+```
+
+Os testes de endpoint rodam com `supertest` sobre o app, contra o banco `pasto_livre_teste`
+(criado e migrado automaticamente, truncado antes de cada teste) e com usuários BetterAuth
+reais. `DATABASE_URL_TESTE` aponta para outra instância, se necessário.
+
+Cada rota tem seus cenários em `documentacao/testes/<rota>/<rota>.md` — uma tabela por método
+HTTP, com IDs (`PROP-POST-01`) que cada `it(...)` repete. **Ao alterar o comportamento de um
+endpoint, atualize a tabela da rota e a suíte em `test/endpoints/<rota>/` na mesma mudança.**
 
 ## Banco de dados
 

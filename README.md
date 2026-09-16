@@ -117,8 +117,15 @@ modo que o mesmo registro tenha o mesmo ID no celular e no servidor.
 | `npm run prisma:migrate` | Aplica migrações pendentes |
 | `npm run prisma:seed` | Popula catálogos e dados de teste |
 | `npm run prisma:studio` | Abre a interface visual do banco |
+| `npm test` | Roda toda a suíte de testes |
+| `npm run test:endpoints` | Testes HTTP por rota, contra PostgreSQL real |
+| `npm run test:unidade` | Testes unitários de lógica pura |
 
-> Não há suíte de testes automatizados configurada neste repositório.
+> Os testes de endpoint exigem o PostgreSQL do compose ativo
+> (`docker compose -f docker-compose.dev.yml up -d postgresql`). Eles usam o banco
+> `pasto_livre_teste`, criado e migrado automaticamente e truncado antes de cada teste — o banco
+> de desenvolvimento não é tocado. Os cenários de cada rota estão documentados em
+> `documentacao/testes/<rota>/<rota>.md`.
 
 ---
 

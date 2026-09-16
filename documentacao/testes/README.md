@@ -16,13 +16,13 @@ docker compose -f docker-compose.dev.yml up -d postgresql
 npm run test:endpoints
 ```
 
-Os scripts `test:endpoints` (esta suíte) e `test:unidade` (testes unitários existentes) são
-criados pela infraestrutura de testes da Task 2 — não existem no `package.json` até essa task
-ser concluída.
+`npm test` roda tudo; `npm run test:endpoints` roda só esta suíte e `npm run test:unidade` só os
+testes unitários restantes (lógica pura, sem rota equivalente).
 
-O banco de teste é `pasto_livre_teste` — separado do banco de desenvolvimento. Por padrão a
-suíte conecta em `postgresql://localhost:5432/pasto_livre_teste` (ajustado pelo setup da
-Task 2); para apontar para outra instância, defina a variável de ambiente opcional:
+O banco de teste é `pasto_livre_teste` — separado do banco de desenvolvimento, criado e migrado
+pelo `globalSetup` e truncado antes de cada teste. Rodando pelo host, a suíte usa o PostgreSQL do
+compose em `localhost:5433`; dentro do container da API, o host do compose. Para apontar para
+outra instância, defina a variável de ambiente opcional:
 
 ```bash
 DATABASE_URL_TESTE=postgresql://usuario:senha@host:5432/pasto_livre_teste npm run test:endpoints
