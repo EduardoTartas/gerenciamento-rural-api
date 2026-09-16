@@ -85,6 +85,8 @@ describe('PATCH /v1/rebanhos/manejos/:id', () => {
         const r = await patch(b, manejo.id, { observacoes: 'x' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.manejoRebanho.findUnique({ where: { id: manejo.id } });
+        expect(salvo.observacoes).toBe(manejo.observacoes);
     });
 
     it('MREB-PATCH-ID-11 admin (não dono) tenta atualizar manejo de A', async () => {
@@ -92,5 +94,7 @@ describe('PATCH /v1/rebanhos/manejos/:id', () => {
         const r = await patch(admin, manejo.id, { observacoes: 'x' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.manejoRebanho.findUnique({ where: { id: manejo.id } });
+        expect(salvo.observacoes).toBe(manejo.observacoes);
     });
 });

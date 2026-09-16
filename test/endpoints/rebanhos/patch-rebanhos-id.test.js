@@ -145,6 +145,8 @@ describe('PATCH /v1/rebanhos/:id', () => {
         const r = await patch(b, rebanho.id, { nomeRebanho: 'Roubado' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(salvo.nomeRebanho).toBe(rebanho.nomeRebanho);
     });
 
     it('REB-PATCH-ID-16 admin (não dono) tenta atualizar rebanho de A', async () => {
@@ -153,5 +155,7 @@ describe('PATCH /v1/rebanhos/:id', () => {
         const r = await patch(admin, rebanho.id, { nomeRebanho: 'Roubado' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(salvo.nomeRebanho).toBe(rebanho.nomeRebanho);
     });
 });

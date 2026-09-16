@@ -75,7 +75,7 @@ describe('PATCH /v1/pastagens/manejos/:id', () => {
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
         const salvo = await DbConnect.prisma.manejoPasto.findUnique({ where: { id: manejo.id } });
-        expect(salvo.observacoes).not.toBe('Roubado');
+        expect(salvo.observacoes).toBe(manejo.observacoes);
     });
 
     it('MPAS-PATCH-ID-10 tipoManejoId inexistente ou inativo', async () => {

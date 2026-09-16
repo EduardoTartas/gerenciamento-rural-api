@@ -94,7 +94,7 @@ describe('GET /v1/rebanhos/manejos', () => {
 
         const r = await get(a, '?ativo=false');
         expect(r.status).toBe(200);
-        expect(r.body.data.docs.length).toBeGreaterThan(0);
+        expect(r.body.data.docs.length).toBe(1);
         expect(r.body.data.docs.every((m) => m.ativo === false)).toBe(true);
     });
 
@@ -142,8 +142,8 @@ describe('GET /v1/rebanhos/manejos', () => {
         expect(r.body.tipo).toBe('unauthorized');
     });
 
-    it('MREB-GET-14 admin (não dono) lista', async () => {
-        await criarManejoRebanho(rebanho.id, tipoManejo.id);
+    it('MREB-GET-14 admin lista, sem bypass', async () => {
+        const manejoA = await criarManejoRebanho(rebanho.id, tipoManejo.id);
         const b = await criarUsuario();
         const propriedadeB = await criarPropriedade(b.id);
         const pastoB = await criarPasto(propriedadeB.id);
@@ -154,7 +154,9 @@ describe('GET /v1/rebanhos/manejos', () => {
         const r = await get(admin);
         expect(r.status).toBe(200);
         const ids = r.body.data.docs.map((m) => m.id);
+        expect(ids).not.toContain(manejoA.id);
         expect(ids).not.toContain(manejoB.id);
+        expect(r.body.data.docs).toEqual([]);
     });
 
     it('MREB-GET-15 multi-tenancy: B não vê manejos de A', async () => {

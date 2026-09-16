@@ -92,5 +92,7 @@ describe('DELETE /v1/rebanhos/manejos/:id', () => {
         const r = await del(admin, manejo.id);
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.manejoRebanho.findUnique({ where: { id: manejo.id } });
+        expect(salvo.ativo).toBe(true);
     });
 });
