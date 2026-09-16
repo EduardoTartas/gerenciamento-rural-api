@@ -2,6 +2,12 @@
 
 Suíte de testes de integração HTTP da API Pasto Livre: cada rota tem seu `.md` de cenários
 (esta pasta) e seus arquivos `test/endpoints/<rota>/<metodo>-<caminho>.test.js` correspondentes.
+
+> Esta pasta é a **fonte técnica**: detalha cada verificação, cita arquivo e linha do código e
+> registra as divergências encontradas. O **plano de teste do projeto**, no formato acadêmico
+> (introdução, requisitos, estratégia, ferramentas, severidade de bugs e definição de pronto), está
+> em `documentacao/plano-de-teste/`, com uma suíte por recurso em `plano-de-teste/suite-de-teste/`.
+> Os dois lados usam os mesmos IDs de cenário, então dá para navegar de um para o outro.
 Os testes rodam contra um PostgreSQL real, com usuários BetterAuth reais (A, B e um admin).
 
 Exceção à convenção de um arquivo por endpoint: `transversal.md` não descreve uma rota de
