@@ -28,6 +28,16 @@ outra instância, defina a variável de ambiente opcional:
 DATABASE_URL_TESTE=postgresql://usuario:senha@host:5432/pasto_livre_teste npm run test:endpoints
 ```
 
+A derivação automática só aceita host local (`localhost`, `127.0.0.1`, `::1` ou `postgresql`, o
+nome do serviço no compose). Apontar o `DATABASE_URL` para qualquer outro host faz a suíte abortar
+em vez de criar a base de teste lá — para esses casos, declare `DATABASE_URL_TESTE`.
+
+Duas notas práticas:
+
+- Se o Prisma Client estiver desatualizado depois de uma migration nova, rode `npx prisma generate`
+  antes: o `globalSetup` só aplica `prisma migrate deploy`.
+- `npm run test:cov` roda os dois projetos, então também exige o PostgreSQL no ar.
+
 ## Zod v4: onde o nome do campo aparece
 
 O projeto importa `zod/v4`. Dois efeitos que os testes precisam respeitar:

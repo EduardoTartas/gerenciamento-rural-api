@@ -101,8 +101,10 @@ Veja `MovimentacaoRepository.createComTransacao` como referência.
 ### Soft-delete
 
 `propriedades`, `pastos`, `rebanhos` e catálogos usam `ativo: false`. `DELETE /:recurso/:id`
-delega para o update de `ativo`, aproveitando as travas de integridade. Manejos são
-excluídos de verdade (não têm dependentes).
+delega para o update de `ativo`, aproveitando as travas de integridade. Manejos **também** usam
+soft-delete: `ManejoPastoRepository.remove` e `ManejoRebanhoRepository.remove` fazem
+`update({ data: { ativo: false } })` (ver `documentacao/testes/pastagens-manejos/` e
+`rebanhos-manejos/`).
 
 ## Comandos
 
