@@ -8,3 +8,17 @@ process.env.DATABASE_URL ??=
 process.env.BETTER_AUTH_SECRET ??= 'segredo-usado-apenas-em-teste';
 process.env.BETTER_AUTH_URL ??= 'http://localhost:6060';
 process.env.NODE_ENV ??= 'test';
+
+// Boot do app exige as vars do Garage (armazenamento de fotos) mesmo quando
+// o teste não sobe upload nenhum — ensureGarageEnv roda incondicionalmente.
+process.env.GARAGE_ENDPOINT ??= 'localhost';
+process.env.GARAGE_PORT ??= '3900';
+process.env.GARAGE_ACCESS_KEY ??= 'teste';
+process.env.GARAGE_SECRET_KEY ??= 'teste';
+process.env.GARAGE_BUCKET_FOTOS ??= 'fotos-teste';
+// `GARAGE_PUBLIC_URL` fica de fora do `ensureGarageEnv`, então o boot não
+// reclama da ausência — mas `UploadRepository` e `UserService` montam a URL
+// pública da imagem com ela, e os testes de upload e de foto de perfil conferem
+// esse prefixo. Sem o valor aqui, a suíte só passava em máquina com `.env`
+// completo e quebrava no CI.
+process.env.GARAGE_PUBLIC_URL ??= 'http://localhost:3900/fotos-teste';

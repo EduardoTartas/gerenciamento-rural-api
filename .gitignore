@@ -150,3 +150,6 @@ minio-data/
 
 # Workspace do subagent-driven-development (ledger, briefs, relatorios)
 .superpowers/
+
+# Relatório de testes gerado no CI
+junit.xml
