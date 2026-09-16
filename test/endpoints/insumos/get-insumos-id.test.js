@@ -70,9 +70,11 @@ describe('GET /v1/insumos/:id', () => {
             quantidadeDia: 2, ativo: false,
             dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
         });
+        // O regime aberto começa agora: sua própria contribuição à projeção é
+        // desprezível, então o valor projetado isola os 20 do regime encerrado.
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
             quantidadeDia: 3, ativo: true,
-            dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: null,
+            dataInicio: new Date(), dataFim: null,
         });
 
         const r = await get(a, insumo.id);
@@ -81,6 +83,7 @@ describe('GET /v1/insumos/:id', () => {
         expect(r.body.data.saldo.consumoDiaTotal).toBe(3);
         // o regime encerrado contribuiu com seus 10 dias * 2/dia = 20 para a projeção
         expect(r.body.data.saldo.consumoProjetado).toBeGreaterThanOrEqual(20);
+        expect(r.body.data.saldo.consumoProjetado).toBeLessThan(26);
     });
 
     it('INS-GET-ID-05 id não é UUID', async () => {
