@@ -8,6 +8,7 @@ import {
 import { userRepository } from '../repository/index.js';
 import { auth } from '../config/auth.js';
 import DbConnect from '../config/dbConnect.js';
+import { baseUrlPublica } from '../config/garageConnect.js';
 import UploadService from './UploadService.js';
 import logger from '../utils/logger.js';
 
@@ -154,8 +155,8 @@ class UserService {
      * e não uma URL externa arbitrária enviada pelo cliente.
      */
     ensureUrlPertenceAoBucket(url) {
-        const baseUrl = process.env.GARAGE_PUBLIC_URL?.replace(/\/$/, '');
-        if (!baseUrl || !url.startsWith(`${baseUrl}/`)) {
+        const baseUrl = baseUrlPublica();
+        if (!url.startsWith(`${baseUrl}/`)) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
