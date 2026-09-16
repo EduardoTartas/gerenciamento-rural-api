@@ -53,7 +53,7 @@ describe('PATCH /v1/pastagens/:id', () => {
         const pasto = await criarPasto(propriedade.id);
         const r = await patch(a, pasto.id, { extra: 1 });
         expect(r.status).toBe(400);
-        expect(r.body.errors.length).toBeGreaterThan(0);
+        expect(r.body.errors.some((e) => e.message.includes('Unrecognized key'))).toBe(true);
     });
 
     it('PAST-PATCH-ID-06 status fora do enum', async () => {
@@ -70,11 +70,13 @@ describe('PATCH /v1/pastagens/:id', () => {
     });
 
     it('PAST-PATCH-ID-08 multi-tenancy: B tenta editar pasto de A', async () => {
-        const pasto = await criarPasto(propriedade.id);
+        const pasto = await criarPasto(propriedade.id, { nome: 'Piquete Original' });
         const b = await criarUsuario();
         const r = await patch(b, pasto.id, { nome: 'Roubado' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.pasto.findUnique({ where: { id: pasto.id } });
+        expect(salvo.nome).toBe('Piquete Original');
     });
 
     it('PAST-PATCH-ID-09 nome já usado por outro pasto ativo na mesma propriedade', async () => {

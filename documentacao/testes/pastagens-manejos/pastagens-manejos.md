@@ -52,7 +52,7 @@ Arquivo: `test/endpoints/pastagens-manejos/get-pastagens-manejos.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | MPAS-GET-01 | usuário sem nenhum manejo cadastrado | — | 200 | `message` = "Nenhum manejo de pasto cadastrado."; `data.docs` = `[]` |
-| MPAS-GET-02 | lista manejos do usuário autenticado | A tem 2 manejos | 200 | `data.docs.length` = 2; ordenado por `dataAtividade` desc; cada item inclui `tipoManejo.{id,nome}`, `pasto.{id,nome,propriedade.{id,nome}}`, `itens` |
+| MPAS-GET-02 | lista manejos do usuário autenticado | A tem 2 manejos | 200 | `data.docs.length` = 2; ordenado por `dataAtividade` desc; cada item inclui `tipoManejo.{id,nome}`, `pasto.{id,nome,propriedade.{id,nome}}`, `itens` = `[]` |
 | MPAS-GET-03 | filtro `pastoId` | — | 200 | só devolve manejos daquele pasto |
 | MPAS-GET-04 | filtro `propriedadeId` | manejos em pastos de propriedades diferentes | 200 | só devolve manejos de pastos daquela propriedade |
 | MPAS-GET-05 | filtro `tipoManejoId` | — | 200 | só devolve manejos daquele tipo |
@@ -60,7 +60,7 @@ Arquivo: `test/endpoints/pastagens-manejos/get-pastagens-manejos.test.js`
 | MPAS-GET-07 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhum manejo de pasto encontrado com os filtros informados." |
 | MPAS-GET-08 | paginação `page=2` | A tem 15 manejos | 200 | `data.page` = 2 |
 | MPAS-GET-09 | `limit` acima de 100 é recusado | — | 400 | `tipo` = `validationError`; issue `limit` |
-| MPAS-GET-10 | `?ativo=false` filtra só os manejos excluídos | A tem manejo excluído (soft-delete) | 200 | `data.docs` só contém `ativo: false` |
+| MPAS-GET-10 | `?ativo=false` filtra só os manejos excluídos | A tem manejo excluído (soft-delete) | 200 | `data.docs` tem 1 item; só contém `ativo: false` |
 | MPAS-GET-11 | multi-tenancy: B não vê manejos de pastos de A | — | 200 | `data.docs` de B não contém manejos de pastos de A |
 | MPAS-GET-12 | leitura por diferença: `atualizadoDesde` traz vigentes e excluídos juntos | manejo de A excluído após a marca de tempo | 200 | `data.docs` inclui o manejo com `ativo: false` e `updatedAt`; filtro padrão de `ativo` não é aplicado |
 | MPAS-GET-13 | query inválida (`dataInicio` malformada) | — | 400 | issue `dataInicio` |
@@ -72,7 +72,7 @@ Arquivo: `test/endpoints/pastagens-manejos/get-pastagens-manejos-id.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| MPAS-GET-ID-01 | retorna manejo existente do usuário autenticado | — | 200 | `message` = "Manejo de pasto encontrado com sucesso."; `data.itens` presente |
+| MPAS-GET-ID-01 | retorna manejo existente do usuário autenticado | — | 200 | `message` = "Manejo de pasto encontrado com sucesso."; `data.itens` = `[]` |
 | MPAS-GET-ID-02 | manejo inativo (soft-deleted) ainda pode ser lido por id | — | 200 | `data.ativo` = `false` |
 | MPAS-GET-ID-03 | id inexistente | — | 404 | `tipo` = `resourceNotFound`; `message` = "Recurso não encontrado em Manejo de Pasto." |
 | MPAS-GET-ID-04 | multi-tenancy: B tenta ler manejo de A | — | 404 | mesma resposta do cenário anterior |
@@ -93,7 +93,7 @@ Arquivo: `test/endpoints/pastagens-manejos/patch-pastagens-manejos-id.test.js`
 | MPAS-PATCH-ID-06 | envia `itens` no corpo | — | 400 | issue `unrecognized_keys` em `itens` — `ManejoPastoUpdateSchema` não aceita alterar itens via PATCH |
 | MPAS-PATCH-ID-07 | `dataAtividade` no futuro | — | 400 | issue `dataAtividade` |
 | MPAS-PATCH-ID-08 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
-| MPAS-PATCH-ID-09 | multi-tenancy: B tenta editar manejo de A | — | 404 | mesma resposta do cenário anterior |
+| MPAS-PATCH-ID-09 | multi-tenancy: B tenta editar manejo de A | — | 404 | mesma resposta do cenário anterior; manejo de A permanece inalterado no banco |
 | MPAS-PATCH-ID-10 | `tipoManejoId` inexistente ou inativo | — | 404 | `tipo` = `resourceNotFound`; `errors[0].path` = `tipoManejoId` |
 | MPAS-PATCH-ID-11 | `:id` não é UUID válido | — | 400 | issue de `ManejoPastoIdSchema` |
 | MPAS-PATCH-ID-12 | sem token | — | 401 | `tipo` = `unauthorized` |

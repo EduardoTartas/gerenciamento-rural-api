@@ -79,7 +79,7 @@ Arquivo: `test/endpoints/pastagens/patch-pastagens-id.test.js`
 | PAST-PATCH-ID-05 | campo extra no corpo (`.strict()`) | — | 400 | issue `unrecognized_keys` |
 | PAST-PATCH-ID-06 | `status` fora do enum | — | 400 | issue `status` |
 | PAST-PATCH-ID-07 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
-| PAST-PATCH-ID-08 | multi-tenancy: B tenta editar pasto de A | — | 404 | mesma resposta do cenário anterior |
+| PAST-PATCH-ID-08 | multi-tenancy: B tenta editar pasto de A | — | 404 | mesma resposta do cenário anterior; pasto de A permanece com nome original no banco |
 | PAST-PATCH-ID-09 | `nome` já usado por outro pasto ativo na mesma propriedade | — | 409 | `tipo` = `conflict`; `errors[0].path` = `nome` |
 | PAST-PATCH-ID-10 | `status: "Vazio"` com rebanho ativo alocado no pasto | pasto tem rebanho ativo (`pastoAtualId`) | 400 | `tipo` = `validationError`; `errors[0].path` = `status`; `errors[0].message` inclui "há rebanhos no pasto" (top-level `message` = "Pasto está ocupado por um ou mais rebanhos.") |
 | PAST-PATCH-ID-11 | `status: "Descanso"` com rebanho ativo alocado | idem | 400 | mesma trava do cenário anterior |

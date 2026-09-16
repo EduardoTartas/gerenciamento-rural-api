@@ -1,5 +1,6 @@
 import { randomUUID } from 'node:crypto';
 import { beforeEach, describe, expect, it } from 'vitest';
+import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import { criarPropriedade, criarPasto, criarTipoManejoPasto } from '../../apoio/fabricas.js';
@@ -70,9 +71,11 @@ describe('PATCH /v1/pastagens/manejos/:id', () => {
 
     it('MPAS-PATCH-ID-09 multi-tenancy: B tenta editar manejo de A', async () => {
         const b = await criarUsuario();
-        const r = await patch(b, manejo.id, { observacoes: 'x' });
+        const r = await patch(b, manejo.id, { observacoes: 'Roubado' });
         expect(r.status).toBe(404);
         expect(r.body.tipo).toBe('resourceNotFound');
+        const salvo = await DbConnect.prisma.manejoPasto.findUnique({ where: { id: manejo.id } });
+        expect(salvo.observacoes).not.toBe('Roubado');
     });
 
     it('MPAS-PATCH-ID-10 tipoManejoId inexistente ou inativo', async () => {

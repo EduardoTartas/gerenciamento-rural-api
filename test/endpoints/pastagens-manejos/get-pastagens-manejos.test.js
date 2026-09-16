@@ -40,7 +40,7 @@ describe('GET /v1/pastagens/manejos', () => {
             nome: pasto.nome,
             propriedade: { id: propriedade.id, nome: propriedade.nome },
         });
-        expect(r.body.data.docs[0].itens).toBeDefined();
+        expect(r.body.data.docs[0].itens).toEqual([]);
     });
 
     it('MPAS-GET-03 filtro pastoId', async () => {
@@ -116,7 +116,7 @@ describe('GET /v1/pastagens/manejos', () => {
 
         const r = await get(a, '?ativo=false');
         expect(r.status).toBe(200);
-        expect(r.body.data.docs.length).toBeGreaterThan(0);
+        expect(r.body.data.docs).toHaveLength(1);
         expect(r.body.data.docs.every((m) => m.ativo === false)).toBe(true);
     });
 

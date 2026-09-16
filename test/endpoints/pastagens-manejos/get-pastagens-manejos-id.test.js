@@ -23,7 +23,7 @@ describe('GET /v1/pastagens/manejos/:id', () => {
         const r = await get(a, manejo.id);
         expect(r.status).toBe(200);
         expect(r.body.message).toBe('Manejo de pasto encontrado com sucesso.');
-        expect(r.body.data.itens).toBeDefined();
+        expect(r.body.data.itens).toEqual([]);
     });
 
     it('MPAS-GET-ID-02 manejo inativo (soft-deleted) ainda pode ser lido por id', async () => {
