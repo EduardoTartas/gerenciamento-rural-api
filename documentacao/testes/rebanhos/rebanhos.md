@@ -18,7 +18,7 @@ Arquivo: `test/endpoints/rebanhos/post-rebanhos.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| REB-POST-01 | cria com dados válidos | propriedade+pasto ativos de A | 201 | envelope `{message,data,errors}`; `data.id`; `data.propriedade.id` = propriedade de A |
+| REB-POST-01 | cria com dados válidos | propriedade+pasto ativos de A | 201 | envelope `{message,data,errors}`; `data.id`; `data.propriedadeId` = propriedade de A (o POST devolve o registro cru, sem relações — ver Divergências); rebanho gravado no banco |
 | REB-POST-02 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao enviado |
 | REB-POST-03 | corpo vazio | — | 400 | `tipo: validationError`, `errors[0].path: body` |
 | REB-POST-04 | campo extra no corpo (`.strict()`) | — | 400 | `tipo: validationError` |
@@ -97,9 +97,9 @@ Arquivo: `test/endpoints/rebanhos/patch-rebanhos-id.test.js`
 | REB-PATCH-ID-06 | id inexistente | — | 404 | `tipo: resourceNotFound` |
 | REB-PATCH-ID-07 | `nomeRebanho` duplicado com outro rebanho ativo da mesma propriedade | — | 409 | `tipo: conflict` |
 | REB-PATCH-ID-08 | tenta alterar `pastoAtualId` de rebanho ativo | — | 400 | `errors[0].path: pastoAtualId`, mensagem "deve ser feita através da rota de movimentação" |
-| REB-PATCH-ID-09 | envia `ativo: false` (inativação) | rebanho ativo de A | **500** | **bug atual** — `tipo: serverError`; ver Divergências. Documentado assim porque é o comportamento real do código |
+| REB-PATCH-ID-09 | envia `ativo: false` (inativação) | rebanho ativo de A com pasto vinculado | 200 | comportamento correto esperado (rotas_pastolivre.md §5.4/5.5): `data.ativo:false`, `data.pastoAtualId:null`; **hoje quebrado (bug, ver Divergências) — responde 500** |
 | REB-PATCH-ID-10 | reativa (`ativo: true`) sem informar `pastoAtualId` | rebanho inativo de A | 400 | `errors[0].path: pastoAtualId`, mensagem "Informe o pasto atual para reativar" — validado ANTES da transação, não atinge o bug |
-| REB-PATCH-ID-11 | reativa com `pastoAtualId` válido | rebanho inativo, pasto ativo da mesma propriedade | **500** | **bug atual** — `tipo: serverError`; ver Divergências |
+| REB-PATCH-ID-11 | reativa com `pastoAtualId` válido | rebanho inativo, pasto ativo da mesma propriedade | 200 | comportamento correto esperado (rotas_pastolivre.md §5.4): `data.ativo:true`, `data.pastoAtualId` igual ao enviado; **hoje quebrado (bug, ver Divergências) — responde 500** |
 | REB-PATCH-ID-12 | reativa com pasto inativo | — | 400 | `errors[0].path: pastoAtualId` — validado antes da transação |
 | REB-PATCH-ID-13 | reativa com pasto de outra propriedade | — | 400 | `errors[0].path: pastoAtualId` — validado antes da transação |
 | REB-PATCH-ID-14 | sem token | — | 401 | `tipo: unauthorized` |
@@ -112,7 +112,7 @@ Arquivo: `test/endpoints/rebanhos/delete-rebanhos-id.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| REB-DELETE-ID-01 | inativa rebanho ativo de A | rebanho ativo com pasto vinculado | **500** | **bug atual** — `serverError`; o soft-delete descrito em rotas_pastolivre.md §5.5 nunca é alcançado. Ver Divergências |
+| REB-DELETE-ID-01 | inativa rebanho ativo de A | rebanho ativo com pasto vinculado | 200 | comportamento correto esperado (rotas_pastolivre.md §5.5): soft-delete efetivo — `data.ativo:false`, `data.pastoAtualId:null`; se o pasto ficou sem outros rebanhos ativos, `status: "Descanso"`; **hoje quebrado (bug, ver Divergências) — responde 500** |
 | REB-DELETE-ID-02 | id não é UUID | — | 400 | erro de validação |
 | REB-DELETE-ID-03 | id inexistente | — | 404 | `tipo: resourceNotFound` — este check roda antes do trecho com bug |
 | REB-DELETE-ID-04 | sem token | — | 401 | `tipo: unauthorized` |
@@ -138,6 +138,12 @@ Arquivo: `test/endpoints/rebanhos/delete-rebanhos-id.test.js`
   meio do trabalho, os status REB-PATCH-ID-09/11 e REB-DELETE-ID-01 passam a refletir o
   comportamento descrito em rotas_pastolivre.md §5.4/§5.5 (200, soft-delete/reativação
   efetivos) em vez de 500.
+- **`POST /rebanhos` devolve uma forma diferente de `GET`/`PATCH`.** `RebanhoService.create`
+  (`src/service/RebanhoService.js:118-128`) grava com `tx.rebanho.create({ data })` dentro da
+  transação, sem o `select: REBANHO_SELECT` que `RebanhoRepository.create` (`:100-102`) aplica.
+  O corpo da criação traz só as colunas da tabela (`propriedadeId`, `pastoAtualId`, ...), enquanto
+  a leitura e a atualização trazem as relações aninhadas (`propriedade`, `pastoAtual`, `raca`, ...).
+  O app precisa tratar as duas formas. Cenário REB-POST-01 asserta o comportamento atual.
 - `RebanhoRepository.findByNome` (`:83-91`) só considera rebanhos ativos — nome duplicado com
   um rebanho inativo é permitido (REB-POST-18). Coerente com o comportamento de "reciclagem de
   nome" já documentado para pastos (rotas_pastolivre.md §3.1), mas não estava explícito em §5.
