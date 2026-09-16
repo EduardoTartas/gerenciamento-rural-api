@@ -30,8 +30,8 @@ Arquivo: `test/endpoints/catalogos/get-catalogos-entidade.test.js`
 | CAT-GET-04 | filtra por `ativo=false` | 1 item ativo e 1 inativo | 200 | `data.docs` só traz os inativos |
 | CAT-GET-05 | pagina com `page`/`limit` | ≥ 11 itens cadastrados | 200 | `data.limit`, `data.page`, `data.totalPages` coerentes; `docs.length <= limit` |
 | CAT-GET-06 | `limit` acima de 100 é rejeitado pelo schema | — | 400 | `errors` cita `limit`; `CatalogoQuerySchema.max(100)` recusa antes do service capar |
-| CAT-GET-07 | `ativo` com valor fora de `true`/`false` | `?ativo=talvez` | 400 | mensagem "O filtro 'ativo' deve ser 'true' ou 'false'" |
-| CAT-GET-08 | campo de query não reconhecido (`.strict()`) | `?foo=bar` | 400 | `tipo` `validationError`; `errors[0].path` inclui `foo` |
+| CAT-GET-07 | `ativo` com valor fora de `true`/`false` | `?ativo=talvez` | 400 | `tipo` `validationError`; mensagem de erro do Zod (ver Divergências: o `errorMap` da sintaxe Zod v3 não é honrado pelo Zod v4, a mensagem customizada nunca aparece) |
+| CAT-GET-08 | campo de query não reconhecido (`.strict()`) | `?foo=bar` | 400 | `tipo` `validationError`; `errors[0].message` cita `foo` (issue `unrecognized_keys` do Zod v4 vem com `path: []`, não `path: ['foo']`) |
 | CAT-GET-09 | `:entidade` inexistente | `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound`; mensagem lista as entidades disponíveis |
 | CAT-GET-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized`; `recuperavel === true` |
 | CAT-GET-11 | leitura não exige admin | usuário comum A autenticado (não admin) | 200 | lista normalmente, sem 403 |
@@ -63,7 +63,7 @@ Arquivo: `test/endpoints/catalogos/post-catalogos-entidade.test.js`
 | CAT-POST-05 | `nome` com mais de 100 caracteres | admin; nome com 101 chars | 400 | mensagem "O nome deve ter no máximo 100 caracteres." |
 | CAT-POST-06 | campo extra no corpo (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `tipo` `validationError`; cita `extra` |
 | CAT-POST-07 | nome duplicado (case-insensitive) | admin; já existe item "Nelore" ativo; envia "nelore" | 409 | `tipo` `conflict`; mensagem "Já existe um(a) <label> com este nome." |
-| CAT-POST-08 | nome igual a item inativo é aceito | admin; item "Nelore" com `ativo: false` | 201 | `findByNome` só considera `ativo: true`; criação não colide |
+| CAT-POST-08 | nome igual a item inativo é aceito | admin; item "Nelore" com `ativo: false` | 409 *(divergência: ver Divergências — índice único do banco não é parcial)* | `findByNome` só considera `ativo: true` no app, mas o `@unique` do Prisma em `nome` é incondicional; a criação colide via `P2002` antes de chegar à regra de negócio |
 | CAT-POST-09 | `:entidade` inexistente | admin; `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound` |
 | CAT-POST-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 | CAT-POST-11 | 403 usuário comum (não admin) | usuário A autenticado, não admin | 403 | `tipo` `forbidden`; mensagem "Esta ação exige perfil administrativo."; corpo nem chega a ser validado |
@@ -103,6 +103,9 @@ Arquivo: `test/endpoints/catalogos/delete-catalogos-entidade-id.test.js`
 
 ## Ausência de multi-tenancy
 
+Arquivo: `test/endpoints/catalogos/get-catalogos-entidade.test.js` (cenário de confirmação sobre o
+próprio `GET /catalogos/:entidade`, sem seção própria de método+caminho).
+
 Catálogos não têm dono (`CatalogoRepository` não filtra por `usuarioId`/`propriedadeId` em nenhum
 método). Cenário de confirmação, não de isolamento:
 
@@ -117,3 +120,22 @@ método). Cenário de confirmação, não de isolamento:
   (listagem) os esconde por padrão. Comportamento não documentado explicitamente em
   `rotas_pastolivre.md` § 8.2, mas coerente com o padrão do restante da API (detalhe por ID ignora
   soft-delete). Registrado aqui para o teste não presumir 404 num item inativo.
+- `CatalogoQuerySchema.ativo` (`src/utils/validators/schemas/zod/querys/CatalogoQuerySchema.js:17-19`)
+  usa `z.enum([...], { errorMap: () => ({...}) })` — sintaxe de customização de mensagem do Zod v3.
+  No Zod v4 (`zod/v4`, usado neste projeto) a opção chama-se `error`, não `errorMap`; o `errorMap`
+  é silenciosamente ignorado e a mensagem que chega ao cliente é o texto padrão do Zod
+  (`"Invalid option: expected one of \"true\"|\"false\""`), nunca "O filtro 'ativo' deve ser 'true' ou
+  'false'". `CAT-GET-07` documenta o comportamento real via `it.fails`.
+- Nos schemas `.strict()` (`CatalogoQuerySchema`, `CatalogoCreateSchema`, `CatalogoUpdateSchema`), a
+  issue `unrecognized_keys` do Zod v4 chega com `path: []` — o nome do campo extra (`foo`, `extra`)
+  aparece só em `errors[0].message` ("Unrecognized key: \"foo\""), nunca em `errors[0].path`. Os
+  cenários de campo extra (`CAT-GET-08`, `CAT-POST-06`, `CAT-PATCH-05`) foram ajustados para checar a
+  mensagem em vez do `path`.
+- Todos os models de catálogo (`raca`, `sistemaProducao`, `regimeAlimentar`, `tipoManejoRebanho`,
+  `tipoManejoPasto`, `tipoInsumo` — `prisma/schema.prisma:82-148`) declaram `nome String @unique`, um
+  índice único **incondicional** no banco (diferente do índice parcial `WHERE ativo = true` usado em
+  `propriedades`). `CatalogoService.validateUniqueNome`/`CatalogoRepository.findByNome` só barram nomes
+  duplicados entre itens **ativos**, então a intenção é permitir recriar um nome já usado por um item
+  arquivado — mas a criação nesse caso nunca chega a rodar essa regra: o Postgres recusa primeiro via
+  `P2002`, e o cliente recebe 409 `uniqueConstraintViolation` ("Já existe um registro com os dados
+  informados.") em vez de 201. `CAT-POST-08` documenta o comportamento real via `it.fails`.
