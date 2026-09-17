@@ -44,7 +44,9 @@ Consumo diário recorrente de um insumo por um rebanho (nunca escreve no ledger 
 | GET /v1/rebanhos/regimes-consumo | [REG-GET-10] campo extra na query (`.strict()`) | query com campo não previsto | HTTP 400; `validationError` |
 | GET /v1/rebanhos/regimes-consumo | [REG-GET-11] sem token | sem header `Authorization` | HTTP 401; `tipo` = unauthorized |
 | GET /v1/rebanhos/regimes-consumo | [REG-GET-12] multi-tenancy: B lista regimes | regimes cadastrados por A, B autenticado | HTTP 200; `data.docs` não contém nenhum regime de rebanho de A |
-| GET /v1/rebanhos/regimes-consumo | [REG-GET-13] sem `propriedadeId` disponível como filtro | A com 2 propriedades, regimes em ambas | HTTP 200; regimes de rebanhos de propriedades diferentes do mesmo usuário aparecem juntos na mesma listagem (ver Bugs conhecidos) |
+| GET /v1/rebanhos/regimes-consumo | [REG-GET-13] sem `propriedadeId`, regimes de propriedades diferentes do mesmo usuário aparecem juntos | A com 2 propriedades, regimes em ambas | HTTP 200; `data.docs` contém os regimes das duas propriedades |
+| GET /v1/rebanhos/regimes-consumo | [REG-GET-14] filtro `propriedadeId` | A com 2 propriedades, regimes em ambas; query `?propriedadeId=...` | HTTP 200; `data.docs` só traz os regimes de rebanhos da propriedade filtrada |
+| GET /v1/rebanhos/regimes-consumo | [REG-GET-15] `propriedadeId` de outro usuário | propriedade de B; query `?propriedadeId=<propriedade de B>` | HTTP 200; `data.docs` vazio |
 
 ## GET /v1/rebanhos/regimes-consumo/:id
 
@@ -85,6 +87,5 @@ Consumo diário recorrente de um insumo por um rebanho (nunca escreve no ledger 
 
 ## Bugs conhecidos
 
-- **`GET /v1/rebanhos/regimes-consumo` sem filtro por `propriedadeId`** (`RegimeConsumoInsumoQuerySchema.js:6-16` e `src/repository/RegimeConsumoInsumoRepository.js:25-41`): diferente de `GET /insumos` e `GET /insumos/movimentacoes`, que aceitam `propriedadeId` como filtro direto, este endpoint só permite restringir por `rebanhoId` ou `insumoId` — um usuário com várias propriedades precisa conhecer o rebanho de antemão para segmentar por propriedade. `rotas_pastolivre.md:491-492` já documenta apenas `rebanhoId, insumoId, emAberto, ativo, atualizadoDesde, page, limit` como filtros — spec e código concordam entre si, mas ambos divergem do padrão dos outros dois endpoints da mesma feature. Rastreado na issue GitLab #40 ("GET /rebanhos/regimes-consumo sem filtro por propriedade"); nenhuma alteração de código foi feita — REG-GET-13 documenta o comportamento atual (sem o filtro).
 - Não há `AdminMiddleware` nas rotas `/rebanhos/regimes-consumo*` — a categoria "403 admin" não se aplica a esta rota.
 - Código morto: `RegimeConsumoInsumoService.list` (`src/service/RegimeConsumoInsumoService.js:29`) trunca `limit` com `Math.min(parseInt(limit, 10) || 10, 100)`, mas o `.max(100)` do `RegimeConsumoInsumoQuerySchema` já recusa `limit > 100` com 400 antes do service — a truncagem nunca roda. Mesmo padrão nas demais rotas.

@@ -489,7 +489,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Caso de Uso:** Ver o consumo diário recorrente de insumos por rebanho.
 **Regras de Negócio:**
 - Apenas regimes de rebanhos de propriedades do usuário logado. Lista paginada ordenada por `dataInicio` decrescente.
-- Filtros: `rebanhoId`, `insumoId`, `emAberto` (`true` = só os com `dataFim` nula), `ativo`, `atualizadoDesde`, `page`, `limit`.
+- Filtros: `rebanhoId`, `insumoId`, `propriedadeId`, `emAberto` (`true` = só os com `dataFim` nula), `ativo`, `atualizadoDesde`, `page`, `limit`. `propriedadeId` de outro usuário devolve lista vazia, nunca dado de outro tenant.
 
 ### 13.12 GET /rebanhos/regimes-consumo/:id
 **Caso de Uso:** Detalhar um regime de consumo.

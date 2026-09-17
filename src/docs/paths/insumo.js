@@ -279,7 +279,7 @@ const insumoRoutes = {
             + Regras de Negócio:
                 - Apenas regimes de rebanhos de propriedades do usuário logado.
                 - Lista paginada ordenada por \`dataInicio\` decrescente.
-                + Filtros: **rebanhoId**, **insumoId**, **emAberto** (\`true\` = só os com \`dataFim\` nula), **ativo**, **atualizadoDesde**.
+                + Filtros: **rebanhoId**, **insumoId**, **propriedadeId**, **emAberto** (\`true\` = só os com \`dataFim\` nula), **ativo**, **atualizadoDesde**.
 
             + Resultado Esperado:
                 - HTTP 200 com lista paginada de **RegimeConsumoInsumo**.
@@ -288,6 +288,7 @@ const insumoRoutes = {
             parameters: [
                 { name: "rebanhoId", in: "query", schema: { type: "string", format: "uuid" }, required: false, description: "Filtrar por rebanho" },
                 { name: "insumoId", in: "query", schema: { type: "string", format: "uuid" }, required: false, description: "Filtrar por insumo" },
+                { name: "propriedadeId", in: "query", schema: { type: "string", format: "uuid" }, required: false, description: "Filtrar por propriedade" },
                 { name: "emAberto", in: "query", schema: { type: "boolean" }, required: false, description: "`true` devolve só os regimes em aberto (sem `dataFim`)" },
                 { name: "ativo", in: "query", schema: { type: "boolean" }, required: false, description: "Filtrar por regimes vigentes (true) ou encerrados (false)" },
                 atualizadoDesdeParam,
