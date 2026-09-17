@@ -78,12 +78,7 @@ describe('POST /v1/sync — idempotência', () => {
         expect(registros.map((r) => r.usuarioId).sort()).toEqual([a.id, b.id].sort());
     });
 
-    // Bug: `limparAntigas` roda no FIM do lote (src/service/SyncService.js:79), depois
-    // de `buscarPorIds`. No mesmo request, o registro vencido ainda curto-circuita o
-    // reenvio e devolve o resultado antigo; a limpeza só surte efeito no request
-    // seguinte. Comportamento correto esperado é o reenvio ser tratado como mutação
-    // nova (ver ## Divergências).
-    it.fails('SYNC-POST-26 registro de idempotência expira após a janela de retenção', async () => {
+    it('SYNC-POST-26 registro de idempotência expira após a janela de retenção', async () => {
         const mutacaoId = randomUUID();
         const idPasto = randomUUID();
 
