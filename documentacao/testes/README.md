@@ -52,10 +52,6 @@ O projeto importa `zod/v4`. Dois efeitos que os testes precisam respeitar:
   `path: []`, então o envelope entrega `errors[0].path` como string vazia — o nome do campo extra
   só aparece em `errors[0].message`. Em objeto aninhado, o `path` traz o caminho do container
   (ex.: `itens.0`), não o campo recusado.
-- **`errorMap` não funciona**: é sintaxe do Zod v3. Onde um schema ainda usa `errorMap` (ex.:
-  `CatalogoQuerySchema`), a mensagem customizada é silenciosamente ignorada e vale a mensagem
-  padrão do Zod. Em Zod v4 a opção chama-se `error`.
-
 ## Envelope de resposta
 
 Todo endpoint responde através de `CommonResponse` (`src/utils/helpers/CommonResponse.js`).

@@ -19,7 +19,7 @@ export const PastoQuerySchema = z.object({
     status: z.enum(['Ocupado', 'Vazio', 'Descanso']).optional(),
     tipoPastagem: z.string().optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()

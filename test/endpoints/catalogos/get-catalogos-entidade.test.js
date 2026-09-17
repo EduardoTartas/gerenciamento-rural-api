@@ -71,10 +71,7 @@ describe('GET /v1/catalogos/:entidade', () => {
         expect(r.body.errors.some((e) => e.path === 'limit')).toBe(true);
     });
 
-    // CAT-GET-07: CatalogoQuerySchema usa `errorMap` (sintaxe Zod v3) para customizar a
-    // mensagem de `ativo` inválido, mas no Zod v4 essa opção chama-se `error` — `errorMap`
-    // é ignorado e a mensagem padrão do Zod é devolvida em vez da customizada. Ver Divergências.
-    it.fails('CAT-GET-07 ativo com valor fora de true/false', async () => {
+    it('CAT-GET-07 ativo com valor fora de true/false', async () => {
         const r = await get(a, 'racas', '?ativo=talvez');
         expect(r.status).toBe(400);
         expect(r.body.errors.some((e) => e.message === "O filtro 'ativo' deve ser 'true' ou 'false'")).toBe(true);

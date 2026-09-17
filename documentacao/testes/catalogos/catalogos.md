@@ -30,7 +30,7 @@ Arquivo: `test/endpoints/catalogos/get-catalogos-entidade.test.js`
 | CAT-GET-04 | filtra por `ativo=false` | 1 item ativo e 1 inativo | 200 | `data.docs` só traz os inativos |
 | CAT-GET-05 | pagina com `page`/`limit` | ≥ 11 itens cadastrados | 200 | `data.limit`, `data.page`, `data.totalPages` coerentes; `docs.length <= limit` |
 | CAT-GET-06 | `limit` acima de 100 é rejeitado pelo schema | — | 400 | `errors` cita `limit`; `CatalogoQuerySchema.max(100)` recusa antes do service capar |
-| CAT-GET-07 | `ativo` com valor fora de `true`/`false` | `?ativo=talvez` | 400 | `tipo` `validationError`; mensagem de erro do Zod (ver Divergências: o `errorMap` da sintaxe Zod v3 não é honrado pelo Zod v4, a mensagem customizada nunca aparece) |
+| CAT-GET-07 | `ativo` com valor fora de `true`/`false` | `?ativo=talvez` | 400 | `tipo` `validationError`; mensagem "O filtro 'ativo' deve ser 'true' ou 'false'" |
 | CAT-GET-08 | campo de query não reconhecido (`.strict()`) | `?foo=bar` | 400 | `tipo` `validationError`; `errors[0].message` cita `foo` (issue `unrecognized_keys` do Zod v4 vem com `path: []`, não `path: ['foo']`) |
 | CAT-GET-09 | `:entidade` inexistente | `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound`; mensagem lista as entidades disponíveis |
 | CAT-GET-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized`; `recuperavel === true` |
@@ -120,12 +120,6 @@ método). Cenário de confirmação, não de isolamento:
   (listagem) os esconde por padrão. Comportamento não documentado explicitamente em
   `rotas_pastolivre.md` § 8.2, mas coerente com o padrão do restante da API (detalhe por ID ignora
   soft-delete). Registrado aqui para o teste não presumir 404 num item inativo.
-- `CatalogoQuerySchema.ativo` (`src/utils/validators/schemas/zod/querys/CatalogoQuerySchema.js:17-19`)
-  usa `z.enum([...], { errorMap: () => ({...}) })` — sintaxe de customização de mensagem do Zod v3.
-  No Zod v4 (`zod/v4`, usado neste projeto) a opção chama-se `error`, não `errorMap`; o `errorMap`
-  é silenciosamente ignorado e a mensagem que chega ao cliente é o texto padrão do Zod
-  (`"Invalid option: expected one of \"true\"|\"false\""`), nunca "O filtro 'ativo' deve ser 'true' ou
-  'false'". `CAT-GET-07` documenta o comportamento real via `it.fails`.
 - Nos schemas `.strict()` (`CatalogoQuerySchema`, `CatalogoCreateSchema`, `CatalogoUpdateSchema`), a
   issue `unrecognized_keys` do Zod v4 chega com `path: []` — o nome do campo extra (`foo`, `extra`)
   aparece só em `errors[0].message` ("Unrecognized key: \"foo\""), nunca em `errors[0].path`. Os
