@@ -6,13 +6,7 @@ import { criarUsuario } from '../../apoio/auth.js';
 describe('GET /v1/usuarios/:id', () => {
     const get = (usuario, id) => api().get(`/v1/usuarios/${id}`).set('Authorization', usuario.bearer);
 
-    // Divergência: `UserIdSchema` (UserQuerySchema.js) valida `:id` como UUID e
-    // `UserController.list` chama `UserIdSchema.parse(id)` antes de qualquer outra
-    // checagem. IDs de usuário reais são gerados pelo BetterAuth
-    // (`generateId`, @better-auth/core/utils/id.mjs) como string alfanumérica de
-    // 32 caracteres, nunca UUID — então todo ID real cai em 400 validationError
-    // aqui, mesmo sendo o próprio usuário ou um admin com bypass. Ver ## Divergências.
-    it.fails('USR-GET-ID-01 usuário consulta o próprio ID', async () => {
+    it('USR-GET-ID-01 usuário consulta o próprio ID', async () => {
         const a = await criarUsuario();
         const r = await get(a, a.id);
         expect(r.status).toBe(200);
@@ -20,7 +14,7 @@ describe('GET /v1/usuarios/:id', () => {
         expect(r.body.message).toBe('Usuário encontrado com sucesso.');
     });
 
-    it.fails('USR-GET-ID-02 admin consulta ID de outro usuário', async () => {
+    it('USR-GET-ID-02 admin consulta ID de outro usuário', async () => {
         const admin = await criarUsuario({ admin: true });
         const a = await criarUsuario();
         const r = await get(admin, a.id);
@@ -28,7 +22,7 @@ describe('GET /v1/usuarios/:id', () => {
         expect(r.body.data.id).toBe(a.id);
     });
 
-    it.fails('USR-GET-ID-03 usuário comum tenta consultar outro usuário', async () => {
+    it('USR-GET-ID-03 usuário comum tenta consultar outro usuário', async () => {
         const a = await criarUsuario();
         const b = await criarUsuario();
         const r = await get(a, b.id);

@@ -14,6 +14,10 @@ admin pelo fluxo normal de sign-up).
 pode consultar qualquer usuário; em `PATCH`, `DELETE` e `PATCH .../foto` **não há bypass de admin**,
 só o próprio dono pode agir (ver seção "## Divergências" para o porquê isso importa ao testar).
 
+`:id` aceita tanto o formato de id gerado pelo BetterAuth (string alfanumérica de 32 caracteres,
+sem hífens) quanto UUID (usado no `id` opcional do fluxo offline-first e nos testes com
+`randomUUID()`) — ver `UserIdSchema`.
+
 ## GET /usuarios
 
 Arquivo: `test/endpoints/usuarios/get-usuarios.test.js`
@@ -38,8 +42,8 @@ Arquivo: `test/endpoints/usuarios/get-usuarios-id.test.js`
 | USR-GET-ID-01 | usuário consulta o próprio ID | A autenticado, `id` = A | 200 | envelope; `data.id === A.id`; mensagem "Usuário encontrado com sucesso." |
 | USR-GET-ID-02 | admin consulta ID de outro usuário | admin autenticado, `id` = A | 200 | `data.id === A.id` — admin tem bypass de `ensureSelfAction` |
 | USR-GET-ID-03 | usuário comum tenta consultar outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para consultar os dados de outro usuário." |
-| USR-GET-ID-04 | ID em formato inválido (não UUID) | A; `/usuarios/abc` | 400 | `tipo` `validationError` (Zod, via `UserIdSchema`) |
-| USR-GET-ID-05 | UUID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` — checagem de existência roda **antes** da checagem de posse (mesmo B pedindo o próprio ID inexistente cairia aqui) |
+| USR-GET-ID-04 | ID em formato inválido (curto demais) | A; `/usuarios/abc` | 400 | `tipo` `validationError` (Zod, via `UserIdSchema`) |
+| USR-GET-ID-05 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` — checagem de existência roda **antes** da checagem de posse (mesmo B pedindo o próprio ID inexistente cairia aqui) |
 | USR-GET-ID-06 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
 ## PATCH /usuarios/:id
@@ -60,7 +64,7 @@ Arquivo: `test/endpoints/usuarios/patch-usuarios-id.test.js`
 | USR-PATCH-10 | usuário comum tenta atualizar outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para atualizar o perfil de outro usuário." |
 | USR-PATCH-11 | admin tenta atualizar outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` — `UserService.update` não isenta admin de `ensureSelfAction` |
 | USR-PATCH-12 | ID em formato inválido | A; `/usuarios/abc` | 400 | `tipo` `validationError` |
-| USR-PATCH-13 | UUID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
+| USR-PATCH-13 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-PATCH-14 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
 ## PATCH /usuarios/:id/foto
@@ -85,7 +89,7 @@ dependem do upload real, uma URL sintética `${GARAGE_PUBLIC_URL}/<uuid>.jpeg`.
 | USR-PATCH-FOTO-10 | usuário comum tenta registrar foto de outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para atualizar a foto de outro usuário."; nenhuma chamada ao storage |
 | USR-PATCH-FOTO-11 | admin tenta registrar foto de outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` |
 | USR-PATCH-FOTO-12 | ID em formato inválido | A; `/usuarios/abc/foto` | 400 | `tipo` `validationError` |
-| USR-PATCH-FOTO-13 | UUID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
+| USR-PATCH-FOTO-13 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-PATCH-FOTO-14 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
 ## DELETE /usuarios/:id
@@ -100,7 +104,7 @@ Arquivo: `test/endpoints/usuarios/delete-usuarios-id.test.js`
 | USR-DELETE-04 | usuário comum tenta excluir outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para excluir a conta de outro usuário."; no banco, B continua existindo |
 | USR-DELETE-05 | admin tenta excluir outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` — não há exclusão administrativa de conta alheia neste endpoint |
 | USR-DELETE-06 | ID em formato inválido | A; `/usuarios/abc` | 400 | `tipo` `validationError` |
-| USR-DELETE-07 | UUID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
+| USR-DELETE-07 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-DELETE-08 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
 ## Divergências
@@ -113,25 +117,3 @@ Arquivo: `test/endpoints/usuarios/delete-usuarios-id.test.js`
   para admin, então o comportamento do código está alinhado à documentação — a divergência é apenas
   em relação à expectativa intuitiva de "admin pode tudo", por isso os cenários USR-PATCH-11,
   USR-PATCH-FOTO-11 e USR-DELETE-05 existem para travar esse comportamento explicitamente.
-
-- **Bug real (severo):** `UserIdSchema` (`src/utils/validators/schemas/zod/querys/UserQuerySchema.js:8-10`)
-  valida `:id` com `.uuid()`, e `UserController.list/update/registrarFoto/remove`
-  (`src/controllers/UserController.js`) chamam `UserIdSchema.parse(id)` como a **primeira** coisa,
-  antes de qualquer outra checagem (corpo, self-action, existência). Só que o `id` de um usuário real
-  não é um UUID: é gerado pelo BetterAuth (`generateId`, `@better-auth/core/utils/id.mjs` —
-  `createRandomStringGenerator('a-z','A-Z','0-9')(32)`), uma string alfanumérica de 32 caracteres sem
-  hífens, formato que o schema `z.string().uuid()` sempre rejeita. Na prática, **toda** requisição
-  para `GET/PATCH/DELETE /usuarios/:id` e `PATCH /usuarios/:id/foto` usando o ID de um usuário de
-  verdade — seja o próprio usuário, um admin ou qualquer outro — cai em 400 `validationError`
-  ("Formato de ID de usuário inválido. Deve ser um UUID válido.") antes de alcançar qualquer lógica de
-  negócio (atualização, exclusão, upload de foto, checagem de posse ou de admin). Isso é inconsistente
-  com o resto da API, que aceita `id` como UUID opcional gerado pelo cliente no fluxo offline-first
-  (`CLAUDE.md` § Suporte offline-first) — o `id` do BetterAuth nunca segue esse formato. Confirmado
-  observando `criarUsuario().id` retornado pelo fluxo real de sign-up (`test/apoio/auth.js`).
-  Cenários que dependem de um ID real de usuário chegando à lógica do controller/service —
-  USR-GET-ID-01/02/03, USR-PATCH-01 a 05 e 07 a 11, USR-PATCH-FOTO-01 a 05 e 07 a 11, e USR-DELETE-01
-  a 05 — estão marcados `it.fails`, com a asserção do comportamento *documentado* (o que deveria
-  acontecer), não o que o código faz hoje. USR-PATCH-06 e USR-PATCH-FOTO-06 (campo extra) continuam
-  como `it` normal porque, por coincidência, tanto o ID inválido quanto o campo extra resultam no
-  mesmo status/tipo (400/`validationError`) — mas isso não prova que o `.strict()` do corpo tenha sido
-  de fato exercitado; um comentário no teste registra essa ressalva.

@@ -11,13 +11,7 @@ describe('PATCH /v1/usuarios/:id', () => {
     const patch = (usuario, id, corpo) =>
         api().patch(`/v1/usuarios/${id}`).set('Authorization', usuario.bearer).send(corpo);
 
-    // Divergência: `UserIdSchema.parse(id)` roda antes de qualquer outra checagem
-    // em `UserController.update`, e IDs reais de usuário (gerados pelo BetterAuth,
-    // string alfanumérica de 32 caracteres — nunca UUID) sempre falham nessa
-    // validação. Resultado: nenhuma requisição de PATCH sobre um usuário de
-    // verdade alcança a checagem de corpo/self-action/e-mail único — todas caem
-    // em 400 "Formato de ID de usuário inválido" antes disso. Ver ## Divergências.
-    it.fails('USR-PATCH-01 usuário atualiza o próprio name', async () => {
+    it('USR-PATCH-01 usuário atualiza o próprio name', async () => {
         const r = await patch(a, a.id, { name: 'Novo Nome' });
         expect(r.status).toBe(200);
         expect(r.body.data.name).toBe('Novo Nome');
@@ -26,7 +20,7 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.name).toBe('Novo Nome');
     });
 
-    it.fails('USR-PATCH-02 usuário atualiza o próprio email para um e-mail livre', async () => {
+    it('USR-PATCH-02 usuário atualiza o próprio email para um e-mail livre', async () => {
         const novoEmail = `novo-${randomUUID()}@pastolivre.test`;
         const r = await patch(a, a.id, { email: novoEmail });
         expect(r.status).toBe(200);
@@ -35,13 +29,13 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.email).toBe(novoEmail);
     });
 
-    it.fails('USR-PATCH-03 usuário atualiza image para uma URL', async () => {
+    it('USR-PATCH-03 usuário atualiza image para uma URL', async () => {
         const r = await patch(a, a.id, { image: 'https://exemplo.test/foto.jpg' });
         expect(r.status).toBe(200);
         expect(r.body.data.image).toBe('https://exemplo.test/foto.jpg');
     });
 
-    it.fails('USR-PATCH-04 usuário limpa image (null)', async () => {
+    it('USR-PATCH-04 usuário limpa image (null)', async () => {
         await patch(a, a.id, { image: 'https://exemplo.test/foto.jpg' });
         const r = await patch(a, a.id, { image: null });
         expect(r.status).toBe(200);
@@ -50,16 +44,12 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.image).toBeNull();
     });
 
-    it.fails('USR-PATCH-05 corpo vazio', async () => {
+    it('USR-PATCH-05 corpo vazio', async () => {
         const r = await patch(a, a.id, {});
         expect(r.status).toBe(400);
         expect(r.body.message).toBe('Por favor, informe pelo menos um campo para atualizar.');
     });
 
-    // Passa "por acidente": tanto a checagem de ID inválido quanto a de campo
-    // extra levam a 400/validationError, então o status e o tipo batem com o
-    // documentado mesmo sem a requisição alcançar o `UserUpdateSchema.strict()`
-    // de fato — ver Divergência acima.
     it('USR-PATCH-06 campo extra no corpo (.strict())', async () => {
         const r = await patch(a, a.id, { name: 'Nome Válido', admin: true });
         expect(r.status).toBe(400);
@@ -68,19 +58,19 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.admin).toBe(false);
     });
 
-    it.fails('USR-PATCH-07 email em formato inválido', async () => {
+    it('USR-PATCH-07 email em formato inválido', async () => {
         const r = await patch(a, a.id, { email: 'não-é-email' });
         expect(r.status).toBe(400);
         expect(r.body.errors[0].message).toBe('Formato de e-mail inválido.');
     });
 
-    it.fails('USR-PATCH-08 image que não é URL válida', async () => {
+    it('USR-PATCH-08 image que não é URL válida', async () => {
         const r = await patch(a, a.id, { image: 'not-a-url' });
         expect(r.status).toBe(400);
         expect(r.body.errors[0].message).toBe('A imagem deve ser uma URL válida.');
     });
 
-    it.fails('USR-PATCH-09 email já em uso por outro usuário', async () => {
+    it('USR-PATCH-09 email já em uso por outro usuário', async () => {
         const b = await criarUsuario();
         const r = await patch(a, a.id, { email: b.email });
         expect(r.status).toBe(409);
@@ -88,7 +78,7 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(r.body.message).toBe('E-mail já cadastrado.');
     });
 
-    it.fails('USR-PATCH-10 usuário comum tenta atualizar outro usuário', async () => {
+    it('USR-PATCH-10 usuário comum tenta atualizar outro usuário', async () => {
         const b = await criarUsuario();
         const r = await patch(a, b.id, { name: 'Invasão' });
         expect(r.status).toBe(403);
@@ -98,7 +88,7 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.name).toBe('Produtor Teste');
     });
 
-    it.fails('USR-PATCH-11 admin tenta atualizar outro usuário (sem bypass)', async () => {
+    it('USR-PATCH-11 admin tenta atualizar outro usuário (sem bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
         const r = await patch(admin, a.id, { name: 'Invasão' });
         expect(r.status).toBe(403);

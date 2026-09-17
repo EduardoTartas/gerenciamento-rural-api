@@ -66,11 +66,11 @@ const userRoutes = {
             + Função de Negócio:
                 - Retorna todos os dados de perfil para o ID de usuário fornecido.
                 + Recebe como parâmetro de caminho:
-                    - **id**: UUID do usuário.
+                    - **id**: ID do usuário (formato do BetterAuth).
 
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
-                - O ID deve estar no formato UUID válido.
+                - O ID deve estar no formato gerado pelo BetterAuth (ou UUID, aceito no fluxo offline-first).
                 - Usuário com perfil administrativo pode consultar qualquer ID. Usuário comum só pode consultar o próprio ID — consultar outro retorna 403.
                 - Retorna 404 se o usuário não for encontrado.
 
@@ -82,8 +82,8 @@ const userRoutes = {
                 name: "id",
                 in: "path",
                 required: true,
-                schema: { type: "string", format: "uuid" },
-                description: "UUID do Usuário"
+                schema: { type: "string" },
+                description: "ID do usuário (formato do BetterAuth)"
             }],
             responses: {
                 200: commonResponses[200]("#/components/schemas/UserDetails"),
@@ -103,7 +103,7 @@ const userRoutes = {
             + Função de Negócio:
                 - Atualiza os campos do usuário (nome, e-mail, imagem).
                 + Recebe como parâmetro de caminho:
-                    - **id**: UUID do usuário.
+                    - **id**: ID do usuário (formato do BetterAuth).
 
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
@@ -119,8 +119,8 @@ const userRoutes = {
                 name: "id",
                 in: "path",
                 required: true,
-                schema: { type: "string", format: "uuid" },
-                description: "UUID do Usuário"
+                schema: { type: "string" },
+                description: "ID do usuário (formato do BetterAuth)"
             }],
             requestBody: {
                 content: {
@@ -148,7 +148,7 @@ const userRoutes = {
             + Função de Negócio:
                 - Remove permanentemente o usuário e todas as sessões/contas associadas.
                 + Recebe como parâmetro de caminho:
-                    - **id**: UUID do usuário.
+                    - **id**: ID do usuário (formato do BetterAuth).
 
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
@@ -163,8 +163,8 @@ const userRoutes = {
                 name: "id",
                 in: "path",
                 required: true,
-                schema: { type: "string", format: "uuid" },
-                description: "UUID do Usuário"
+                schema: { type: "string" },
+                description: "ID do usuário (formato do BetterAuth)"
             }],
             responses: {
                 200: commonResponses[200](),
@@ -187,7 +187,7 @@ const userRoutes = {
             + Função de Negócio:
                 - Recebe a URL retornada pelo upload e grava em \`user.image\`.
                 + Recebe como parâmetro de caminho:
-                    - **id**: UUID do usuário.
+                    - **id**: ID do usuário (formato do BetterAuth).
 
             + Regras de Negócio:
                 - Requer uma sessão autenticada válida.
@@ -204,8 +204,8 @@ const userRoutes = {
                 name: "id",
                 in: "path",
                 required: true,
-                schema: { type: "string", format: "uuid" },
-                description: "UUID do Usuário"
+                schema: { type: "string" },
+                description: "ID do usuário (formato do BetterAuth)"
             }],
             requestBody: {
                 content: {
