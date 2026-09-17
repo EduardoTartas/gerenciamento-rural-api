@@ -63,7 +63,7 @@ Arquivo: `test/endpoints/catalogos/post-catalogos-entidade.test.js`
 | CAT-POST-05 | `nome` com mais de 100 caracteres | admin; nome com 101 chars | 400 | mensagem "O nome deve ter no máximo 100 caracteres." |
 | CAT-POST-06 | campo extra no corpo (`.strict()`) | admin; `{ nome: "X", extra: 1 }` | 400 | `tipo` `validationError`; cita `extra` |
 | CAT-POST-07 | nome duplicado (case-insensitive) | admin; já existe item "Nelore" ativo; envia "nelore" | 409 | `tipo` `conflict`; mensagem "Já existe um(a) <label> com este nome." |
-| CAT-POST-08 | nome igual a item inativo é aceito | admin; item "Nelore" com `ativo: false` | 409 *(divergência: ver Divergências — índice único do banco não é parcial)* | `findByNome` só considera `ativo: true` no app, mas o `@unique` do Prisma em `nome` é incondicional; a criação colide via `P2002` antes de chegar à regra de negócio |
+| CAT-POST-08 | nome igual a item inativo é aceito | admin; item "Nelore" com `ativo: false` | 201 | índice único parcial (`WHERE ativo = true`) permite reciclar o nome de um item arquivado, igual a `propriedades` |
 | CAT-POST-09 | `:entidade` inexistente | admin; `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound` |
 | CAT-POST-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 | CAT-POST-11 | 403 usuário comum (não admin) | usuário A autenticado, não admin | 403 | `tipo` `forbidden`; mensagem "Esta ação exige perfil administrativo."; corpo nem chega a ser validado |
@@ -131,11 +131,3 @@ método). Cenário de confirmação, não de isolamento:
   aparece só em `errors[0].message` ("Unrecognized key: \"foo\""), nunca em `errors[0].path`. Os
   cenários de campo extra (`CAT-GET-08`, `CAT-POST-06`, `CAT-PATCH-05`) foram ajustados para checar a
   mensagem em vez do `path`.
-- Todos os models de catálogo (`raca`, `sistemaProducao`, `regimeAlimentar`, `tipoManejoRebanho`,
-  `tipoManejoPasto`, `tipoInsumo` — `prisma/schema.prisma:82-148`) declaram `nome String @unique`, um
-  índice único **incondicional** no banco (diferente do índice parcial `WHERE ativo = true` usado em
-  `propriedades`). `CatalogoService.validateUniqueNome`/`CatalogoRepository.findByNome` só barram nomes
-  duplicados entre itens **ativos**, então a intenção é permitir recriar um nome já usado por um item
-  arquivado — mas a criação nesse caso nunca chega a rodar essa regra: o Postgres recusa primeiro via
-  `P2002`, e o cliente recebe 409 `uniqueConstraintViolation` ("Já existe um registro com os dados
-  informados.") em vez de 201. `CAT-POST-08` documenta o comportamento real via `it.fails`.
