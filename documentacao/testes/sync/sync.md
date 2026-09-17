@@ -195,13 +195,6 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
   Não é um bug a corrigir nesta task — é risco aceito e documentado; os cenários SYNC-POST-68/69/70
   testam o caminho feliz da transação por item, não essa janela de corrida (que exigiria controle fino
   de timing fora do escopo de teste de endpoint via HTTP).
-- **Bug real — `SYNC-POST-46` (`rebanhos:DELETE`) nunca é aceito.** O despacho
-  (`src/service/sync/despacho.js:49`) chama `RebanhoService.remove`, que delega a `_inativar`
-  (`src/service/RebanhoService.js:184-215`), onde `comTransacao(this.prisma, executor, ...)` usa uma
-  variável `executor` que não existe no escopo do método. O `ReferenceError` é capturado por item pelo
-  lote e a mutação volta como `recusado` com `tipo: serverError`. É o mesmo bug que derruba
-  `DELETE /rebanhos/:id` no REST (ver `rebanhos.md`). Cenário marcado `it.fails` com a expectativa
-  correta (`aceito` + `ativo: false`).
 - **Bug real — `SYNC-POST-25`, idempotência escapa do escopo do usuário na gravação.** A leitura filtra
   por `usuarioId` (`MutacaoAplicadaRepository.buscarPorIds`), mas `mutacaoAplicada.id` é chave primária
   global (`prisma/schema.prisma:408-418`), sem `usuarioId` na chave. Como o id da mutação é gerado pelo

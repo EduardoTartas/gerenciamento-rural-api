@@ -22,7 +22,7 @@ describe('DELETE /v1/rebanhos/:id', () => {
     // Bug: RebanhoService._inativar usa `executor` fora de escopo
     // (src/service/RebanhoService.js:187) -> ReferenceError -> 500. Comportamento
     // correto esperado é 200 com soft-delete efetivo (ver Divergências no .md).
-    it.fails('REB-DELETE-ID-01 inativa rebanho ativo de A', async () => {
+    it('REB-DELETE-ID-01 inativa rebanho ativo de A', async () => {
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
         const r = await del(a, rebanho.id);
         expect(r.status).toBe(200);

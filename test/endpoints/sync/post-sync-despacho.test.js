@@ -117,7 +117,7 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
     // `executor` fora de escopo (src/service/RebanhoService.js:187) -> ReferenceError.
     // O lote captura por item e devolve `recusado`. Comportamento correto esperado é
     // `aceito` com soft-delete efetivo (ver ## Divergências).
-    it.fails('SYNC-POST-46 rebanhos:DELETE', async () => {
+    it('SYNC-POST-46 rebanhos:DELETE', async () => {
         const pasto = await criarPasto(propriedade.id);
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
         const { res } = await enviarUma({
