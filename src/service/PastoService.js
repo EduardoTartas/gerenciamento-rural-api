@@ -84,7 +84,7 @@ class PastoService {
         }
 
         // Validação de estado "Ativo" e "Status" usando rebanhos
-        if (parsedData.ativo === false || parsedData.status === 'Vazio' || parsedData.status === 'Descanso') {
+        if (parsedData.ativo === false || parsedData.status === 'Vazio' || parsedData.status === 'Descanso' || parsedData.status === 'Ocupado') {
             const rebanhosAtivos = await this.repository.countRebanhos(id);
             if (rebanhosAtivos > 0) {
                 if (parsedData.ativo === false) {
@@ -105,6 +105,14 @@ class PastoService {
                         customMessage: 'Pasto está ocupado por um ou mais rebanhos.',
                     });
                 }
+            } else if (parsedData.status === 'Ocupado') {
+                throw new CustomError({
+                    statusCode: HttpStatusCodes.BAD_REQUEST.code,
+                    errorType: 'validationError',
+                    field: 'status',
+                    details: [{ path: 'status', message: 'Não é possível marcar o pasto como "Ocupado" sem nenhum rebanho ativo vinculado.' }],
+                    customMessage: 'Pasto não possui rebanho vinculado para ser marcado como ocupado.',
+                });
             }
         }
 

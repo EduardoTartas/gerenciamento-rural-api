@@ -121,7 +121,7 @@ Gerenciamento das subdivisões vitais da propriedade: Piquetes, Pastos e Inverna
 ### 3.4 PATCH /pastagens/:id
 **Caso de Uso:** Atualizar dados do Pasto (área, tipo de capim e status).
 **Regras de Negócio:**
-- **Status Coerente:** Bloqueia a tentativa de forçar o status para `Vazio` ou `Descanso` caso a contagem indique que há **Rebanhos** ativos ali alojados.
+- **Status Coerente:** Bloqueia a tentativa de forçar o status para `Vazio` ou `Descanso` caso a contagem indique que há **Rebanhos** ativos ali alojados. Também bloqueia forçar `Ocupado` quando não há nenhum rebanho ativo vinculado ao pasto (Erro 400) — o status manual não pode divergir da realidade.
 - **Inativação Segura:** Se mudar o `ativo` para `false`, também barra se o pasto estiver ocupado por gado.
 
 ### 3.5 DELETE /pastagens/:id

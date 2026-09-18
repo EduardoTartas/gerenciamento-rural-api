@@ -74,7 +74,8 @@ Arquivo: `test/endpoints/pastagens/patch-pastagens-id.test.js`
 | :--- | :--- | :--- | :--- | :--- |
 | PAST-PATCH-ID-01 | atualiza `nome` | — | 200 | `data.nome` atualizado |
 | PAST-PATCH-ID-02 | atualiza `extensaoHa` e `tipoPastagem` | — | 200 | valores refletidos em `data` |
-| PAST-PATCH-ID-03 | força `status` para `"Ocupado"` sem rebanhos (nenhuma trava aplicável) | — | 200 | `data.status` = `"Ocupado"` — atualização manual é permitida (não é derivada automaticamente nesta rota; ver `## Divergências`) |
+| PAST-PATCH-ID-03 | recusa `status` `"Ocupado"` sem rebanho ativo vinculado | — | 400 | `tipo` = `validationError`; `errors[0].path` = `status` |
+| PAST-PATCH-ID-03b | aceita `status` `"Ocupado"` com rebanho ativo vinculado | pasto com rebanho ativo | 200 | `data.status` = `"Ocupado"` |
 | PAST-PATCH-ID-04 | corpo vazio (`{}`) | — | 400 | `errors[0].path` = `body`; `message` = "Forneça pelo menos um campo para atualizar." |
 | PAST-PATCH-ID-05 | campo extra no corpo (`.strict()`) | — | 400 | issue `unrecognized_keys` |
 | PAST-PATCH-ID-06 | `status` fora do enum | — | 400 | issue `status` |
@@ -115,10 +116,3 @@ Arquivo: `test/endpoints/pastagens/delete-pastagens-id.test.js`
   `Math.min(parseInt(limit, 10) || 10, 100)`) é código morto para valores acima de 100 vindos
   via HTTP (só seria alcançado se algo chamasse o service passando `req.query` sem o schema).
   A linha `PAST-GET-09` foi ajustada para refletir o comportamento real (400).
-- `documentacao/rotas/rotas_pastolivre.md:110-114` descreve a transição de `status` como
-  automática ("ao sair o último lote... o pasto passa a Descanso... ao receber lote, volta a
-  Ocupado"), mas essa lógica vive em `MovimentacaoService`/`RebanhoService`, não em
-  `PastoService`. `PATCH /pastagens/:id` (`src/service/PastoService.js:76-133`) aceita
-  `status` como campo livre e só bloqueia a mudança para `"Vazio"`/`"Descanso"` quando há
-  rebanhos ativos no pasto (`countRebanhos`) — nada impede o cliente de forçar `"Ocupado"`
-  sem gado real, ou de deixar o status desalinhado com a movimentação real.
