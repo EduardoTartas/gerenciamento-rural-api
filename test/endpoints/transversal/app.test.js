@@ -14,14 +14,14 @@ describe('transversal', () => {
     it('APP-GET-02 rota inexistente responde 404 no envelope', async () => {
         const r = await api().get('/v1/nao-existe');
         expect(r.status).toBe(404);
-        expect(r.body).toMatchObject({ data: null, tipo: 'resourceNotFound', recuperavel: false });
+        expect(r.body).toMatchObject({ data: null, tipo: 'resourceNotFound', recuperavel: false, message: 'Rota não encontrada.' });
         expect(r.body.errors[0].message).toBe('Rota não encontrada.');
     });
 
     it('APP-GET-03 método não suportado numa rota existente responde igual a rota inexistente', async () => {
         const r = await api().put('/v1/propriedades');
         expect(r.status).toBe(404);
-        expect(r.body).toMatchObject({ data: null, tipo: 'resourceNotFound', recuperavel: false });
+        expect(r.body).toMatchObject({ data: null, tipo: 'resourceNotFound', recuperavel: false, message: 'Rota não encontrada.' });
         expect(r.body.errors[0].message).toBe('Rota não encontrada.');
     });
 
