@@ -201,10 +201,5 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
   cliente, se dois usuários colidirem no mesmo id o `create` do segundo viola a PK e a mutação dele é
   recusada — o dado de A não vaza para B, mas B é impedido de sincronizar por causa de um id alheio.
   A chave deveria ser composta (`@@id([id, usuarioId])`). Cenário marcado `it.fails`.
-- **Bug real — `SYNC-POST-26`, a janela de retenção só vale no request seguinte.**
-  `limparAntigas` roda no fim do lote (`src/service/SyncService.js:79`), depois de `buscarPorIds`.
-  Um registro com mais de 30 dias ainda curto-circuita o reenvio no mesmo request, devolvendo o
-  resultado antigo; só a partir da próxima sincronização ele deixa de existir. Cenário marcado
-  `it.fails` com a expectativa documentada (reenvio tratado como mutação nova).
 - Fora esses três pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
   implementam o que `documentacao/sincronizacao.md` descreve.

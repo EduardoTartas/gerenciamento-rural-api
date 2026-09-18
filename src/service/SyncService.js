@@ -40,6 +40,10 @@ class SyncService {
             });
         }
 
+        // Limpa antes de checar idempotência: um registro vencido não pode
+        // curto-circuitar o reenvio com o resultado arquivado.
+        await this.mutacoesAplicadas.limparAntigas(usuarioId, RETENCAO_EM_DIAS);
+
         const porId = new Map(mutacoes.map((m) => [m.id, m]));
         const jaAplicadas = await this.mutacoesAplicadas.buscarPorIds(usuarioId, ordem);
 
@@ -75,8 +79,6 @@ class SyncService {
                 }
             }
         }
-
-        await this.mutacoesAplicadas.limparAntigas(usuarioId, RETENCAO_EM_DIAS);
 
         // Devolve na ordem em que o cliente enviou, não na de execução.
         return { resultados: mutacoes.map((m) => resultados.get(m.id)) };
