@@ -71,10 +71,7 @@ describe('POST /v1/catalogos/:entidade', () => {
         expect(r.body.message).toBe('Já existe um(a) Raça com este nome.');
     });
 
-    // CAT-POST-08: `nome` tem `@unique` incondicional no banco (não é parcial `WHERE ativo = true`
-    // como em `propriedades`) — a criação colide via P2002 antes de a regra de negócio (que só olha
-    // itens ativos) rodar. Ver Divergências.
-    it.fails('CAT-POST-08 nome igual a item inativo é aceito', async () => {
+    it('CAT-POST-08 nome igual a item inativo é aceito', async () => {
         await criarRaca({ nome: 'Nelore', ativo: false });
         const r = await post(admin, 'racas', { nome: 'Nelore' });
         expect(r.status).toBe(201);
