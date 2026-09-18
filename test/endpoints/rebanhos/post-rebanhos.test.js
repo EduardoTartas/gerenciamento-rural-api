@@ -24,9 +24,10 @@ describe('POST /v1/rebanhos', () => {
         expect(r.status).toBe(201);
         expect(r.body.errors).toEqual([]);
         expect(r.body.data.id).toBeDefined();
-        // POST devolve o registro cru do Prisma (sem as relações que GET/PATCH
-        // trazem via REBANHO_SELECT) — ver Divergências no .md da rota.
         expect(r.body.data.propriedadeId).toBe(propriedade.id);
+        // POST devolve o mesmo formato de GET/PATCH, com relações aninhadas via REBANHO_SELECT.
+        expect(r.body.data.propriedade).toMatchObject({ id: propriedade.id });
+        expect(r.body.data.pastoAtual).toMatchObject({ id: pasto.id });
         const salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: r.body.data.id } });
         expect(salvo.propriedadeId).toBe(propriedade.id);
     });

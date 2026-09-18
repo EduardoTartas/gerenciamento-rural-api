@@ -118,14 +118,9 @@ class RebanhoService {
 
         // Transação atômica: cria rebanho + atualiza status do pasto
         return comTransacao(this.prisma, executor, async (tx) => {
-            await tx.pasto.update({
-                where: { id: parsedData.pastoAtualId },
-                data: { status: 'Ocupado' },
-            });
+            await this.pastoRepository.update(parsedData.pastoAtualId, { status: 'Ocupado' }, tx);
 
-            return tx.rebanho.create({
-                data: { ...dadosRebanho, dataEntradaPastoAtual },
-            });
+            return this.repository.create({ ...dadosRebanho, dataEntradaPastoAtual }, tx);
         });
     }
 
