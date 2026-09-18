@@ -15,7 +15,7 @@ export const CatalogoIdSchema = z
 export const CatalogoQuerySchema = z.object({
     nome: z.string().optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" }),
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     page: z.coerce.number().int().positive().optional().default(1),
     limit: z.coerce.number().int().positive().max(100).optional().default(10),

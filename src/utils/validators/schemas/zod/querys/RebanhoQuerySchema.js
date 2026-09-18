@@ -14,7 +14,7 @@ export const RebanhoQuerySchema = z.object({
     sistemaProducaoId: z.string().uuid('O ID do sistema de produção deve ser um UUID válido.').optional(),
     regimeAlimentarId: z.string().uuid('O ID do regime alimentar deve ser um UUID válido.').optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" }),
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()
