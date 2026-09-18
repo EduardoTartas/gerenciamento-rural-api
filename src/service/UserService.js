@@ -49,7 +49,9 @@ class UserService {
      */
     async update(id, parsedData, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
+        }
 
         // Valida e-mail único caso seja alterado
         if (parsedData.email) {
@@ -66,7 +68,9 @@ class UserService {
      */
     async registrarFoto(id, url, req) {
         const user = await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'atualizar a foto de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'atualizar a foto de outro usuário');
+        }
         this.ensureUrlPertenceAoBucket(url);
 
         let updated;
@@ -95,7 +99,9 @@ class UserService {
      */
     async remove(id, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
+        }
 
         // Revoga todas as sessões ativas do usuário antes de deletar
         const sessions = await this.prisma.session.findMany({

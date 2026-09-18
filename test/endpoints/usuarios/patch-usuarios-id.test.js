@@ -88,13 +88,12 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(salvo.name).toBe('Produtor Teste');
     });
 
-    it('USR-PATCH-11 admin tenta atualizar outro usuário (sem bypass)', async () => {
+    it('USR-PATCH-11 admin atualiza outro usuário (bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
-        const r = await patch(admin, a.id, { name: 'Invasão' });
-        expect(r.status).toBe(403);
-        expect(r.body.tipo).toBe('forbidden');
+        const r = await patch(admin, a.id, { name: 'Editado pelo Admin' });
+        expect(r.status).toBe(200);
         const salvo = await DbConnect.prisma.user.findUnique({ where: { id: a.id } });
-        expect(salvo.name).toBe('Produtor Teste');
+        expect(salvo.name).toBe('Editado pelo Admin');
     });
 
     it('USR-PATCH-12 ID em formato inválido', async () => {
