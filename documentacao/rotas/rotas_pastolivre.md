@@ -269,7 +269,7 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 ### 7.5 DELETE /rebanhos/manejos/:id
 **Caso de Uso:** Remover um manejo lançado por engano.
 **Regras de Negócio:**
-- **Hard-Delete:** a linha é removida definitivamente do banco.
+- **Soft-Delete (`ativo: false`):** a linha continua no banco, mesmo padrão de `pastagens/manejos` — sustenta a leitura por diferença (`atualizadoDesde`).
 
 ---
 
