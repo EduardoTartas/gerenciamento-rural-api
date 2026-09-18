@@ -195,11 +195,5 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
   Não é um bug a corrigir nesta task — é risco aceito e documentado; os cenários SYNC-POST-68/69/70
   testam o caminho feliz da transação por item, não essa janela de corrida (que exigiria controle fino
   de timing fora do escopo de teste de endpoint via HTTP).
-- **Bug real — `SYNC-POST-25`, idempotência escapa do escopo do usuário na gravação.** A leitura filtra
-  por `usuarioId` (`MutacaoAplicadaRepository.buscarPorIds`), mas `mutacaoAplicada.id` é chave primária
-  global (`prisma/schema.prisma:408-418`), sem `usuarioId` na chave. Como o id da mutação é gerado pelo
-  cliente, se dois usuários colidirem no mesmo id o `create` do segundo viola a PK e a mutação dele é
-  recusada — o dado de A não vaza para B, mas B é impedido de sincronizar por causa de um id alheio.
-  A chave deveria ser composta (`@@id([id, usuarioId])`). Cenário marcado `it.fails`.
-- Fora esses três pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
+- Fora esses dois pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
   implementam o que `documentacao/sincronizacao.md` descreve.

@@ -112,7 +112,7 @@ describe('POST /v1/sync — contrato de erro tipado e transação por item', () 
 
         const pasto = await DbConnect.prisma.pasto.findUnique({ where: { id: m.entidadeId } });
         expect(pasto).not.toBeNull();
-        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id: m.id } });
+        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id_usuarioId: { id: m.id, usuarioId: a.id } } });
         expect(registro).not.toBeNull();
         expect(registro.entidadeId).toBe(m.entidadeId);
     });
@@ -128,7 +128,7 @@ describe('POST /v1/sync — contrato de erro tipado e transação por item', () 
 
         const orfao = await DbConnect.prisma.pasto.findUnique({ where: { id: m.entidadeId } });
         expect(orfao).toBeNull();
-        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id: m.id } });
+        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id_usuarioId: { id: m.id, usuarioId: a.id } } });
         expect(registro).toBeNull();
     });
 
@@ -156,6 +156,6 @@ describe('POST /v1/sync — contrato de erro tipado e transação por item', () 
 
         const insumoSalvo = await DbConnect.prisma.insumo.findUnique({ where: { id: sucesso.entidadeId } });
         expect(insumoSalvo).not.toBeNull();
-        expect(await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id: sucesso.id } })).not.toBeNull();
+        expect(await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id_usuarioId: { id: sucesso.id, usuarioId: a.id } } })).not.toBeNull();
     });
 });

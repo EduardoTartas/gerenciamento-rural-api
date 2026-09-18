@@ -39,13 +39,7 @@ describe('POST /v1/sync — idempotência', () => {
         expect(total).toBe(1);
     });
 
-    // Bug: a LEITURA da idempotência é escopada por usuário
-    // (`MutacaoAplicadaRepository.buscarPorIds` filtra por `usuarioId`), mas a
-    // GRAVAÇÃO não: `mutacaoAplicada.id` é chave primária global
-    // (prisma/schema.prisma:409). Quando B usa um id de mutação que A já gravou,
-    // o `create` viola a PK e a mutação de B é recusada. Comportamento correto
-    // esperado é B ser processado normalmente (ver ## Divergências).
-    it.fails('SYNC-POST-25 idempotência é escopada por usuário', async () => {
+    it('SYNC-POST-25 idempotência é escopada por usuário', async () => {
         const b = await criarUsuario();
         const propriedadeB = await criarPropriedade(b.id);
         const mutacaoId = randomUUID();
@@ -102,7 +96,7 @@ describe('POST /v1/sync — idempotência', () => {
         const pasto = await DbConnect.prisma.pasto.findUnique({ where: { id: idPasto } });
         expect(pasto).not.toBeNull();
 
-        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id: mutacaoId } });
+        const registro = await DbConnect.prisma.mutacaoAplicada.findUnique({ where: { id_usuarioId: { id: mutacaoId, usuarioId: a.id } } });
         expect(registro.entidadeId).toBe(idPasto);
     });
 });
