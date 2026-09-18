@@ -97,9 +97,9 @@ Arquivo: `test/endpoints/rebanhos/patch-rebanhos-id.test.js`
 | REB-PATCH-ID-06 | id inexistente | — | 404 | `tipo: resourceNotFound` |
 | REB-PATCH-ID-07 | `nomeRebanho` duplicado com outro rebanho ativo da mesma propriedade | — | 409 | `tipo: conflict` |
 | REB-PATCH-ID-08 | tenta alterar `pastoAtualId` de rebanho ativo | — | 400 | `errors[0].path: pastoAtualId`, mensagem "deve ser feita através da rota de movimentação" |
-| REB-PATCH-ID-09 | envia `ativo: false` (inativação) | rebanho ativo de A com pasto vinculado | 200 | comportamento correto esperado (rotas_pastolivre.md §5.4/5.5): `data.ativo:false`, `data.pastoAtualId:null`; **hoje quebrado (bug, ver Divergências) — responde 500** |
+| REB-PATCH-ID-09 | envia `ativo: false` (inativação) | rebanho ativo de A com pasto vinculado | 200 | `data.ativo:false`, `data.pastoAtualId:null` (rotas_pastolivre.md §5.4/5.5) |
 | REB-PATCH-ID-10 | reativa (`ativo: true`) sem informar `pastoAtualId` | rebanho inativo de A | 400 | `errors[0].path: pastoAtualId`, mensagem "Informe o pasto atual para reativar" — validado ANTES da transação, não atinge o bug |
-| REB-PATCH-ID-11 | reativa com `pastoAtualId` válido | rebanho inativo, pasto ativo da mesma propriedade | 200 | comportamento correto esperado (rotas_pastolivre.md §5.4): `data.ativo:true`, `data.pastoAtualId` igual ao enviado; **hoje quebrado (bug, ver Divergências) — responde 500** |
+| REB-PATCH-ID-11 | reativa com `pastoAtualId` válido | rebanho inativo, pasto ativo da mesma propriedade | 200 | `data.ativo:true`, `data.pastoAtualId` igual ao enviado (rotas_pastolivre.md §5.4) |
 | REB-PATCH-ID-12 | reativa com pasto inativo | — | 400 | `errors[0].path: pastoAtualId` — validado antes da transação |
 | REB-PATCH-ID-13 | reativa com pasto de outra propriedade | — | 400 | `errors[0].path: pastoAtualId` — validado antes da transação |
 | REB-PATCH-ID-14 | sem token | — | 401 | `tipo: unauthorized` |
@@ -112,32 +112,15 @@ Arquivo: `test/endpoints/rebanhos/delete-rebanhos-id.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| REB-DELETE-ID-01 | inativa rebanho ativo de A | rebanho ativo com pasto vinculado | 200 | comportamento correto esperado (rotas_pastolivre.md §5.5): soft-delete efetivo — `data.ativo:false`, `data.pastoAtualId:null`; se o pasto ficou sem outros rebanhos ativos, `status: "Descanso"`; **hoje quebrado (bug, ver Divergências) — responde 500** |
+| REB-DELETE-ID-01 | inativa rebanho ativo de A | rebanho ativo com pasto vinculado | 200 | soft-delete efetivo — `data.ativo:false`, `data.pastoAtualId:null`; se o pasto ficou sem outros rebanhos ativos, `status: "Descanso"` (rotas_pastolivre.md §5.5) |
 | REB-DELETE-ID-02 | id não é UUID | — | 400 | erro de validação |
-| REB-DELETE-ID-03 | id inexistente | — | 404 | `tipo: resourceNotFound` — este check roda antes do trecho com bug |
+| REB-DELETE-ID-03 | id inexistente | — | 404 | `tipo: resourceNotFound` |
 | REB-DELETE-ID-04 | sem token | — | 401 | `tipo: unauthorized` |
 | REB-DELETE-ID-05 | multi-tenancy: B tenta remover rebanho de A | — | 404 | `tipo: resourceNotFound` |
 | REB-DELETE-ID-06 | admin (não dono) tenta remover rebanho de A | token admin | 404 | sem bypass |
 
 ## Divergências
 
-- **Bug crítico — `DELETE /rebanhos/:id`, `PATCH /rebanhos/:id` com `ativo:false` e
-  reativação (`ativo:true`) sempre retornam 500.** `RebanhoService._inativar`
-  (`src/service/RebanhoService.js:184-215`) e `RebanhoService._reativar` (`:223-270`) chamam
-  `comTransacao(this.prisma, executor, ...)`, mas nenhum dos dois métodos declara `executor`
-  como parâmetro. `remove()` (`:174-178`) chama `this._inativar(rebanho)` sem repassar seu
-  próprio `executor`; `update()` (`:156-163`) faz o mesmo para `_inativar` e `_reativar`. Como
-  `executor` não existe em nenhum escopo alcançável a partir desses métodos, a chamada lança
-  `ReferenceError: executor is not defined`, tratado pelo `errorHandler` como erro interno
-  (500, `tipo: serverError`) — nunca chega a rodar `prisma.$transaction`. Na prática:
-  **nenhum rebanho pode ser inativado nem reativado por essas rotas hoje.** As validações que
-  rodam *antes* da chamada a `comTransacao` (rebanho/pasto inexistente, pasto inativo, pasto de
-  outra propriedade, falta de `pastoAtualId` na reativação) continuam funcionando normalmente,
-  porque só o trecho de escrita transacional está quebrado. Antes de escrever os testes da
-  Task correspondente, confirmar em execução real contra o banco — se o bug for corrigido no
-  meio do trabalho, os status REB-PATCH-ID-09/11 e REB-DELETE-ID-01 passam a refletir o
-  comportamento descrito em rotas_pastolivre.md §5.4/§5.5 (200, soft-delete/reativação
-  efetivos) em vez de 500.
 - **`POST /rebanhos` devolve uma forma diferente de `GET`/`PATCH`.** `RebanhoService.create`
   (`src/service/RebanhoService.js:118-128`) grava com `tx.rebanho.create({ data })` dentro da
   transação, sem o `select: REBANHO_SELECT` que `RebanhoRepository.create` (`:100-102`) aplica.
