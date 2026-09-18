@@ -195,5 +195,5 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
   Não é um bug a corrigir nesta task — é risco aceito e documentado; os cenários SYNC-POST-68/69/70
   testam o caminho feliz da transação por item, não essa janela de corrida (que exigiria controle fino
   de timing fora do escopo de teste de endpoint via HTTP).
-- Fora esses três pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
+- Fora esses dois pontos, `SyncService`, `grafoDeDependencia.js`, `validacao.js` e `despacho.js`
   implementam o que `documentacao/sincronizacao.md` descreve.
