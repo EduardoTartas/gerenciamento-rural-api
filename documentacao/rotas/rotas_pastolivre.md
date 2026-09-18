@@ -56,11 +56,7 @@ Gerenciamento de Fazendas, Sítios e Arrendamentos rurais do produtor.
 **Regras de Negócio:**
 - **Paginação e Filtros:** Suporta `page`, `limit`, busca por `nome` e `localizacao`.
 - **Filtro Inteligente:** Retorna por padrão apenas propriedades ATIVAS (`ativo: true`).
-
-> ⚠️ **Divergência conhecida:** o filtro `?ativo=false` está definido no schema de query mas
-> não é aplicado — o `PropriedadeController.list` valida a query sem atribuí-la a
-> `req._parsedQuery`, e o `PropriedadeService.list` não repassa `ativo` aos filtros. Na
-> prática, não há como listar propriedades arquivadas por esta rota.
+- **Filtro `ativo`:** `?ativo=false` lista só as arquivadas; `?ativo=true` lista só as ativas (mesmo comportamento padrão).
 
 ### 2.3 GET /propriedades/:id
 **Caso de Uso:** Obter detalhes de uma Propriedade específica.
