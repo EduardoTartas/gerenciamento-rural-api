@@ -131,10 +131,7 @@ describe('GET /v1/rebanhos/regimes-consumo', () => {
         expect(r.body.data.docs).toEqual([]);
     });
 
-    // REG-GET-13: divergência conhecida (issue #40) — este endpoint não aceita
-    // `propriedadeId` como filtro, diferente de GET /insumos. Regimes de
-    // rebanhos de propriedades diferentes do mesmo usuário aparecem juntos.
-    it('REG-GET-13 sem propriedadeId disponível como filtro: regimes de propriedades diferentes aparecem juntos', async () => {
+    it('REG-GET-13 sem propriedadeId, regimes de propriedades diferentes do mesmo usuário aparecem juntos', async () => {
         const outraPropriedade = await criarPropriedade(a.id);
         const outroPasto = await criarPasto(outraPropriedade.id);
         const outroRebanho = await criarRebanho(outraPropriedade.id, outroPasto.id);
@@ -147,5 +144,30 @@ describe('GET /v1/rebanhos/regimes-consumo', () => {
         expect(r.status).toBe(200);
         const ids = r.body.data.docs.map((d) => d.id);
         expect(ids).toEqual(expect.arrayContaining([daPropriedade1.id, daPropriedade2.id]));
+    });
+
+    it('REG-GET-14 filtro propriedadeId', async () => {
+        const outraPropriedade = await criarPropriedade(a.id);
+        const outroPasto = await criarPasto(outraPropriedade.id);
+        const outroRebanho = await criarRebanho(outraPropriedade.id, outroPasto.id);
+        const outroInsumo = await criarInsumo(outraPropriedade.id, { destino: 'Ambos' });
+
+        const daPropriedade1 = await criarRegimeConsumo(rebanho.id, insumo.id);
+        await criarRegimeConsumo(outroRebanho.id, outroInsumo.id);
+
+        const r = await get(a, `?propriedadeId=${propriedade.id}`);
+        expect(r.status).toBe(200);
+        expect(r.body.data.docs).toHaveLength(1);
+        expect(r.body.data.docs[0].id).toBe(daPropriedade1.id);
+    });
+
+    it('REG-GET-15 propriedadeId de outro usuário devolve lista vazia', async () => {
+        await criarRegimeConsumo(rebanho.id, insumo.id);
+        const b = await criarUsuario();
+        const propriedadeB = await criarPropriedade(b.id);
+
+        const r = await get(a, `?propriedadeId=${propriedadeB.id}`);
+        expect(r.status).toBe(200);
+        expect(r.body.data.docs).toEqual([]);
     });
 });

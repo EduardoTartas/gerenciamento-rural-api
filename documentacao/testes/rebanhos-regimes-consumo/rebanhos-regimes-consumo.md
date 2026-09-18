@@ -56,7 +56,9 @@ Arquivo: `test/endpoints/rebanhos-regimes-consumo/get-rebanhos-regimes-consumo.t
 | REG-GET-10 | campo extra na query (`.strict()`) | — | 400 | validationError |
 | REG-GET-11 | sem token | — | 401 | `tipo` = unauthorized |
 | REG-GET-12 | multi-tenancy: B lista regimes | regimes cadastrados por A | 200 | `data.docs` não contém nenhum regime de rebanho de A |
-| REG-GET-13 | sem `propriedadeId` disponível como filtro | A com 2 propriedades, regimes em ambas | 200 | regimes de rebanhos de propriedades diferentes do mesmo usuário aparecem juntos na mesma listagem — ver Divergências |
+| REG-GET-13 | sem `propriedadeId`, regimes de propriedades diferentes do mesmo usuário aparecem juntos | A com 2 propriedades, regimes em ambas | 200 | `data.docs` contém os regimes das duas propriedades |
+| REG-GET-14 | filtro `propriedadeId` | A com 2 propriedades, regimes em ambas | 200 | `data.docs` só traz os regimes de rebanhos da propriedade filtrada |
+| REG-GET-15 | `propriedadeId` de outro usuário | propriedade de B | 200 | `data.docs` vazio — nunca dado de outro tenant |
 
 ## GET /rebanhos/regimes-consumo/:id
 
@@ -103,6 +105,5 @@ Arquivo: `test/endpoints/rebanhos-regimes-consumo/delete-rebanhos-regimes-consum
 
 ## Divergências
 
-- **`GET /rebanhos/regimes-consumo` sem filtro por `propriedadeId`** (`src/utils/validators/schemas/zod/querys/RegimeConsumoInsumoQuerySchema.js:6-16` e `src/repository/RegimeConsumoInsumoRepository.js:25-41`): diferente de `GET /insumos` e `GET /insumos/movimentacoes`, que aceitam `propriedadeId` como filtro direto, este endpoint só permite restringir por `rebanhoId` ou `insumoId` — um usuário com várias propriedades precisa conhecer o rebanho de antemão para segmentar por propriedade. `rotas_pastolivre.md:491-492` já documenta apenas `rebanhoId, insumoId, emAberto, ativo, atualizadoDesde, page, limit` como filtros — a spec e o código já concordam nesse ponto, mas ambos divergem do padrão dos outros dois endpoints da mesma feature. Rastreado na issue GitLab #40 ("GET /rebanhos/regimes-consumo sem filtro por propriedade"); nenhuma alteração de código foi feita aqui — o cenário REG-GET-13 documenta o comportamento atual (sem o filtro).
 - Não há `AdminMiddleware` nas rotas `/rebanhos/regimes-consumo*` — a categoria "403 admin" não se aplica a este arquivo.
 - Observação (código morto): `RegimeConsumoInsumoService.list` (`src/service/RegimeConsumoInsumoService.js:29`) trunca o `limit` com `Math.min(parseInt(limit, 10) || 10, 100)`, mas o `.max(100)` do `RegimeConsumoInsumoQuerySchema` já recusa `limit > 100` com 400 antes do service — a truncagem nunca roda. Mesmo padrão nas demais rotas.

@@ -396,6 +396,7 @@ model regimeConsumoInsumo {
 
   @@index([rebanhoId])
   @@index([insumoId])
+  @@index([updatedAt])
   @@map("regimes_consumo_insumo")
 }
 
