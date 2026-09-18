@@ -94,7 +94,8 @@ Arquivo: `test/endpoints/rebanhos-manejos/patch-rebanhos-manejos-id.test.js`
 | MREB-PATCH-ID-05 | id não é UUID | — | 400 | erro de validação |
 | MREB-PATCH-ID-06 | id inexistente | — | 404 | `tipo: resourceNotFound` |
 | MREB-PATCH-ID-07 | `tipoManejoId` inexistente ou inativo | — | 404 | `tipo: resourceNotFound`; `errors[0].path: tipoManejoId` |
-| MREB-PATCH-ID-08 | atualiza `pesoRegistrado` | manejo já criado | 200 | `data.pesoRegistrado` muda, mas `rebanho.pesoMedioAtual` **não é recalculado** — divergência, ver abaixo |
+| MREB-PATCH-ID-08 | corrigir o peso da pesagem mais recente via PATCH | manejo é a pesagem mais recente do rebanho | 200 | `data.pesoRegistrado` muda e `rebanho.pesoMedioAtual` é recalculado para o novo valor |
+| MREB-PATCH-ID-08b | corrigir peso de pesagem que não é a mais recente | há um manejo mais recente com `pesoRegistrado` próprio | 200 | `data.pesoRegistrado` muda, mas `rebanho.pesoMedioAtual` permanece o da pesagem mais recente |
 | MREB-PATCH-ID-09 | sem token | — | 401 | `tipo: unauthorized` |
 | MREB-PATCH-ID-10 | multi-tenancy: B tenta atualizar manejo de A | — | 404 | `tipo: resourceNotFound` |
 | MREB-PATCH-ID-11 | admin (não dono) tenta atualizar manejo de A | token admin | 404 | sem bypass |
@@ -125,12 +126,6 @@ Arquivo: `test/endpoints/rebanhos-manejos/delete-rebanhos-manejos-id.test.js`
   manejos excluídos — típico de soft-delete, incompatível com "excluído de verdade". Documentar
   o comportamento real (soft-delete) na tabela acima; os dois documentos-fonte estão
   desatualizados nesse ponto.
-- **`PATCH /rebanhos/manejos/:id` não recalcula `rebanho.pesoMedioAtual`.**
-  `ManejoRebanhoService.update` (`src/service/ManejoRebanhoService.js:137-146`) chama
-  `this.repository.update` direto — só `create`, via `createComAtualizacaoPeso`
-  (`src/repository/ManejoRebanhoRepository.js:111-132`), atualiza o peso do rebanho. Corrigir
-  `pesoRegistrado` de um manejo já lançado, por PATCH, não reflete no peso atual do lote. Não
-  documentado em rotas_pastolivre.md §7.4.
 - A limitação de pesagem retroativa (peso mais recente por sincronização tardia sobrescreve o
   peso atual — MREB-POST-25) já está registrada em rotas_pastolivre.md §7.1; mantida aqui
   apenas para apontar o teste que a confirma.
