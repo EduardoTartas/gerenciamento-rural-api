@@ -39,12 +39,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
     const patchFoto = (usuario, id, corpo) =>
         api().patch(`/v1/usuarios/${id}/foto`).set('Authorization', usuario.bearer).send(corpo);
 
-    // Divergência: `UserIdSchema.parse(id)` roda antes de tudo em
-    // `UserController.registrarFoto`, e IDs reais de usuário (BetterAuth, 32
-    // caracteres alfanuméricos, nunca UUID) sempre falham nessa validação — a
-    // requisição nunca alcança `UserFotoSchema`, a checagem de bucket, o rollback
-    // ou o self-action. Ver ## Divergências.
-    it.fails('USR-PATCH-FOTO-01 usuário registra a própria foto', async () => {
+    it('USR-PATCH-FOTO-01 usuário registra a própria foto', async () => {
         const url = urlSintetica();
         const r = await patchFoto(a, a.id, { url });
         expect(r.status).toBe(200);
@@ -54,7 +49,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(salvo.image).toBe(url);
     });
 
-    it.fails('USR-PATCH-FOTO-02 substituição descarta avatar antigo em segundo plano', async () => {
+    it('USR-PATCH-FOTO-02 substituição descarta avatar antigo em segundo plano', async () => {
         const antiga = urlSintetica();
         await patchFoto(a, a.id, { url: antiga });
         const nova = urlSintetica();
@@ -66,7 +61,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(removeObject.mock.calls[0][1]).toBe(antiga.split('/').pop());
     });
 
-    it.fails('USR-PATCH-FOTO-03 primeira foto (sem avatar anterior) não tenta descartar nada', async () => {
+    it('USR-PATCH-FOTO-03 primeira foto (sem avatar anterior) não tenta descartar nada', async () => {
         const url = urlSintetica();
         const r = await patchFoto(a, a.id, { url });
         expect(r.status).toBe(200);
@@ -74,29 +69,25 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(removeObject).not.toHaveBeenCalled();
     });
 
-    it.fails('USR-PATCH-FOTO-04 corpo vazio / sem url', async () => {
+    it('USR-PATCH-FOTO-04 corpo vazio / sem url', async () => {
         const r = await patchFoto(a, a.id, {});
         expect(r.status).toBe(400);
         expect(r.body.errors[0].path).toBe('url');
     });
 
-    it.fails('USR-PATCH-FOTO-05 url em formato inválido', async () => {
+    it('USR-PATCH-FOTO-05 url em formato inválido', async () => {
         const r = await patchFoto(a, a.id, { url: 'não-é-url' });
         expect(r.status).toBe(400);
         expect(r.body.errors[0].message).toBe('A URL da imagem é inválida.');
     });
 
-    // Passa "por acidente": ID inválido e campo extra levam ambos a
-    // 400/validationError, então o status/tipo batem com o documentado mesmo
-    // sem a requisição alcançar `UserFotoSchema.strict()` de fato — ver
-    // Divergência acima.
     it('USR-PATCH-FOTO-06 campo extra no corpo (.strict())', async () => {
         const r = await patchFoto(a, a.id, { url: urlSintetica(), nome: 'x' });
         expect(r.status).toBe(400);
         expect(r.body.tipo).toBe('validationError');
     });
 
-    it.fails('USR-PATCH-FOTO-07 URL fora do bucket configurado', async () => {
+    it('USR-PATCH-FOTO-07 URL fora do bucket configurado', async () => {
         const r = await patchFoto(a, a.id, { url: 'https://evil.example.com/foto.jpg' });
         expect(r.status).toBe(400);
         expect(r.body.message).toBe('A URL informada não corresponde a uma imagem enviada pelo sistema.');
@@ -104,7 +95,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(removeObject).not.toHaveBeenCalled();
     });
 
-    it.fails('USR-PATCH-FOTO-08 rollback: falha ao gravar no banco desfaz o upload', async () => {
+    it('USR-PATCH-FOTO-08 rollback: falha ao gravar no banco desfaz o upload', async () => {
         const nova = urlSintetica();
         const spy = vi.spyOn(userRepository, 'update').mockRejectedValueOnce(new Error('falha simulada de banco'));
         const r = await patchFoto(a, a.id, { url: nova });
@@ -115,7 +106,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         spy.mockRestore();
     });
 
-    it.fails('USR-PATCH-FOTO-09 rollback que também falha não derruba a requisição', async () => {
+    it('USR-PATCH-FOTO-09 rollback que também falha não derruba a requisição', async () => {
         const nova = urlSintetica();
         const spy = vi.spyOn(userRepository, 'update').mockRejectedValueOnce(new Error('falha simulada de banco'));
         removeObject.mockRejectedValueOnce(new Error('garage indisponível'));
@@ -124,7 +115,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         spy.mockRestore();
     });
 
-    it.fails('USR-PATCH-FOTO-10 usuário comum tenta registrar foto de outro usuário', async () => {
+    it('USR-PATCH-FOTO-10 usuário comum tenta registrar foto de outro usuário', async () => {
         const b = await criarUsuario();
         const r = await patchFoto(a, b.id, { url: urlSintetica() });
         expect(r.status).toBe(403);
@@ -134,7 +125,7 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(removeObject).not.toHaveBeenCalled();
     });
 
-    it.fails('USR-PATCH-FOTO-11 admin tenta registrar foto de outro usuário (sem bypass)', async () => {
+    it('USR-PATCH-FOTO-11 admin tenta registrar foto de outro usuário (sem bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
         const r = await patchFoto(admin, a.id, { url: urlSintetica() });
         expect(r.status).toBe(403);

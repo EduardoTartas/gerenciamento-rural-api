@@ -8,12 +8,7 @@ import { criarPropriedade } from '../../apoio/fabricas.js';
 describe('DELETE /v1/usuarios/:id', () => {
     const del = (usuario, id) => api().delete(`/v1/usuarios/${id}`).set('Authorization', usuario.bearer);
 
-    // Divergência: `UserIdSchema.parse(id)` roda antes de tudo em
-    // `UserController.remove`, e IDs reais de usuário (BetterAuth, 32 caracteres
-    // alfanuméricos, nunca UUID) sempre falham nessa validação — a requisição
-    // nunca alcança a exclusão em si, a revogação de sessão, o cascade ou o
-    // self-action. Ver ## Divergências.
-    it.fails('USR-DELETE-01 usuário exclui a própria conta', async () => {
+    it('USR-DELETE-01 usuário exclui a própria conta', async () => {
         const a = await criarUsuario();
         const r = await del(a, a.id);
         expect(r.status).toBe(200);
@@ -24,7 +19,7 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(salvo).toBeNull();
     });
 
-    it.fails('USR-DELETE-02 sessões do usuário são revogadas antes da exclusão', async () => {
+    it('USR-DELETE-02 sessões do usuário são revogadas antes da exclusão', async () => {
         const a = await criarUsuario();
         const r = await del(a, a.id);
         expect(r.status).toBe(200);
@@ -36,7 +31,7 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(semAcesso.status).toBe(401);
     });
 
-    it.fails('USR-DELETE-03 exclusão em cascata remove dados do domínio do usuário', async () => {
+    it('USR-DELETE-03 exclusão em cascata remove dados do domínio do usuário', async () => {
         const a = await criarUsuario();
         const propriedade = await criarPropriedade(a.id);
         const r = await del(a, a.id);
@@ -45,7 +40,7 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(salvo).toBeNull();
     });
 
-    it.fails('USR-DELETE-04 usuário comum tenta excluir outro usuário', async () => {
+    it('USR-DELETE-04 usuário comum tenta excluir outro usuário', async () => {
         const a = await criarUsuario();
         const b = await criarUsuario();
         const r = await del(a, b.id);
@@ -56,7 +51,7 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(salvo).not.toBeNull();
     });
 
-    it.fails('USR-DELETE-05 admin tenta excluir outro usuário (sem bypass)', async () => {
+    it('USR-DELETE-05 admin tenta excluir outro usuário (sem bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
         const a = await criarUsuario();
         const r = await del(admin, a.id);

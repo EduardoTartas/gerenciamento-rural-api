@@ -3,11 +3,15 @@
 import { z } from 'zod/v4';
 
 /**
- * Valida o parâmetro de caminho UUID.
+ * Valida o parâmetro de caminho do usuário.
+ * O BetterAuth gera o id como string alfanumérica de 32 caracteres (sem
+ * hífens), não UUID — apesar do default do schema Prisma sugerir isso. O
+ * schema aceita esse formato e o UUID (usado em testes e no id opcional do
+ * fluxo offline-first) pelo comprimento, sem travar num charset específico.
  */
 export const UserIdSchema = z
     .string()
-    .uuid('Formato de ID de usuário inválido. Deve ser um UUID válido.');
+    .min(20, 'Formato de ID de usuário inválido.');
 
 /**
  * Valida os parâmetros de query para a listagem de usuários.
