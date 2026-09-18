@@ -30,6 +30,15 @@ class UploadService {
             });
         }
 
+        if (file.truncated) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.PAYLOAD_TOO_LARGE.code,
+                errorType: 'validationError',
+                field: 'file',
+                customMessage: 'Arquivo excede o limite de 50MB aceito pelo servidor.',
+            });
+        }
+
         const ext = file.name ? path.extname(file.name).slice(1).toLowerCase() : '';
 
         if (!EXTENSOES_VALIDAS.includes(ext)) {

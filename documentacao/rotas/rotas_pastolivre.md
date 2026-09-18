@@ -355,7 +355,7 @@ Upload genérico de imagens para o Garage. Desacoplado de qualquer entidade — 
 **Caso de Uso:** Enviar um arquivo de imagem e receber sua URL pública.
 **Regras de Negócio:**
 - **Autenticação:** requer sessão válida.
-- **Validação:** extensão (`.jpg`, `.jpeg`, `.png`) e mimetype real do binário; máximo 5MB.
+- **Validação:** extensão (`.jpg`, `.jpeg`, `.png`) e mimetype real do binário; máximo 5MB (limite de negócio, 400). Acima de 50MB (limite global do servidor), a resposta é 413 no mesmo envelope `CommonResponse`.
 - **Processamento:** redimensiona para 512x512 (`cover`) e reencoda em JPEG (Sharp) antes de enviar.
 - **Sem associação:** a imagem enviada fica órfã no bucket até algum recurso registrar sua URL (ex.: `PATCH /usuarios/:id/foto`).
 - **Decisão de escopo — sem vínculo de dono:** o upload não registra quem enviou o arquivo. Qualquer usuário autenticado que descubra a URL de outro (nome é UUID, não enumerável, mas pode vazar) pode registrá-la como sua própria foto em `PATCH /usuarios/:id/foto`. Nesse caso, se o dono original trocar de foto depois, a limpeza do avatar antigo remove o arquivo que o outro usuário também referenciava. Risco aceito conscientemente para o escopo deste TCC — não implementar vínculo de dono por upload a menos que o risco de vazamento de URL aumente (ex.: exposição em listagens públicas).

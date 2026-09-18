@@ -16,9 +16,11 @@ endpoint — não subir Garage/MinIO real. Mockar o módulo para devolver um cli
 (reject) por cenário. `UploadRepository.uploadFile` traduz qualquer rejeição do client em
 `CustomError` `storageError`/503 (`src/repository/UploadRepository.js:23-31`).
 
-O middleware `express-fileupload` está configurado globalmente em `src/app.js:80-83` com
-`limits: { fileSize: 50 * 1024 * 1024 }` e `abortOnLimit: true` — isso é anterior e independente do
-limite de 5MB que o `UploadService` aplica (ver `## Divergências`).
+O middleware `express-fileupload` está configurado globalmente em `src/app.js` com
+`limits: { fileSize: 50 * 1024 * 1024 }` e `abortOnLimit: false` — acima de 50MB o arquivo chega
+truncado (`file.truncated === true`) e `UploadService.processarImagem` rejeita com 413 no envelope
+padrão, antes de qualquer outra validação. Isso é anterior e independente do limite de negócio de
+5MB que o serviço também aplica.
 
 ## POST /uploads/imagens
 
@@ -32,6 +34,7 @@ Arquivo: `test/endpoints/uploads/post-uploads-imagens.test.js`
 | UPL-POST-04 | extensão fora da whitelist | A autenticado; arquivo `.gif` | 400 | mensagem cita a extensão rejeitada e as permitidas (`jpg, jpeg, png`); storage não é chamado |
 | UPL-POST-05 | mimetype divergente da extensão (adulteração) | A autenticado; arquivo nomeado `foto.jpg` mas com `Content-Type` diferente de `image/jpeg`/`image/png` (ex.: enviar um `.txt` renomeado) | 400 | mensagem "Tipo de arquivo inválido ou adulterado."; storage não é chamado |
 | UPL-POST-06 | arquivo acima de 5MB (limite do serviço) | A autenticado; arquivo válido de extensão/mimetype, entre 5MB e 50MB | 400 | mensagem cita o limite de 5MB; storage não é chamado |
+| UPL-POST-06b | arquivo acima de 50MB (limite global do express-fileupload) | A autenticado; arquivo > 50MB | 413 | `tipo` `validationError`; mensagem cita o limite de 50MB; resposta segue o envelope `CommonResponse`; storage não é chamado |
 | UPL-POST-07 | arquivo cujos bytes não são uma imagem decodificável | A autenticado; arquivo com extensão/mimetype válidos mas conteúdo corrompido (Sharp real, sem mock, deve falhar ao processar) | 400 | mensagem "Não foi possível processar a imagem enviada."; storage não é chamado |
 | UPL-POST-08 | falha do storage (Garage indisponível) | A autenticado; arquivo válido; mock do client rejeita `putObject` | 503 | `tipo` `storageError`; `recuperavel === true`; mensagem "Falha ao enviar o arquivo. Tente novamente mais tarde." |
 | UPL-POST-09 | imagem é redimensionada para 512x512 antes do envio | A autenticado; arquivo válido maior que 512x512 | 201 | o buffer passado a `putObject` no mock corresponde à imagem processada (dimensão/formato JPEG) — inspecionar via `sharp(bufferRecebido).metadata()` no teste, se o mock capturar o buffer real |
@@ -40,13 +43,6 @@ Arquivo: `test/endpoints/uploads/post-uploads-imagens.test.js`
 
 ## Divergências
 
-- `abortOnLimit: true` no `express-fileupload` (`src/app.js:80-83`) responde diretamente quando o
-  corpo excede 50MB, **antes** de chegar ao `UploadController`/`errorHandler` — a resposta não segue o
-  envelope `CommonResponse` (`{ message, data, errors }`) nem carrega `tipo`/`recuperavel`. Não há
-  cenário de teste de endpoint para o limite de 50MB nesta suíte (custoso e redundante com o limite de
-  negócio de 5MB, que já é coberto por UPL-POST-06 e intercepta antes); registrado aqui apenas como
-  comportamento real do sistema, para não ser confundido com bug se alguém tentar validar o envelope
-  nesse caso.
 - `UploadController.create` (`src/controllers/UploadController.js:16-21`) não valida a presença de
   `req.files` antes de acessar `req.files?.file` — o encadeamento com optional chaining evita o
   `TypeError`, mas a ausência total de corpo multipart (nenhum arquivo, nenhum campo) e um campo `file`
