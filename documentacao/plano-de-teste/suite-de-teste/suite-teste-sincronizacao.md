@@ -181,10 +181,9 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
   (manejos não têm dependentes; sem `ativo`)" para `manejo_pastos:DELETE`/`manejo_rebanhos:DELETE`. Não
   procede: os models `manejoPasto` e `manejoRebanho` (`prisma/schema.prisma`) têm coluna `ativo`, e
   `ManejoPastoRepository.remove`/`ManejoRebanhoRepository.remove` fazem `update({ data: { ativo: false
-  } })`, não `delete`. É soft-delete, igual ao que `pastagens-manejos.md` (MPAS-DELETE-ID-01) e
-  `rebanhos-manejos.md` (MREB-DELETE-ID-01) já documentam como divergência própria (a linha do CLAUDE.md
-  "manejos são excluídos de verdade" está desatualizada). Linhas do `.md` corrigidas para refletir o
-  comportamento real.
+  } })`, não `delete`. É soft-delete, igual ao que `suite-teste-manejo-pastagem.md` (MPAS-DELETE-ID-01)
+  e `suite-teste-manejo-rebanho.md` (MREB-DELETE-ID-01) já documentam. Linhas do `.md` corrigidas
+  para refletir o comportamento real.
 - **Limitação conhecida, documentada em `documentacao/sincronizacao.md` ("Limitação conhecida")**: a
   escrita da entidade (dentro do service de domínio) e o registro de idempotência não compartilham de
   fato a mesma conexão de transação — os services de domínio usam sua própria conexão Prisma e não

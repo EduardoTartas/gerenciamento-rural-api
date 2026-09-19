@@ -20,7 +20,13 @@ Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| APP-GET-01 | banco de dados conectado, sem autenticação | — | 200 | rota pública (sem `AuthMiddleware`); `data.status` = `"healthy"`; `data.database` = `"connected"`; `data.timestamp` e `data.uptime` presentes — nota: a resposta de `/health` **não** usa o envelope `CommonResponse` (`{message,data,errors}`); é um JSON próprio (`src/routes/index.js:59-74`) |
+| APP-GET-01 | banco de dados conectado, sem autenticação | — | 200 | rota pública (sem `AuthMiddleware`); `data.status` = `"healthy"`; `data.database` = `"connected"`; `data.timestamp` e `data.uptime` presentes |
+
+**Exceção intencional**: `/health` é a única rota do projeto que não usa o envelope
+`CommonResponse` (`{message, data, errors}`) — responde um JSON próprio
+(`{status, database, timestamp, uptime}`, `src/routes/index.js:59-74`). É health check de
+infraestrutura (usado por orquestrador/monitoramento), não um endpoint de negócio; o contrato
+`CommonResponse` não se aplica aqui por decisão de projeto, não por bug.
 
 ## Rota inexistente
 
@@ -73,9 +79,3 @@ Arquivo: `test/endpoints/transversal/app.test.js`
 | APP-GET-09 | requisição a rota protegida (`GET /v1/propriedades`) sem header `Authorization` e sem cookie de sessão | — | 401 | `tipo` = `unauthorized`; `recuperavel` = `true`; `message` = "Sessão inválida ou expirada. Faça login novamente." |
 | APP-GET-10 | requisição a rota protegida com `Authorization: Bearer token-invalido` | — | 401 | mesma resposta do cenário anterior — `AuthMiddleware` chama `auth.api.getSession`, que devolve sessão nula para token não reconhecido pelo BetterAuth |
 | APP-GET-11 | requisição a rota protegida com bearer token de uma sessão revogada | sessão de A removida diretamente via Prisma (`session.deleteMany({ where: { userId } })`) antes da requisição | 401 | mesma resposta — qualquer rota autenticada (não só `/propriedades`) reage igual, pois a checagem é feita pelo `AuthMiddleware` comum a todas. Não há endpoint de revogação de sessão na API para simular isso via HTTP puro, então o teste apaga a sessão direto no banco para reproduzir "token que já foi válido, mas não é mais" |
-
-## Divergências
-
-- `GET /health` não segue o envelope `CommonResponse` — é a única rota do projeto que
-  responde um JSON com forma própria (`{status, database, timestamp, uptime}`), sem
-  `{message, data, errors}`.
