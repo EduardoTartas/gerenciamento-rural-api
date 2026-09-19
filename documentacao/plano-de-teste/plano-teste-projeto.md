@@ -84,14 +84,14 @@ global de erros.
 
 ## 4 - Casos de Teste
 
-Os casos de teste estão organizados por rota, em arquivos complementares dentro de
+Os casos de teste estão organizados por rota, um arquivo por rota dentro de
 `documentacao/plano-de-teste/suite-de-teste/`. Cada arquivo traz uma tabela por endpoint, com
-cenário, pré-condições e critérios de aceite.
+cenário, pré-condições, critérios de aceite, referência a arquivo/linha do código e uma seção
+`## Divergências` com os pontos onde o comportamento real diverge da documentação de rotas.
 
 Cada cenário tem um identificador estável (por exemplo `PROP-POST-01`) que é repetido no nome do
 teste automatizado correspondente, em `test/endpoints/<rota>/`. Isso permite navegar da tabela para
-o teste e vice-versa. A contraparte técnica, com o detalhamento de cada verificação e as
-divergências encontradas entre código e documentação, está em `documentacao/testes/<rota>/`.
+o teste e vice-versa.
 
 De forma geral, cada endpoint é coberto nas seguintes categorias: sucesso, validação de corpo, query
 e parâmetros, autenticação ausente ou inválida, autorização administrativa, isolamento entre
