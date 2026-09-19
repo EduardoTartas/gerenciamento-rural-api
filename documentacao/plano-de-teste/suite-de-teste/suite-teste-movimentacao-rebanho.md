@@ -1,89 +1,132 @@
-# Plano de Teste para Endpoints de Movimentação de Rebanho
+# /rebanhos/movimentacoes
 
-Histórico imutável de troca de pasto de um rebanho (não existe `PATCH`; `DELETE` apenas desfaz a última movimentação). Fonte técnica: `documentacao/testes/rebanhos-movimentacoes/rebanhos-movimentacoes.md`. Suíte automatizada: `test/endpoints/rebanhos-movimentacoes/`.
+Controller `MovimentacaoController` · Service `MovimentacaoService` ·
+Repository `MovimentacaoRepository` · Schema `MovimentacaoCreateSchema` (única — recurso é
+imutável), `MovimentacaoQuerySchema`, `MovimentacaoIdSchema` · Regras: rotas_pastolivre.md § 6
 
-## POST /v1/rebanhos/movimentacoes
+Pré-condições comuns: usuário A e usuário B autenticados via BetterAuth. A tem um rebanho ativo
+(`rebanhoA`) alocado num pasto (`pastoOrigemA`) e outro pasto livre na mesma propriedade
+(`pastoDestinoA`).
 
-| Método & Endpoint | Cenário / Descrição | Verificações / Payloads / Headers | Critérios de Aceite Detalhados |
-| :--- | :--- | :--- | :--- |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-01] registra movimentação válida | `rebanhoA` em `pastoOrigemA`, destino `pastoDestinoA` livre | HTTP 201; envelope; `data.pastoOrigemId` = pasto atual anterior do rebanho; `data.pastoDestinoId` = enviado |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-02] aceita `id` gerado pelo cliente (offline-first) | body com `id` UUID do cliente | HTTP 201; `data.id` igual ao enviado |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-03] corpo vazio | body `{}` | HTTP 400; `errors[0].path: body` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-04] campo extra no corpo (`.strict()`) | body com campo não previsto | HTTP 400; `tipo: validationError` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-05] falta `rebanhoId` | body sem `rebanhoId` | HTTP 400; validação Zod |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-06] falta `pastoDestinoId` | body sem `pastoDestinoId` | HTTP 400; validação Zod |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-07] `dataMovimentacao` no futuro | body com `dataMovimentacao` futura | HTTP 400; mensagem "não pode ser no futuro" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-08] sem token | sem header `Authorization` | HTTP 401; `tipo: unauthorized` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-09] admin (não dono) tenta mover rebanho de A | token admin, `rebanhoId` de A | HTTP 404; `tipo: resourceNotFound`; sem bypass |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-10] B tenta mover rebanho de A (`rebanhoId` de A) | B autenticado | HTTP 404; `tipo: resourceNotFound` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-11] `rebanhoId` inexistente | `rebanhoId` = UUID válido sem registro | HTTP 404; `tipo: resourceNotFound` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-12] rebanho inativo | rebanho de A com `ativo:false` | HTTP 400; `errors[0].path: rebanhoId`, mensagem "Rebanho está inativo" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-13] `pastoDestinoId` inexistente | `pastoDestinoId` = UUID válido sem registro | HTTP 404; `tipo: resourceNotFound` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-14] `pastoDestinoId` pertence a B | B com pasto próprio, A autenticado | HTTP 404; `tipo: resourceNotFound` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-15] pasto de destino inativo | `pastoDestinoId` com `ativo:false` | HTTP 400; `errors[0].path: pastoDestinoId`, mensagem "Pasto de destino está inativo" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-16] destino igual ao pasto atual do rebanho | `pastoDestinoId` = `pastoOrigemA` | HTTP 400; `errors[0].path: pastoDestinoId`, mensagem "já está neste pasto" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-17] destino de propriedade diferente da do rebanho | `pastoDestinoId` de outra propriedade | HTTP 400; `errors[0].path: pastoDestinoId`, mensagem "não pertence à mesma propriedade" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-18] destino ocupado por outro rebanho ativo, sem `permitirLotacaoConjunta` | 1 rebanho ativo no destino | HTTP 400; `errors[0].path: pastoDestinoId`, mensagem "já tem outro lote" |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-19] destino ocupado, com `permitirLotacaoConjunta: true` | 1 rebanho ativo no destino; body `{ permitirLotacaoConjunta: true }` | HTTP 201; cria; os dois rebanhos ficam ativos no mesmo pasto |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-20] destino em status `Descanso` | pasto vazio recém-desocupado | HTTP 201; não bloqueia — regra explícita de `rotas_pastolivre.md` §6.1 |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-21] transação: atualiza `rebanho.pastoAtualId` e `dataEntradaPastoAtual` | — | HTTP 201; `GET /rebanhos/:id` mostra `pastoAtualId` = destino, `dataEntradaPastoAtual` = `dataMovimentacao` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-22] transação: pasto de destino vira `Ocupado` | destino estava `Vazio`/`Descanso` | HTTP 201; `GET /pastagens/:id` do destino mostra `status: "Ocupado"` |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-23] transação: pasto de origem esvazia | rebanho era o único ativo na origem | HTTP 201; `GET /pastagens/:id` da origem mostra `status: "Descanso"` e `dataUltimaSaida` preenchida |
-| POST /v1/rebanhos/movimentacoes | [MOV-POST-24] transação: pasto de origem não esvazia | outro rebanho ativo continua na origem | HTTP 201; `status` da origem permanece `Ocupado`; `dataUltimaSaida` não muda |
+**Recurso imutável**: não existe rota `PATCH /rebanhos/movimentacoes/:id` — o histórico não
+pode ser editado (ver `suite-teste-transversal.md` para o teste de que essa rota não
+existe). O `DELETE` não apaga o registro: desfaz apenas a última movimentação do rebanho.
 
-## GET /v1/rebanhos/movimentacoes
+Nenhuma das rotas abaixo usa `AdminMiddleware`. Um usuário com `user.admin = true` não tem
+acesso especial: os cenários "403 admin" verificam que ele recebe o mesmo 404 que qualquer
+usuário não-dono ao mexer em recurso de outro usuário.
 
-| Método & Endpoint | Cenário / Descrição | Verificações / Payloads / Headers | Critérios de Aceite Detalhados |
-| :--- | :--- | :--- | :--- |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-01] lista movimentações ativas de A | 2+ movimentações | HTTP 200; `data.docs` só de A |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-02] usuário sem movimentações | usuário A autenticado, sem movimentações | HTTP 200; `message`: "Nenhuma movimentação registrada." |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-03] filtro sem resultado | query sem correspondência | HTTP 200; `message`: "Nenhuma movimentação encontrada com os filtros informados." |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-04] ordenação | 3+ movimentações em datas diferentes | HTTP 200; `data.docs` ordenado por `dataMovimentacao` decrescente |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-05] filtro `rebanhoId` | query `?rebanhoId=...` | HTTP 200; só movimentações daquele rebanho |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-06] filtro `propriedadeId` | query `?propriedadeId=...` | HTTP 200; só movimentações de rebanhos daquela propriedade |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-07] filtro `pastoOrigemId` | query `?pastoOrigemId=...` | HTTP 200; só movimentações com aquela origem |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-08] filtro `pastoDestinoId` | query `?pastoDestinoId=...` | HTTP 200; só movimentações com aquele destino |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-09] filtro `dataInicio`/`dataFim` | query com intervalo | HTTP 200; só movimentações no intervalo |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-10] `ativo=false` | movimentação desfeita existente | HTTP 200; retorna só as desfeitas |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-11] `atualizadoDesde` (delta) | 1 movimentação válida e 1 desfeita atualizadas após a marca | HTTP 200; `data.docs` traz as duas; cada item tem `ativo` e `updatedAt` |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-12] paginação | 3+ movimentações, `limit=2` | HTTP 200; `data.docs.length` = 2 |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-13] `limit` acima de 100 | `limit=101` | HTTP 400; validação Zod |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-14] query com campo extra | query com campo não previsto | HTTP 400; `tipo: validationError` |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-15] sem token | sem header `Authorization` | HTTP 401; `tipo: unauthorized` |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-16] admin (não dono) lista | token admin | HTTP 200; `data.docs` não inclui movimentações de A/B |
-| GET /v1/rebanhos/movimentacoes | [MOV-GET-17] multi-tenancy: B não vê movimentações de A | A e B com movimentações próprias | HTTP 200; `data.docs` de B não contém IDs de A |
+## POST /rebanhos/movimentacoes
 
-## GET /v1/rebanhos/movimentacoes/:id
+Arquivo: `test/endpoints/rebanhos-movimentacoes/post-rebanhos-movimentacoes.test.js`
 
-| Método & Endpoint | Cenário / Descrição | Verificações / Payloads / Headers | Critérios de Aceite Detalhados |
-| :--- | :--- | :--- | :--- |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-01] busca movimentação de A | usuário A autenticado, `:id` próprio | HTTP 200; `data` traz `rebanho`, `pastoOrigem`, `pastoDestino` aninhados |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-02] id não é UUID | `:id` = string não-UUID | HTTP 400; erro de validação |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-03] id inexistente | `:id` = UUID válido sem registro | HTTP 404; `tipo: resourceNotFound` |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-04] sem token | sem header `Authorization` | HTTP 401; `tipo: unauthorized` |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-05] multi-tenancy: B busca movimentação de A | B autenticado, `:id` de movimentação de A | HTTP 404; mesmo erro de "não encontrado" |
-| GET /v1/rebanhos/movimentacoes/:id | [MOV-GET-ID-06] admin (não dono) busca movimentação de A | token admin | HTTP 404; sem bypass |
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MOV-POST-01 | registra movimentação válida | `rebanhoA` em `pastoOrigemA`, destino `pastoDestinoA` livre | 201 | envelope; `data.pastoOrigemId` = pasto atual anterior do rebanho; `data.pastoDestinoId` = enviado |
+| MOV-POST-02 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao enviado |
+| MOV-POST-03 | corpo vazio | — | 400 | `errors[0].path: body` |
+| MOV-POST-04 | campo extra no corpo (`.strict()`) | — | 400 | `tipo: validationError` |
+| MOV-POST-05 | falta `rebanhoId` | — | 400 | validação Zod |
+| MOV-POST-06 | falta `pastoDestinoId` | — | 400 | validação Zod |
+| MOV-POST-07 | `dataMovimentacao` no futuro | — | 400 | mensagem "não pode ser no futuro" |
+| MOV-POST-08 | sem token | — | 401 | `tipo: unauthorized` |
+| MOV-POST-09 | admin (não dono) tenta mover rebanho de A | token admin | 404 | `tipo: resourceNotFound`; sem bypass |
+| MOV-POST-10 | B tenta mover rebanho de A (`rebanhoId` de A) | — | 404 | `tipo: resourceNotFound` |
+| MOV-POST-11 | `rebanhoId` inexistente | — | 404 | `tipo: resourceNotFound` |
+| MOV-POST-12 | rebanho inativo | rebanho de A com `ativo:false` | 400 | `errors[0].path: rebanhoId`, mensagem "Rebanho está inativo" |
+| MOV-POST-13 | `pastoDestinoId` inexistente | — | 404 | `tipo: resourceNotFound` |
+| MOV-POST-14 | `pastoDestinoId` pertence a B | B com pasto próprio, A autenticado | 404 | `tipo: resourceNotFound` |
+| MOV-POST-15 | pasto de destino inativo | — | 400 | `errors[0].path: pastoDestinoId`, mensagem "Pasto de destino está inativo" |
+| MOV-POST-16 | destino igual ao pasto atual do rebanho | `pastoDestinoId` = `pastoOrigemA` | 400 | `errors[0].path: pastoDestinoId`, mensagem "já está neste pasto" |
+| MOV-POST-17 | destino de propriedade diferente da do rebanho | — | 400 | `errors[0].path: pastoDestinoId`, mensagem "não pertence à mesma propriedade" |
+| MOV-POST-18 | destino ocupado por outro rebanho ativo, sem `permitirLotacaoConjunta` | 1 rebanho ativo no destino | 400 | `errors[0].path: pastoDestinoId`, mensagem "já tem outro lote" |
+| MOV-POST-19 | destino ocupado, com `permitirLotacaoConjunta: true` | 1 rebanho ativo no destino | 201 | cria; os dois rebanhos ficam ativos no mesmo pasto |
+| MOV-POST-20 | destino em status `Descanso` | pasto vazio recém-desocupado | 201 | não bloqueia — regra explícita de rotas_pastolivre.md §6.1 |
+| MOV-POST-21 | transação: atualiza `rebanho.pastoAtualId` e `dataEntradaPastoAtual` | — | 201 | `GET /rebanhos/:id` mostra `pastoAtualId` = destino, `dataEntradaPastoAtual` = `dataMovimentacao` |
+| MOV-POST-22 | transação: pasto de destino vira `Ocupado` | destino estava `Vazio`/`Descanso` | 201 | `GET /pastagens/:id` do destino mostra `status: "Ocupado"` |
+| MOV-POST-23 | transação: pasto de origem esvazia | rebanho era o único ativo na origem | 201 | `GET /pastagens/:id` da origem mostra `status: "Descanso"` e `dataUltimaSaida` preenchida |
+| MOV-POST-24 | transação: pasto de origem não esvazia | outro rebanho ativo continua na origem | 201 | `status` da origem permanece `Ocupado`; `dataUltimaSaida` não muda |
 
-## DELETE /v1/rebanhos/movimentacoes/:id
+## GET /rebanhos/movimentacoes
 
-Desfaz a última movimentação do rebanho (não apaga o registro); ver `src/repository/MovimentacaoRepository.js` (`createComTransacao`, `desfazerComTransacao`) e `test/desfazerMovimentacao.test.js`.
+Arquivo: `test/endpoints/rebanhos-movimentacoes/get-rebanhos-movimentacoes.test.js`
 
-| Método & Endpoint | Cenário / Descrição | Verificações / Payloads / Headers | Critérios de Aceite Detalhados |
-| :--- | :--- | :--- | :--- |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-01] desfaz a última movimentação do rebanho | movimentação é a mais recente ativa do rebanho | HTTP 200; `message`: "Movimentação desfeita com sucesso."; no banco, movimentação fica `ativo:false`; `rebanho.pastoAtualId` volta ao `pastoOrigemId`; `rebanho.dataEntradaPastoAtual` = `dataMovimentacao` da desfeita |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-02] tenta desfazer uma movimentação que não é a última | rebanho tem 2+ movimentações, alvo não é a mais recente | HTTP 409; `tipo: conflict`, `errors[0].path: id`, mensagem cita o id da última válida |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-03] pasto de origem volta a ficar ocupado após a reversão | pasto de origem estava vazio (`Descanso`) antes do desfazer — o rebanho volta a ser o único ocupante | HTTP 200; `GET /pastagens/:id` da origem mostra `status: "Ocupado"` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-04] pasto de origem continua ocupado após a reversão | outro rebanho ativo já estava na origem | HTTP 200; `status` da origem permanece/volta a `Ocupado` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-05] pasto de destino (de onde o lote saiu ao desfazer) fica sem rebanhos ativos | rebanho desfeito era o único no destino | HTTP 200; `status` do destino recalculado para `Descanso`, `dataUltimaSaida` atualizada |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-06] pasto de destino continua ocupado após a reversão | outro rebanho ativo permanece no destino | HTTP 200; `status` do destino permanece `Ocupado` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-07] id não é UUID | `:id` = string não-UUID | HTTP 400; erro de validação |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-08] id inexistente | `:id` = UUID válido sem registro | HTTP 404; `tipo: resourceNotFound` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-09] sem token | sem header `Authorization` | HTTP 401; `tipo: unauthorized` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-10] multi-tenancy: B tenta desfazer movimentação de A | B autenticado, `:id` de movimentação de A | HTTP 404; `tipo: resourceNotFound` |
-| DELETE /v1/rebanhos/movimentacoes/:id | [MOV-DELETE-ID-11] admin (não dono) tenta desfazer movimentação de A | token admin | HTTP 404; sem bypass |
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MOV-GET-01 | lista movimentações ativas de A | 2+ movimentações | 200 | `data.docs` só de A |
+| MOV-GET-02 | usuário sem movimentações | — | 200 | `message`: "Nenhuma movimentação registrada." |
+| MOV-GET-03 | filtro sem resultado | — | 200 | `message`: "Nenhuma movimentação encontrada com os filtros informados." |
+| MOV-GET-04 | ordenação | 3+ movimentações em datas diferentes | 200 | `data.docs` ordenado por `dataMovimentacao` decrescente |
+| MOV-GET-05 | filtro `rebanhoId` | — | 200 | só movimentações daquele rebanho |
+| MOV-GET-06 | filtro `propriedadeId` | — | 200 | só movimentações de rebanhos daquela propriedade |
+| MOV-GET-07 | filtro `pastoOrigemId` | — | 200 | só movimentações com aquela origem |
+| MOV-GET-08 | filtro `pastoDestinoId` | — | 200 | só movimentações com aquele destino |
+| MOV-GET-09 | filtro `dataInicio`/`dataFim` | — | 200 | só movimentações no intervalo |
+| MOV-GET-10 | `ativo=false` | movimentação desfeita existente | 200 | retorna só as desfeitas |
+| MOV-GET-11 | `atualizadoDesde` (delta) | 1 movimentação válida e 1 desfeita atualizadas após a marca | 200 | `data.docs` traz as duas; cada item tem `ativo` e `updatedAt` |
+| MOV-GET-12 | paginação | 3+ movimentações, `limit=2` | 200 | `data.docs.length` = 2 |
+| MOV-GET-13 | `limit` acima de 100 | `limit=101` | 400 | validação Zod |
+| MOV-GET-14 | query com campo extra | — | 400 | `tipo: validationError` |
+| MOV-GET-15 | sem token | — | 401 | `tipo: unauthorized` |
+| MOV-GET-16 | admin (não dono) lista | token admin | 200 | `data.docs` não inclui movimentações de A/B |
+| MOV-GET-17 | multi-tenancy: B não vê movimentações de A | — | 200 | `data.docs` de B não contém IDs de A |
 
-## Bugs conhecidos
+## GET /rebanhos/movimentacoes/:id
 
-- Correção de cenário (não é bug de código): a linha original de MOV-DELETE-ID-03 descrevia um caso logicamente impossível ("pasto de origem fica sem rebanhos ativos após a reversão"). Em `desfazerComTransacao` (`src/repository/MovimentacaoRepository.js:150-201`) o rebanho é devolvido ao `pastoOrigemId` da movimentação desfeita, então esse pasto sempre ganha um ocupante na reversão — nunca fica vazio por causa dela; quem pode ficar vazio é o `pastoDestinoId` (já coberto por MOV-DELETE-ID-05). O cenário acima já reflete o comportamento real.
-- Nenhuma outra divergência de comportamento encontrada entre o código, `rotas_pastolivre.md` §6 e `CLAUDE.md` para esta rota — `createComTransacao` e `desfazerComTransacao` implementam exatamente as regras documentadas (transação atômica, contagem de ocupantes dentro da transação, reconferência da "última movimentação" com o cliente transacional).
-- Observação de escopo: a reconferência dentro da transação (`src/repository/MovimentacaoRepository.js:140-149`) cobre uma corrida entre o `findFirst` externo (`MovimentacaoService.remove`) e a abertura da transação; não é prática forçar essa corrida via HTTP — já coberta por teste unitário em `test/desfazerMovimentacao.test.js` e por MOV-DELETE-ID-02 na via normal.
+Arquivo: `test/endpoints/rebanhos-movimentacoes/get-rebanhos-movimentacoes-id.test.js`
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MOV-GET-ID-01 | busca movimentação de A | — | 200 | `data` traz `rebanho`, `pastoOrigem`, `pastoDestino` aninhados |
+| MOV-GET-ID-02 | id não é UUID | — | 400 | erro de validação |
+| MOV-GET-ID-03 | id inexistente | — | 404 | `tipo: resourceNotFound` |
+| MOV-GET-ID-04 | sem token | — | 401 | `tipo: unauthorized` |
+| MOV-GET-ID-05 | multi-tenancy: B busca movimentação de A | — | 404 | mesmo erro de "não encontrado" |
+| MOV-GET-ID-06 | admin (não dono) busca movimentação de A | token admin | 404 | sem bypass |
+
+## DELETE /rebanhos/movimentacoes/:id
+
+Desfaz a última movimentação do rebanho (ver `src/repository/MovimentacaoRepository.js`,
+métodos `createComTransacao` e `desfazerComTransacao`, e `test/desfazerMovimentacao.test.js`).
+
+Arquivo: `test/endpoints/rebanhos-movimentacoes/delete-rebanhos-movimentacoes-id.test.js`
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MOV-DELETE-ID-01 | desfaz a última movimentação do rebanho | movimentação é a mais recente ativa do rebanho | 200 | `message`: "Movimentação desfeita com sucesso."; no banco, movimentação fica `ativo:false`; `rebanho.pastoAtualId` volta ao `pastoOrigemId`; `rebanho.dataEntradaPastoAtual` = `dataMovimentacao` da desfeita |
+| MOV-DELETE-ID-02 | tenta desfazer uma movimentação que não é a última | rebanho tem 2+ movimentações, alvo não é a mais recente | 409 | `tipo: conflict`, `errors[0].path: id`, mensagem cita o id da última válida |
+| MOV-DELETE-ID-03 | pasto de origem volta a ficar ocupado após a reversão | pasto de origem estava vazio (`Descanso`) antes do desfazer — o rebanho volta a ser o único ocupante | 200 | `GET /pastagens/:id` da origem mostra `status: "Ocupado"` |
+| MOV-DELETE-ID-04 | pasto de origem continua ocupado após a reversão | outro rebanho ativo já estava na origem | 200 | `status` da origem permanece/volta a `Ocupado` |
+| MOV-DELETE-ID-05 | pasto de destino (de onde o lote saiu ao desfazer) fica sem rebanhos ativos | rebanho desfeito era o único no destino | 200 | `status` do destino recalculado para `Descanso`, `dataUltimaSaida` atualizada |
+| MOV-DELETE-ID-06 | pasto de destino continua ocupado após a reversão | outro rebanho ativo permanece no destino | 200 | `status` do destino permanece `Ocupado` |
+| MOV-DELETE-ID-07 | id não é UUID | — | 400 | erro de validação |
+| MOV-DELETE-ID-08 | id inexistente | — | 404 | `tipo: resourceNotFound` |
+| MOV-DELETE-ID-09 | sem token | — | 401 | `tipo: unauthorized` |
+| MOV-DELETE-ID-10 | multi-tenancy: B tenta desfazer movimentação de A | — | 404 | `tipo: resourceNotFound` |
+| MOV-DELETE-ID-11 | admin (não dono) tenta desfazer movimentação de A | token admin | 404 | sem bypass |
+
+## Divergências
+
+Correção de cenário: a linha original de MOV-DELETE-ID-03 descrevia "pasto de origem fica
+sem rebanhos ativos após a reversão" com pré-condição "rebanho volta a ser o único que
+ocupava a origem" — cenário logicamente impossível. Em `desfazerComTransacao`
+(`src/repository/MovimentacaoRepository.js:150-201`), o rebanho é devolvido ao
+`pastoOrigemId` da movimentação desfeita, então esse pasto **sempre ganha** um ocupante na
+reversão (nunca fica vazio por causa dela); quem pode ficar vazio é o `pastoDestinoId` (de
+onde o lote saiu ao desfazer — já coberto por MOV-DELETE-ID-05). A linha foi corrigida para
+testar o caso real e complementar a MOV-DELETE-ID-04: o pasto de origem, que estava vazio
+(`Descanso`), volta a `Ocupado` ao receber o rebanho de volta.
+
+Nenhuma outra divergência de comportamento encontrada entre o código, `rotas_pastolivre.md` § 6 e
+`CLAUDE.md` para esta rota — `createComTransacao` e `desfazerComTransacao` implementam
+exatamente as regras documentadas (transação atômica, contagem de ocupantes dentro da
+transação, reconferência da "última movimentação" com o cliente transacional).
+
+Observação de escopo: a reconferência dentro da transação existe especificamente para cobrir
+uma corrida entre o `findFirst` externo (`MovimentacaoService.remove`) e a abertura da
+transação (`MovimentacaoRepository.desfazerComTransacao`) — ver comentário em
+`src/repository/MovimentacaoRepository.js:140-149` e o teste
+"reconfere dentro da transação" em `test/desfazerMovimentacao.test.js`. Não é prático forçar
+essa corrida de verdade sobre HTTP; a garantia estrutural já está coberta pelo teste unitário
+existente e não precisa de um cenário HTTP dedicado — MOV-DELETE-ID-02 já cobre o caso
+observável (tentar desfazer algo que não é mais a última) pela via normal.

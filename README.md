@@ -124,7 +124,7 @@ modo que o mesmo registro tenha o mesmo ID no celular e no servidor.
 > (`docker compose -f docker-compose.dev.yml up -d postgresql`). Eles usam o banco
 > `pasto_livre_teste`, criado e migrado automaticamente e truncado antes de cada teste — o banco
 > de desenvolvimento não é tocado. Os cenários de cada rota estão documentados em
-> `documentacao/testes/<rota>/<rota>.md`.
+> `documentacao/plano-de-teste/suite-de-teste/suite-teste-<rota>.md`.
 
 ---
 
