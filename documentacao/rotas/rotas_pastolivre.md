@@ -261,6 +261,8 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 
 ### 7.4 PATCH /rebanhos/manejos/:id
 **Caso de Uso:** Corrigir um lançamento (tipo, data, medicamento, peso, observações).
+**Regras de Negócio:**
+- **Efeito de Pesagem:** se `pesoRegistrado` for alterado e este manejo for a pesagem mais recente do rebanho, `pesoMedioAtual` é recalculado com o novo valor — mesma regra do `POST`. Corrigir uma pesagem que não é a mais recente não mexe no peso atual.
 
 ### 7.5 DELETE /rebanhos/manejos/:id
 **Caso de Uso:** Remover um manejo lançado por engano.

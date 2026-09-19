@@ -65,13 +65,31 @@ describe('PATCH /v1/rebanhos/manejos/:id', () => {
         expect(r.body.errors[0].path).toBe('tipoManejoId');
     });
 
-    it('MREB-PATCH-ID-08 atualiza pesoRegistrado, mas não recalcula pesoMedioAtual do rebanho', async () => {
+    it('MREB-PATCH-ID-08 corrigir o peso da pesagem mais recente via PATCH atualiza pesoMedioAtual', async () => {
         const r = await patch(a, manejo.id, { pesoRegistrado: 480 });
         expect(r.status).toBe(200);
         expect(Number(r.body.data.pesoRegistrado)).toBe(480);
 
         const rebanhoAtual = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
-        expect(rebanhoAtual.pesoMedioAtual === null || Number(rebanhoAtual.pesoMedioAtual) !== 480).toBe(true);
+        expect(Number(rebanhoAtual.pesoMedioAtual)).toBe(480);
+    });
+
+    it('MREB-PATCH-ID-08b corrigir uma pesagem que não é a mais recente não mexe no peso atual', async () => {
+        const maisRecente = await criarManejoRebanho(rebanho.id, tipoManejo.id, {
+            dataAtividade: new Date('2026-02-01T00:00:00Z'),
+            pesoRegistrado: 350,
+        });
+        await DbConnect.prisma.rebanho.update({ where: { id: rebanho.id }, data: { pesoMedioAtual: 350 } });
+
+        const r = await patch(a, manejo.id, { pesoRegistrado: 280 });
+        expect(r.status).toBe(200);
+        expect(Number(r.body.data.pesoRegistrado)).toBe(280);
+
+        const rebanhoAtual = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(Number(rebanhoAtual.pesoMedioAtual)).toBe(350);
+
+        const recente = await DbConnect.prisma.manejoRebanho.findUnique({ where: { id: maisRecente.id } });
+        expect(Number(recente.pesoRegistrado)).toBe(350);
     });
 
     it('MREB-PATCH-ID-09 sem token', async () => {
