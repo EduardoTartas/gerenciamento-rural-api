@@ -113,6 +113,17 @@ describe('POST /v1/uploads/imagens', () => {
         expect(putObject).not.toHaveBeenCalled();
     });
 
+    it('UPL-POST-06b arquivo acima de 50MB (limite global do express-fileupload) responde no envelope', async () => {
+        const buffer = Buffer.alloc(51 * 1024 * 1024, 1);
+        const r = await enviar(a, buffer, { filename: 'foto.jpg', contentType: 'image/jpeg' });
+
+        expect(r.status).toBe(413);
+        expect(r.body.tipo).toBe('validationError');
+        expect(r.body.message).toBe('Arquivo excede o limite de 50MB aceito pelo servidor.');
+        expect(r.body.errors).toBeDefined();
+        expect(putObject).not.toHaveBeenCalled();
+    });
+
     it('UPL-POST-07 arquivo cujos bytes não são uma imagem decodificável', async () => {
         const buffer = Buffer.from('isto nao e uma imagem valida de verdade'.repeat(50));
         const r = await enviar(a, buffer, { filename: 'foto.jpg', contentType: 'image/jpeg' });
