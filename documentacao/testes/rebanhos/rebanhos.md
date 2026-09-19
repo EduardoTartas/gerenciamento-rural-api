@@ -18,7 +18,7 @@ Arquivo: `test/endpoints/rebanhos/post-rebanhos.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| REB-POST-01 | cria com dados válidos | propriedade+pasto ativos de A | 201 | envelope `{message,data,errors}`; `data.id`; `data.propriedadeId` = propriedade de A (o POST devolve o registro cru, sem relações — ver Divergências); rebanho gravado no banco |
+| REB-POST-01 | cria com dados válidos | propriedade+pasto ativos de A | 201 | envelope `{message,data,errors}`; `data.id`; `data.propriedadeId` = propriedade de A; `data.propriedade`/`data.pastoAtual` aninhados (mesmo formato de GET/PATCH); rebanho gravado no banco |
 | REB-POST-02 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao enviado |
 | REB-POST-03 | corpo vazio | — | 400 | `tipo: validationError`, `errors[0].path: body` |
 | REB-POST-04 | campo extra no corpo (`.strict()`) | — | 400 | `tipo: validationError` |
@@ -121,12 +121,6 @@ Arquivo: `test/endpoints/rebanhos/delete-rebanhos-id.test.js`
 
 ## Divergências
 
-- **`POST /rebanhos` devolve uma forma diferente de `GET`/`PATCH`.** `RebanhoService.create`
-  (`src/service/RebanhoService.js:118-128`) grava com `tx.rebanho.create({ data })` dentro da
-  transação, sem o `select: REBANHO_SELECT` que `RebanhoRepository.create` (`:100-102`) aplica.
-  O corpo da criação traz só as colunas da tabela (`propriedadeId`, `pastoAtualId`, ...), enquanto
-  a leitura e a atualização trazem as relações aninhadas (`propriedade`, `pastoAtual`, `raca`, ...).
-  O app precisa tratar as duas formas. Cenário REB-POST-01 asserta o comportamento atual.
 - `RebanhoRepository.findByNome` (`:83-91`) só considera rebanhos ativos — nome duplicado com
   um rebanho inativo é permitido (REB-POST-18). Coerente com o comportamento de "reciclagem de
   nome" já documentado para pastos (rotas_pastolivre.md §3.1), mas não estava explícito em §5.
