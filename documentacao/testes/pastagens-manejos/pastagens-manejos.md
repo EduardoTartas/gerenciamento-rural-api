@@ -41,7 +41,7 @@ Arquivo: `test/endpoints/pastagens-manejos/post-pastagens-manejos.test.js`
 | MPAS-POST-19 | item com `insumoId` que não existe na propriedade do pasto | — | 400 | `tipo` = `validationError`; `errors[0].path` = `itens`; `message` inclui "não encontrado nesta propriedade" |
 | MPAS-POST-20 | item com `insumoId` de outra propriedade do mesmo usuário | A tem insumo em propriedade diferente da do pasto | 400 | mesma resposta do cenário anterior (`insumo.propriedadeId !== pasto.propriedadeId`) |
 | MPAS-POST-21 | item com `insumoId` de insumo `destino: "Rebanho"` | — | 400 | `errors[0].path` = `itens`; `message` inclui "não é destinado ao pasto" |
-| MPAS-POST-22 | dois itens com o mesmo `insumoId` repetido | — | 201 | cria **duas** movimentações de saída (uma por item da lista) — o `insumosPorId` só evita reconsultar o insumo, não deduplica a movimentação (ver `## Divergências`) |
+| MPAS-POST-22 | dois itens com o mesmo `insumoId` repetido | quantidades 1 e 2 | 201 | funde numa **única** movimentação de saída, com quantidade somada (3) |
 | MPAS-POST-23 | saída deixa o saldo do insumo negativo | insumo com pouco saldo disponível | 201 | manejo é criado mesmo assim; `data.avisos` contém mensagem "Estoque insuficiente de ... — saldo ficará negativo." — a regra avisa, não bloqueia |
 | MPAS-POST-24 | sem token | — | 401 | `tipo` = `unauthorized` |
 
@@ -134,9 +134,5 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
   `delete`. Confirmado por `documentacao/rotas/rotas_pastolivre.md:157-160` e por
   `test/manejoSoftDelete.test.js:22-35`. `CLAUDE.md` está desatualizado neste ponto; o teste
   de endpoint deve validar o comportamento real (soft-delete), não a frase do `CLAUDE.md`.
-- Itens duplicados (mesmo `insumoId` repetido no array `itens` do POST) não são deduplicados:
-  cada ocorrência gera sua própria movimentação de saída. `insumosPorId`
-  (`src/service/ManejoPastoService.js:82-105`) só evita reconsultar o mesmo insumo no banco —
-  não existe validação que rejeite ou funda itens repetidos.
 - Aviso de saldo negativo (`data.avisos`, `src/service/ManejoPastoService.js:137-139`) nunca
   bloqueia a criação do manejo — é informativo.

@@ -204,7 +204,7 @@ describe('POST /v1/pastagens/manejos', () => {
         expect(r.body.errors[0].message).toContain('não é destinado ao pasto');
     });
 
-    it('MPAS-POST-22 dois itens com o mesmo insumoId repetido cria duas movimentações', async () => {
+    it('MPAS-POST-22 dois itens com o mesmo insumoId repetido fundem numa só movimentação, somando a quantidade', async () => {
         const insumo = await criarInsumo(propriedade.id, { destino: 'Pasto' });
         const r = await post(a, corpoBase({
             itens: [
@@ -214,10 +214,11 @@ describe('POST /v1/pastagens/manejos', () => {
         }));
         expect(r.status).toBe(201);
 
-        const total = await DbConnect.prisma.movimentacaoInsumo.count({
+        const movimentacoes = await DbConnect.prisma.movimentacaoInsumo.findMany({
             where: { manejoPastoId: r.body.data.id },
         });
-        expect(total).toBe(2);
+        expect(movimentacoes).toHaveLength(1);
+        expect(Number(movimentacoes[0].quantidade)).toBe(3);
     });
 
     it('MPAS-POST-23 saída deixa o saldo do insumo negativo', async () => {
