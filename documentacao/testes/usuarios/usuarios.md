@@ -10,9 +10,8 @@ admin pelo fluxo normal de sign-up).
 
 `GET /usuarios` (listagem) é restrito a admin pela rota (`AdminMiddleware`, antes do controller).
 `GET/PATCH/DELETE /usuarios/:id` e `PATCH /usuarios/:id/foto` distinguem "ação própria" de
-"outro usuário" dentro do `UserService` — a regra **não é uniforme**: em `GET /usuarios/:id` o admin
-pode consultar qualquer usuário; em `PATCH`, `DELETE` e `PATCH .../foto` **não há bypass de admin**,
-só o próprio dono pode agir (ver seção "## Divergências" para o porquê isso importa ao testar).
+"outro usuário" dentro do `UserService` — admin tem bypass de `ensureSelfAction` em todos eles,
+de forma uniforme: pode consultar, atualizar, excluir e trocar a foto de qualquer usuário.
 
 `:id` aceita tanto o formato de id gerado pelo BetterAuth (string alfanumérica de 32 caracteres,
 sem hífens) quanto UUID (usado no `id` opcional do fluxo offline-first e nos testes com
@@ -62,7 +61,7 @@ Arquivo: `test/endpoints/usuarios/patch-usuarios-id.test.js`
 | USR-PATCH-08 | `image` que não é URL válida | A; `id` = A; `{ image: "not-a-url" }` | 400 | mensagem "A imagem deve ser uma URL válida." |
 | USR-PATCH-09 | `email` já em uso por outro usuário | A; `id` = A; envia e-mail de B | 409 | `tipo` `conflict`; mensagem "E-mail já cadastrado." |
 | USR-PATCH-10 | usuário comum tenta atualizar outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para atualizar o perfil de outro usuário." |
-| USR-PATCH-11 | admin tenta atualizar outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` — `UserService.update` não isenta admin de `ensureSelfAction` |
+| USR-PATCH-11 | admin atualiza outro usuário (bypass) | admin autenticado, `id` = A | 200 | `data.name` reflete a alteração — `UserService.update` isenta admin de `ensureSelfAction` |
 | USR-PATCH-12 | ID em formato inválido | A; `/usuarios/abc` | 400 | `tipo` `validationError` |
 | USR-PATCH-13 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-PATCH-14 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
@@ -87,7 +86,7 @@ dependem do upload real, uma URL sintética `${GARAGE_PUBLIC_URL}/<uuid>.jpeg`.
 | USR-PATCH-FOTO-08 | rollback: falha ao gravar no banco desfaz o upload | A; `id` = A; simular `repository.update` (ou uma constraint) falhando após a URL passar na validação de bucket | 5xx/4xx conforme o erro original propagado | a imagem recém-enviada é removida do bucket (chamada de `deletarImagem` com a nova URL); erro original repropagado ao cliente, não mascarado |
 | USR-PATCH-FOTO-09 | rollback que também falha não derruba a requisição | A; `id` = A; update falha **e** a remoção no storage também falha | mesmo status do erro original | resposta ainda reflete o erro original (rollback é fire-and-forget/best effort, com log, não trava a resposta) |
 | USR-PATCH-FOTO-10 | usuário comum tenta registrar foto de outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para atualizar a foto de outro usuário."; nenhuma chamada ao storage |
-| USR-PATCH-FOTO-11 | admin tenta registrar foto de outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` |
+| USR-PATCH-FOTO-11 | admin registra foto de outro usuário (bypass) | admin autenticado, `id` = A | 200 | `data.image` reflete a nova URL |
 | USR-PATCH-FOTO-12 | ID em formato inválido | A; `/usuarios/abc/foto` | 400 | `tipo` `validationError` |
 | USR-PATCH-FOTO-13 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-PATCH-FOTO-14 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
@@ -102,18 +101,8 @@ Arquivo: `test/endpoints/usuarios/delete-usuarios-id.test.js`
 | USR-DELETE-02 | sessões do usuário são revogadas antes da exclusão | A autenticado, `id` = A; A com sessão ativa (token da própria requisição) | 200 | após a chamada, uma requisição autenticada com o token revogado retorna 401 (ou a tabela `session` não tem mais linhas para `userId = A.id`, já que o usuário some por cascata) |
 | USR-DELETE-03 | exclusão em cascata remove dados do domínio do usuário | A com ao menos uma propriedade cadastrada | 200 | no banco, propriedades/pastos/rebanhos/históricos de A não existem mais (cascade do schema Prisma) |
 | USR-DELETE-04 | usuário comum tenta excluir outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para excluir a conta de outro usuário."; no banco, B continua existindo |
-| USR-DELETE-05 | admin tenta excluir outro usuário (sem bypass) | admin autenticado, `id` = A | 403 | `tipo` `forbidden` — não há exclusão administrativa de conta alheia neste endpoint |
+| USR-DELETE-05 | admin exclui outro usuário (bypass) | admin autenticado, `id` = A | 200 | no banco, A não existe mais — exclusão administrativa de conta alheia é permitida |
 | USR-DELETE-06 | ID em formato inválido | A; `/usuarios/abc` | 400 | `tipo` `validationError` |
 | USR-DELETE-07 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-DELETE-08 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
-## Divergências
-
-- Assimetria de autorização entre métodos: `GET /usuarios/:id` permite que admin consulte qualquer
-  usuário (`UserService.list`, `src/service/UserService.js:29-34`, checa `req.user.admin`), mas
-  `PATCH /usuarios/:id`, `DELETE /usuarios/:id` e `PATCH /usuarios/:id/foto` não têm o mesmo bypass —
-  `ensureSelfAction` (`src/service/UserService.js:171-181`) é chamado incondicionalmente, mesmo para
-  admin. `rotas_pastolivre.md` § 9.3/9.4/9.5 documenta apenas "Ação Própria" sem mencionar exceção
-  para admin, então o comportamento do código está alinhado à documentação — a divergência é apenas
-  em relação à expectativa intuitiva de "admin pode tudo", por isso os cenários USR-PATCH-11,
-  USR-PATCH-FOTO-11 e USR-DELETE-05 existem para travar esse comportamento explicitamente.

@@ -51,14 +51,13 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(salvo).not.toBeNull();
     });
 
-    it('USR-DELETE-05 admin tenta excluir outro usuário (sem bypass)', async () => {
+    it('USR-DELETE-05 admin exclui outro usuário (bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
         const a = await criarUsuario();
         const r = await del(admin, a.id);
-        expect(r.status).toBe(403);
-        expect(r.body.tipo).toBe('forbidden');
+        expect(r.status).toBe(200);
         const salvo = await DbConnect.prisma.user.findUnique({ where: { id: a.id } });
-        expect(salvo).not.toBeNull();
+        expect(salvo).toBeNull();
     });
 
     it('USR-DELETE-06 ID em formato inválido', async () => {

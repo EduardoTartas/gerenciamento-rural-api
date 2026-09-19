@@ -125,11 +125,12 @@ describe('PATCH /v1/usuarios/:id/foto', () => {
         expect(removeObject).not.toHaveBeenCalled();
     });
 
-    it('USR-PATCH-FOTO-11 admin tenta registrar foto de outro usuário (sem bypass)', async () => {
+    it('USR-PATCH-FOTO-11 admin registra foto de outro usuário (bypass)', async () => {
         const admin = await criarUsuario({ admin: true });
-        const r = await patchFoto(admin, a.id, { url: urlSintetica() });
-        expect(r.status).toBe(403);
-        expect(r.body.tipo).toBe('forbidden');
+        const url = urlSintetica();
+        const r = await patchFoto(admin, a.id, { url });
+        expect(r.status).toBe(200);
+        expect(r.body.data.image).toBe(url);
     });
 
     it('USR-PATCH-FOTO-12 ID em formato inválido', async () => {

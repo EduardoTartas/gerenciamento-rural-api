@@ -327,20 +327,20 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 ### 9.3 PATCH /usuarios/:id
 **Caso de Uso:** Atualizar nome, e-mail ou imagem do perfil.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário).
+- **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário). **Admin:** pode alterar dados de qualquer usuário.
 - **E-mail Único:** validado contra os demais cadastros.
 
 ### 9.4 DELETE /usuarios/:id
 **Caso de Uso:** Excluir a conta.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode excluir sua conta.
+- **Ação Própria:** somente o próprio usuário pode excluir sua conta. **Admin:** pode excluir a conta de qualquer usuário.
 - **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
 - **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
 
 ### 9.5 PATCH /usuarios/:id/foto
 **Caso de Uso:** Registrar a foto de perfil após envio via `POST /uploads/imagens`.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode alterar sua foto (403 caso contrário).
+- **Ação Própria:** somente o próprio usuário pode alterar sua foto (403 caso contrário). **Admin:** pode alterar a foto de qualquer usuário.
 - **Fluxo em duas etapas:** o cliente primeiro envia o arquivo em `POST /uploads/imagens` (recebe a URL), depois registra essa URL aqui. O upload em si não altera o perfil.
 - **Origem da URL:** rejeita (400) qualquer URL que não pertença ao bucket configurado (`GARAGE_PUBLIC_URL`) — impede associar imagens externas arbitrárias.
 - **Rollback:** se o cadastro falhar, a imagem recém-enviada é deletada do bucket, evitando arquivo órfão.
