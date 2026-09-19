@@ -34,8 +34,19 @@ describe('PATCH /v1/pastagens/:id', () => {
         expect(r.body.data.tipoPastagem).toBe('Mombaça');
     });
 
-    it('PAST-PATCH-ID-03 força status para "Ocupado" sem rebanhos (nenhuma trava aplicável)', async () => {
+    it('PAST-PATCH-ID-03 recusa status "Ocupado" sem rebanho ativo vinculado', async () => {
         const pasto = await criarPasto(propriedade.id, { status: 'Vazio' });
+        const r = await patch(a, pasto.id, { status: 'Ocupado' });
+        expect(r.status).toBe(400);
+        expect(r.body.tipo).toBe('validationError');
+        expect(r.body.errors[0].path).toBe('status');
+        const salvo = await DbConnect.prisma.pasto.findUnique({ where: { id: pasto.id } });
+        expect(salvo.status).toBe('Vazio');
+    });
+
+    it('PAST-PATCH-ID-03b aceita status "Ocupado" com rebanho ativo vinculado', async () => {
+        const pasto = await criarPasto(propriedade.id, { status: 'Vazio' });
+        await criarRebanho(propriedade.id, pasto.id);
         const r = await patch(a, pasto.id, { status: 'Ocupado' });
         expect(r.status).toBe(200);
         expect(r.body.data.status).toBe('Ocupado');
