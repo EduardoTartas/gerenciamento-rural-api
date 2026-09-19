@@ -104,7 +104,7 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| MPAS-DELETE-ID-01 | exclui manejo sem itens | — | 200 | DB: `ativo` = `false` — a linha **continua existindo** (soft-delete, não remoção física; ver `## Divergências`) |
+| MPAS-DELETE-ID-01 | exclui manejo sem itens | — | 200 | DB: `ativo` = `false` — a linha **continua existindo** (soft-delete, não remoção física) |
 | MPAS-DELETE-ID-02 | exclui manejo com itens de insumo vinculados | manejo com 1+ movimentações de saída | 200 | DB: `movimentacaoInsumo` das movimentações originadas desse manejo também fica `ativo: false` (`movimentacaoInsumoRepository.desativarPorManejo`) — o saldo do insumo deixa de ser debitado por elas |
 | MPAS-DELETE-ID-03 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | MPAS-DELETE-ID-04 | multi-tenancy: B tenta excluir manejo de A | — | 404 | mesma resposta do cenário anterior |
@@ -113,12 +113,6 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
 
 ## Divergências
 
-- `Math.min(parseInt(limit, 10) || 10, 100)` em `ManejoPastoService.list`
-  (`src/service/ManejoPastoService.js:54`) é código morto: `ManejoPastoQuerySchema.limit`
-  (`src/utils/validators/schemas/zod/querys/ManejoPastoQuerySchema.js:31`) já tem
-  `.max(100)`, então `?limit=500` nunca chega ao service — cai em 400 `validationError`
-  antes. `limit` > 100 recusado com 400 é o contrato atual (decisão de projeto); ver
-  MPAS-GET-09.
 - MPAS-POST-15/16 (`pastoId` inexistente): a mensagem real de
   `ManejoPastoService.ensurePastoExists` (`src/service/ManejoPastoService.js:194-206`) é
   "Pastagem não encontrada ou não pertence ao usuário autenticado.", não o texto genérico
@@ -128,11 +122,5 @@ Arquivo: `test/endpoints/pastagens-manejos/delete-pastagens-manejos-id.test.js`
   como destino da movimentação de saída — essa tabela é exclusiva de
   `rebanhos/movimentacoes` (troca de pasto do rebanho). O ledger de insumo usado aqui é
   `movimentacaoInsumo` (`prisma/schema.prisma:345`). Corrigido nas três linhas.
-- `CLAUDE.md` ("Soft-delete") afirma que "Manejos são excluídos de verdade (não têm
-  dependentes)". O código faz o oposto: `ManejoPastoRepository.remove`
-  (`src/repository/ManejoPastoRepository.js:128-133`) marca `ativo: false` — nunca chama
-  `delete`. Confirmado por `documentacao/rotas/rotas_pastolivre.md:157-160` e por
-  `test/manejoSoftDelete.test.js:22-35`. `CLAUDE.md` está desatualizado neste ponto; o teste
-  de endpoint deve validar o comportamento real (soft-delete), não a frase do `CLAUDE.md`.
 - Aviso de saldo negativo (`data.avisos`, `src/service/ManejoPastoService.js:137-139`) nunca
   bloqueia a criação do manejo — é informativo.

@@ -106,4 +106,3 @@ Arquivo: `test/endpoints/rebanhos-regimes-consumo/delete-rebanhos-regimes-consum
 ## Divergências
 
 - Não há `AdminMiddleware` nas rotas `/rebanhos/regimes-consumo*` — a categoria "403 admin" não se aplica a este arquivo.
-- Observação (código morto): `RegimeConsumoInsumoService.list` (`src/service/RegimeConsumoInsumoService.js:29`) trunca o `limit` com `Math.min(parseInt(limit, 10) || 10, 100)`, mas o `.max(100)` do `RegimeConsumoInsumoQuerySchema` já recusa `limit > 100` com 400 antes do service — a truncagem nunca roda. Mesmo padrão nas demais rotas.

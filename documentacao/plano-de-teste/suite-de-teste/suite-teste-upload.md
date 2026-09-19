@@ -41,10 +41,8 @@ Arquivo: `test/endpoints/uploads/post-uploads-imagens.test.js`
 | UPL-POST-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized`; storage não é chamado |
 | UPL-POST-11 | resposta não associa a nenhuma entidade | A autenticado; upload de sucesso | 201 | `data` só contém `url` e `fileName` — nenhum campo de dono/propriedade; a URL fica "órfã" até ser registrada em outro endpoint (ex.: `PATCH /usuarios/:id/foto`) |
 
-## Divergências
-
-- `UploadController.create` (`src/controllers/UploadController.js:16-21`) não valida a presença de
-  `req.files` antes de acessar `req.files?.file` — o encadeamento com optional chaining evita o
-  `TypeError`, mas a ausência total de corpo multipart (nenhum arquivo, nenhum campo) e um campo `file`
-  ausente produzem a mesma mensagem genérica "Nenhum arquivo enviado." (UPL-POST-03 cobre ambos os
-  casos como um só, já que o comportamento observável é idêntico).
+**Nota sobre UPL-POST-03**: `UploadController.create` acessa `req.files?.file` com optional
+chaining, então a ausência total de corpo multipart (nenhum arquivo, nenhum campo) e um campo
+`file` ausente produzem a mesma mensagem "Nenhum arquivo enviado." — não há risco de
+`TypeError`; os dois casos são cobertos por um único cenário porque o comportamento observável
+é idêntico, não por lacuna de validação.

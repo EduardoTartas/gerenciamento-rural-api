@@ -40,7 +40,7 @@ class UserService {
         if (name) filters.name = name;
         if (email) filters.email = email;
 
-        return this.repository.list(filters, parseInt(page, 10), Math.min(parseInt(limit, 10) || 10, 100));
+        return this.repository.list(filters, parseInt(page, 10), parseInt(limit, 10) || 10);
     }
 
     /**

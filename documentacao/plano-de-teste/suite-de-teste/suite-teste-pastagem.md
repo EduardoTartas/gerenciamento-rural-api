@@ -46,7 +46,7 @@ Arquivo: `test/endpoints/pastagens/get-pastagens.test.js`
 | PAST-GET-06 | filtro `tipoPastagem` (substring, case-insensitive) | — | 200 | filtra pelo texto |
 | PAST-GET-07 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhuma pastagem encontrada com os filtros informados." |
 | PAST-GET-08 | paginação `page=2` | A tem 15 pastos | 200 | `data.page` = 2; `data.docs.length` = 5 |
-| PAST-GET-09 | `limit` acima de 100 é recusado pela query | — | 400 | issue `limit` — `PastoQuerySchema` tem `.max(100)`, então `?limit=500` nunca chega ao truncamento de `PastoService.list` (ver `## Divergências`) |
+| PAST-GET-09 | `limit` acima de 100 é recusado pela query | — | 400 | issue `limit` — `PastoQuerySchema.limit` já tem `.max(100)` |
 | PAST-GET-10 | `?ativo=false` filtra só os pastos inativos | A tem pastos ativos e inativos | 200 | `data.docs` só contém `ativo: false` — ao contrário de `/propriedades`, aqui o filtro funciona (`PastoService.list` repassa `ativo`) |
 | PAST-GET-11 | multi-tenancy: B não vê pastos de A | — | 200 | `data.docs` de B não contém pastos de A |
 | PAST-GET-12 | leitura por diferença: `atualizadoDesde` traz também os inativos | pasto de A excluído após a marca de tempo | 200 | `data.docs` inclui o pasto com `ativo: false` e `updatedAt` |
@@ -103,16 +103,3 @@ Arquivo: `test/endpoints/pastagens/delete-pastagens-id.test.js`
 | PAST-DELETE-ID-05 | `:id` não é UUID válido | — | 400 | issue de `PastoIdSchema` |
 | PAST-DELETE-ID-06 | sem token | — | 401 | `tipo` = `unauthorized` |
 
-## Divergências
-
-- `PastoService.ensurePropriedadeExists` (`src/service/PastoService.js:185-197`) lança
-  `customMessage: 'Propriedade não encontrada ou não pertence ao usuário autenticado.'`, e não
-  `messages.error.resourceNotFound('Propriedade')` (= "Recurso não encontrado em Propriedade.")
-  como `ensurePastoExists` do mesmo service usa para o próprio recurso. A linha `PAST-POST-11`
-  foi ajustada para a mensagem real.
-- `src/utils/validators/schemas/zod/querys/PastoQuerySchema.js:30` declara `limit` com
-  `.max(100)`, então `GET /pastagens?limit=500` é recusado com 400 antes de chegar ao service —
-  o truncamento em `PastoService.list` (`src/service/PastoService.js:42`,
-  `Math.min(parseInt(limit, 10) || 10, 100)`) é código morto para valores acima de 100 vindos
-  via HTTP (só seria alcançado se algo chamasse o service passando `req.query` sem o schema).
-  A linha `PAST-GET-09` foi ajustada para refletir o comportamento real (400).

@@ -106,7 +106,7 @@ Arquivo: `test/endpoints/rebanhos-manejos/delete-rebanhos-manejos-id.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| MREB-DELETE-ID-01 | remove manejo de A | — | 200 | `message`: "Manejo de rebanho excluído com sucesso."; **no banco a linha continua existindo com `ativo:false`** (soft-delete, não hard-delete — ver Divergências) |
+| MREB-DELETE-ID-01 | remove manejo de A | — | 200 | `message`: "Manejo de rebanho excluído com sucesso."; **no banco a linha continua existindo com `ativo:false`** (soft-delete, não hard-delete) |
 | MREB-DELETE-ID-02 | manejo tinha itens de insumo vinculados | manejo com 1+ movimentação de insumo ativa | 200 | as `MovimentacaoInsumo` vinculadas (`manejoRebanhoId`) ficam com `ativo:false` no banco |
 | MREB-DELETE-ID-03 | id não é UUID | — | 400 | erro de validação |
 | MREB-DELETE-ID-04 | id inexistente | — | 404 | `tipo: resourceNotFound` |
@@ -116,16 +116,6 @@ Arquivo: `test/endpoints/rebanhos-manejos/delete-rebanhos-manejos-id.test.js`
 
 ## Divergências
 
-- **`DELETE /rebanhos/manejos/:id` é soft-delete, não hard-delete.**
-  `documentacao/rotas/rotas_pastolivre.md` §7.5 e `CLAUDE.md` ("Manejos são excluídos de
-  verdade (não têm dependentes)") descrevem exclusão física, mas
-  `ManejoRebanhoRepository.remove` (`src/repository/ManejoRebanhoRepository.js:152-157`) faz
-  `update({ data: { ativo: false } })` — a linha permanece no banco, só marcada inativa. Já
-  confirmado por `test/manejoSoftDelete.test.js`. O `select` da listagem inclui `ativo` e
-  `updatedAt` justamente para sustentar a leitura por diferença (`atualizadoDesde`) sobre
-  manejos excluídos — típico de soft-delete, incompatível com "excluído de verdade". Documentar
-  o comportamento real (soft-delete) na tabela acima; os dois documentos-fonte estão
-  desatualizados nesse ponto.
 - A limitação de pesagem retroativa (peso mais recente por sincronização tardia sobrescreve o
   peso atual — MREB-POST-25) já está registrada em rotas_pastolivre.md §7.1; mantida aqui
   apenas para apontar o teste que a confirma.
