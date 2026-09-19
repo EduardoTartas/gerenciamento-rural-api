@@ -14,7 +14,7 @@ export const MovimentacaoQuerySchema = z.object({
     dataInicio:    z.coerce.date({ error: 'Data de início inválida.' }).optional(),
     dataFim:       z.coerce.date({ error: 'Data de fim inválida.' }).optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()

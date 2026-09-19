@@ -12,6 +12,7 @@ class HttpStatusCodes {
     static NOT_FOUND = { code: 404, message: 'Recurso não encontrado' };
     static METHOD_NOT_ALLOWED = { code: 405, message: 'Método HTTP não permitido para o recurso solicitado' };
     static CONFLICT = { code: 409, message: 'Conflito com o estado atual do servidor' };
+    static PAYLOAD_TOO_LARGE = { code: 413, message: 'Corpo da requisição excede o limite permitido' };
     static UNPROCESSABLE_ENTITY = { code: 422, message: 'Falha na validação' };
     static TOO_MANY_REQUESTS = { code: 429, message: 'Muitas requisições realizadas em um curto período de tempo' };
     static INVALID_TOKEN = { code: 498, message: 'O token JWT está expirado!' };

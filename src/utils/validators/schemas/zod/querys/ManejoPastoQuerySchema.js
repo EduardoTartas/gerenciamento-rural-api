@@ -20,7 +20,7 @@ export const ManejoPastoQuerySchema = z.object({
     dataInicio:   z.coerce.date({ error: 'A data de início deve ser uma data válida.' }).optional(),
     dataFim:      z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()

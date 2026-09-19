@@ -56,11 +56,7 @@ Gerenciamento de Fazendas, Sítios e Arrendamentos rurais do produtor.
 **Regras de Negócio:**
 - **Paginação e Filtros:** Suporta `page`, `limit`, busca por `nome` e `localizacao`.
 - **Filtro Inteligente:** Retorna por padrão apenas propriedades ATIVAS (`ativo: true`).
-
-> ⚠️ **Divergência conhecida:** o filtro `?ativo=false` está definido no schema de query mas
-> não é aplicado — o `PropriedadeController.list` valida a query sem atribuí-la a
-> `req._parsedQuery`, e o `PropriedadeService.list` não repassa `ativo` aos filtros. Na
-> prática, não há como listar propriedades arquivadas por esta rota.
+- **Filtro `ativo`:** `?ativo=false` lista só as arquivadas; `?ativo=true` lista só as ativas (mesmo comportamento padrão).
 
 ### 2.3 GET /propriedades/:id
 **Caso de Uso:** Obter detalhes de uma Propriedade específica.
@@ -121,7 +117,7 @@ Gerenciamento das subdivisões vitais da propriedade: Piquetes, Pastos e Inverna
 ### 3.4 PATCH /pastagens/:id
 **Caso de Uso:** Atualizar dados do Pasto (área, tipo de capim e status).
 **Regras de Negócio:**
-- **Status Coerente:** Bloqueia a tentativa de forçar o status para `Vazio` ou `Descanso` caso a contagem indique que há **Rebanhos** ativos ali alojados.
+- **Status Coerente:** Bloqueia a tentativa de forçar o status para `Vazio` ou `Descanso` caso a contagem indique que há **Rebanhos** ativos ali alojados. Também bloqueia forçar `Ocupado` quando não há nenhum rebanho ativo vinculado ao pasto (Erro 400) — o status manual não pode divergir da realidade.
 - **Inativação Segura:** Se mudar o `ativo` para `false`, também barra se o pasto estiver ocupado por gado.
 
 ### 3.5 DELETE /pastagens/:id
@@ -265,11 +261,13 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 
 ### 7.4 PATCH /rebanhos/manejos/:id
 **Caso de Uso:** Corrigir um lançamento (tipo, data, medicamento, peso, observações).
+**Regras de Negócio:**
+- **Efeito de Pesagem:** se `pesoRegistrado` for alterado e este manejo for a pesagem mais recente do rebanho, `pesoMedioAtual` é recalculado com o novo valor — mesma regra do `POST`. Corrigir uma pesagem que não é a mais recente não mexe no peso atual.
 
 ### 7.5 DELETE /rebanhos/manejos/:id
 **Caso de Uso:** Remover um manejo lançado por engano.
 **Regras de Negócio:**
-- **Hard-Delete:** a linha é removida definitivamente do banco.
+- **Soft-Delete (`ativo: false`):** a linha continua no banco, mesmo padrão de `pastagens/manejos` — sustenta a leitura por diferença (`atualizadoDesde`).
 
 ---
 
@@ -327,20 +325,20 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 ### 9.3 PATCH /usuarios/:id
 **Caso de Uso:** Atualizar nome, e-mail ou imagem do perfil.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário).
+- **Ação Própria:** somente o próprio usuário pode alterar seus dados (403 caso contrário). **Admin:** pode alterar dados de qualquer usuário.
 - **E-mail Único:** validado contra os demais cadastros.
 
 ### 9.4 DELETE /usuarios/:id
 **Caso de Uso:** Excluir a conta.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode excluir sua conta.
+- **Ação Própria:** somente o próprio usuário pode excluir sua conta. **Admin:** pode excluir a conta de qualquer usuário.
 - **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
 - **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
 
 ### 9.5 PATCH /usuarios/:id/foto
 **Caso de Uso:** Registrar a foto de perfil após envio via `POST /uploads/imagens`.
 **Regras de Negócio:**
-- **Ação Própria:** somente o próprio usuário pode alterar sua foto (403 caso contrário).
+- **Ação Própria:** somente o próprio usuário pode alterar sua foto (403 caso contrário). **Admin:** pode alterar a foto de qualquer usuário.
 - **Fluxo em duas etapas:** o cliente primeiro envia o arquivo em `POST /uploads/imagens` (recebe a URL), depois registra essa URL aqui. O upload em si não altera o perfil.
 - **Origem da URL:** rejeita (400) qualquer URL que não pertença ao bucket configurado (`GARAGE_PUBLIC_URL`) — impede associar imagens externas arbitrárias.
 - **Rollback:** se o cadastro falhar, a imagem recém-enviada é deletada do bucket, evitando arquivo órfão.
@@ -355,7 +353,7 @@ Upload genérico de imagens para o Garage. Desacoplado de qualquer entidade — 
 **Caso de Uso:** Enviar um arquivo de imagem e receber sua URL pública.
 **Regras de Negócio:**
 - **Autenticação:** requer sessão válida.
-- **Validação:** extensão (`.jpg`, `.jpeg`, `.png`) e mimetype real do binário; máximo 5MB.
+- **Validação:** extensão (`.jpg`, `.jpeg`, `.png`) e mimetype real do binário; máximo 5MB (limite de negócio, 400). Acima de 50MB (limite global do servidor), a resposta é 413 no mesmo envelope `CommonResponse`.
 - **Processamento:** redimensiona para 512x512 (`cover`) e reencoda em JPEG (Sharp) antes de enviar.
 - **Sem associação:** a imagem enviada fica órfã no bucket até algum recurso registrar sua URL (ex.: `PATCH /usuarios/:id/foto`).
 - **Decisão de escopo — sem vínculo de dono:** o upload não registra quem enviou o arquivo. Qualquer usuário autenticado que descubra a URL de outro (nome é UUID, não enumerável, mas pode vazar) pode registrá-la como sua própria foto em `PATCH /usuarios/:id/foto`. Nesse caso, se o dono original trocar de foto depois, a limpeza do avatar antigo remove o arquivo que o outro usuário também referenciava. Risco aceito conscientemente para o escopo deste TCC — não implementar vínculo de dono por upload a menos que o risco de vazamento de URL aumente (ex.: exposição em listagens públicas).
@@ -489,7 +487,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Caso de Uso:** Ver o consumo diário recorrente de insumos por rebanho.
 **Regras de Negócio:**
 - Apenas regimes de rebanhos de propriedades do usuário logado. Lista paginada ordenada por `dataInicio` decrescente.
-- Filtros: `rebanhoId`, `insumoId`, `emAberto` (`true` = só os com `dataFim` nula), `ativo`, `atualizadoDesde`, `page`, `limit`.
+- Filtros: `rebanhoId`, `insumoId`, `propriedadeId`, `emAberto` (`true` = só os com `dataFim` nula), `ativo`, `atualizadoDesde`, `page`, `limit`. `propriedadeId` de outro usuário devolve lista vazia, nunca dado de outro tenant.
 
 ### 13.12 GET /rebanhos/regimes-consumo/:id
 **Caso de Uso:** Detalhar um regime de consumo.

@@ -17,7 +17,7 @@ export const PropriedadeQuerySchema = z.object({
     nome: z.string().optional(),
     localizacao: z.string().optional(),
     ativo: z.enum(['true', 'false'], {
-        errorMap: () => ({ message: "O filtro 'ativo' deve ser 'true' ou 'false'" })
+        error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),
     atualizadoDesde: z
         .string()

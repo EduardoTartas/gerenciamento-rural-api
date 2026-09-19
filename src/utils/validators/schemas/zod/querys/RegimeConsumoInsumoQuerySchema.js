@@ -6,6 +6,7 @@ export const RegimeConsumoInsumoIdSchema = z.string().uuid('ID de regime inváli
 export const RegimeConsumoInsumoQuerySchema = z.object({
     rebanhoId: z.string().uuid('O ID do rebanho deve ser um UUID válido.').optional(),
     insumoId:  z.string().uuid('O ID do insumo deve ser um UUID válido.').optional(),
+    propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
     // 'true' => só os em aberto (dataFim IS NULL); default: todos
     emAberto:  z.enum(['true', 'false']).transform((v) => v === 'true').optional(),
     ativo: z.enum(['true', 'false']).transform((v) => v === 'true').optional(),

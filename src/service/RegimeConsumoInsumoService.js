@@ -17,11 +17,12 @@ class RegimeConsumoInsumoService {
         const { id } = req.params;
         if (id) return this.ensureExists(id, usuarioId);
 
-        const { rebanhoId, insumoId, emAberto, ativo, atualizadoDesde, page = 1, limit = 10 } =
+        const { rebanhoId, insumoId, propriedadeId, emAberto, ativo, atualizadoDesde, page = 1, limit = 10 } =
             req._parsedQuery ?? req.query;
         const filters = {};
         if (rebanhoId) filters.rebanhoId = rebanhoId;
         if (insumoId)  filters.insumoId = insumoId;
+        if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (emAberto)  filters.emAberto = emAberto;
         if (ativo !== undefined) filters.ativo = ativo;
         if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;

@@ -136,10 +136,14 @@ class ManejoRebanhoService {
 
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
-        await this.ensureManejoExists(id, usuarioId);
+        const manejo = await this.ensureManejoExists(id, usuarioId);
 
         if (parsedData.tipoManejoId) {
             await this.ensureTipoManejoExists(parsedData.tipoManejoId);
+        }
+
+        if (parsedData.pesoRegistrado !== undefined) {
+            return this.repository.updateComAtualizacaoPeso(id, manejo.rebanhoId, parsedData, tx);
         }
 
         return this.repository.update(id, parsedData, tx);

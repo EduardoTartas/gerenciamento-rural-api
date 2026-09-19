@@ -118,14 +118,9 @@ class RebanhoService {
 
         // Transação atômica: cria rebanho + atualiza status do pasto
         return comTransacao(this.prisma, executor, async (tx) => {
-            await tx.pasto.update({
-                where: { id: parsedData.pastoAtualId },
-                data: { status: 'Ocupado' },
-            });
+            await this.pastoRepository.update(parsedData.pastoAtualId, { status: 'Ocupado' }, tx);
 
-            return tx.rebanho.create({
-                data: { ...dadosRebanho, dataEntradaPastoAtual },
-            });
+            return this.repository.create({ ...dadosRebanho, dataEntradaPastoAtual }, tx);
         });
     }
 
@@ -154,13 +149,13 @@ class RebanhoService {
 
         // Inativação: redireciona para remove(), passando o rebanho já carregado
         if (parsedData.ativo === false) {
-            return this._inativar(rebanho);
+            return this._inativar(rebanho, executor);
         }
 
         // Reativação: exige pasto ativo na mesma propriedade, igual à criação —
         // impede que um rebanho volte a ficar ativo sem pasto vinculado
         if (isReativacao) {
-            return this._reativar(rebanho, parsedData, usuarioId);
+            return this._reativar(rebanho, parsedData, usuarioId, executor);
         }
 
         return this.repository.update(id, parsedData, executor);
@@ -174,14 +169,14 @@ class RebanhoService {
     async remove(id, req, executor) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
-        return this._inativar(rebanho);
+        return this._inativar(rebanho, executor);
     }
 
     /**
      * Lógica interna de inativação, recebe o rebanho já carregado para evitar query duplicada.
      * Usa transação atômica para garantir consistência.
      */
-    async _inativar(rebanho) {
+    async _inativar(rebanho, executor) {
         const pastoAnteriorId = rebanho.pastoAtualId;
 
         return comTransacao(this.prisma, executor, async (tx) => {
@@ -220,7 +215,7 @@ class RebanhoService {
      * estado que create() já proíbe. Valida pasto ativo e da mesma propriedade.
      * Transação atômica: reativa rebanho + marca pasto como Ocupado.
      */
-    async _reativar(rebanho, parsedData, usuarioId) {
+    async _reativar(rebanho, parsedData, usuarioId, executor) {
         if (!parsedData.pastoAtualId) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,

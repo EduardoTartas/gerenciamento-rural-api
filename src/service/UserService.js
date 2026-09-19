@@ -8,6 +8,7 @@ import {
 import { userRepository } from '../repository/index.js';
 import { auth } from '../config/auth.js';
 import DbConnect from '../config/dbConnect.js';
+import { baseUrlPublica } from '../config/garageConnect.js';
 import UploadService from './UploadService.js';
 import logger from '../utils/logger.js';
 
@@ -48,7 +49,9 @@ class UserService {
      */
     async update(id, parsedData, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
+        }
 
         // Valida e-mail único caso seja alterado
         if (parsedData.email) {
@@ -65,7 +68,9 @@ class UserService {
      */
     async registrarFoto(id, url, req) {
         const user = await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'atualizar a foto de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'atualizar a foto de outro usuário');
+        }
         this.ensureUrlPertenceAoBucket(url);
 
         let updated;
@@ -94,7 +99,9 @@ class UserService {
      */
     async remove(id, req) {
         await this.ensureUserExists(id);
-        this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
+        if (!req.user.admin) {
+            this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
+        }
 
         // Revoga todas as sessões ativas do usuário antes de deletar
         const sessions = await this.prisma.session.findMany({
@@ -154,8 +161,8 @@ class UserService {
      * e não uma URL externa arbitrária enviada pelo cliente.
      */
     ensureUrlPertenceAoBucket(url) {
-        const baseUrl = process.env.GARAGE_PUBLIC_URL?.replace(/\/$/, '');
-        if (!baseUrl || !url.startsWith(`${baseUrl}/`)) {
+        const baseUrl = baseUrlPublica();
+        if (!url.startsWith(`${baseUrl}/`)) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',

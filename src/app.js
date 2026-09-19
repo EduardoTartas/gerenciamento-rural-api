@@ -79,7 +79,7 @@ app.use(express.json());
 // Habilitando o uso de arquivos pelo express, com limite de segurança em memória de 50MB
 app.use(expressFileUpload({
     limits: { fileSize: 50 * 1024 * 1024 }, // Trava em 50MB para não esgotar a RAM
-    abortOnLimit: true // Rejeita a requisição e poupa a banda automaticamente se passar
+    abortOnLimit: false // Não corta a conexão: deixa o controller checar `truncated` e responder no envelope padrão
 }));
 
 // Habilitando o uso de urlencoded pelo express
@@ -100,7 +100,8 @@ app.use((req, res, next) => {
         null,
         [{
             message: 'Rota não encontrada.'
-        }]
+        }],
+        'Rota não encontrada.'
     );
 });
 

@@ -29,6 +29,12 @@ class RegimeConsumoInsumoRepository {
         if (filters.rebanhoId) where.rebanhoId = filters.rebanhoId;
         if (filters.insumoId)  where.insumoId = filters.insumoId;
         if (filters.emAberto)  where.dataFim = null;
+        // Mantém o `usuarioId` no filtro: um `propriedadeId` forjado devolve
+        // lista vazia, nunca dado de outro tenant (mesmo padrão de
+        // MovimentacaoInsumoRepository.list).
+        if (filters.propriedadeId) {
+            where.rebanho = { propriedade: { usuarioId, id: filters.propriedadeId } };
+        }
 
         const [docs, totalDocs] = await Promise.all([
             this.prisma.regimeConsumoInsumo.findMany({

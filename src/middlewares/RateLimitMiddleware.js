@@ -43,9 +43,7 @@ export const authRateLimit = rateLimit({
             'Muitas requisições. Tente novamente em 15 minutos.'
         );
     },
-    skip: (req) => {
-        return false;
-    }
+    skip: () => process.env.NODE_ENV === 'test'
 });
 
 // Rate limiter mais restritivo para operações sensíveis (login, etc.)
@@ -76,7 +74,8 @@ export const strictRateLimit = rateLimit({
             }],
             'Muitas tentativas. Tente novamente em 5 minutos.'
         );
-    }
+    },
+    skip: () => process.env.NODE_ENV === 'test'
 });
 
 // Rate limiter para endpoints públicos
@@ -107,5 +106,6 @@ export const publicRateLimit = rateLimit({
             }],
             'Muitas requisições. Tente novamente em 15 minutos.'
         );
-    }
+    },
+    skip: () => process.env.NODE_ENV === 'test'
 });

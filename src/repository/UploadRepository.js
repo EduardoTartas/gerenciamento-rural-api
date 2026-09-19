@@ -1,6 +1,6 @@
 // src/repository/UploadRepository.js
 
-import getGarageClient from '../config/garageConnect.js';
+import getGarageClient, { baseUrlPublica } from '../config/garageConnect.js';
 import logger from '../utils/logger.js';
 import { CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
 
@@ -51,11 +51,7 @@ class UploadRepository {
     }
 
     buildPublicUrl(fileName) {
-        const baseUrl = process.env.GARAGE_PUBLIC_URL
-            ? process.env.GARAGE_PUBLIC_URL.replace(/\/$/, '')
-            : `${process.env.GARAGE_USE_SSL === 'true' ? 'https' : 'http'}://${process.env.GARAGE_ENDPOINT}:${process.env.GARAGE_PORT}/${this.bucket}`;
-
-        return `${baseUrl}/${fileName}`;
+        return `${baseUrlPublica(this.bucket)}/${fileName}`;
     }
 
     extractFileName(fileNameOrUrl) {

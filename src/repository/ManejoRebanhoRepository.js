@@ -141,6 +141,35 @@ class ManejoRebanhoRepository {
     }
 
     /**
+     * Atualiza o manejo e, se a atualização mexer em `pesoRegistrado`, recalcula
+     * `rebanho.pesoMedioAtual` dentro da mesma transação — mesma regra de
+     * `createComAtualizacaoPeso`: só se este manejo for a pesagem mais recente
+     * do rebanho.
+     */
+    async updateComAtualizacaoPeso(id, rebanhoId, data, executor) {
+        return comTransacao(this.prisma, executor, async (tx) => {
+            const manejo = comItens(await tx.manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT }));
+
+            if (data.pesoRegistrado != null) {
+                const pesagemMaisRecente = await tx.manejoRebanho.findFirst({
+                    where: { rebanhoId, pesoRegistrado: { not: null } },
+                    orderBy: [{ dataAtividade: 'desc' }, { createdAt: 'desc' }],
+                    select: { id: true, pesoRegistrado: true },
+                });
+
+                if (pesagemMaisRecente?.id === manejo.id) {
+                    await tx.rebanho.update({
+                        where: { id: rebanhoId },
+                        data: { pesoMedioAtual: pesagemMaisRecente.pesoRegistrado },
+                    });
+                }
+            }
+
+            return manejo;
+        });
+    }
+
+    /**
      * Exclusão lógica. A linha precisa continuar existindo para o delta poder
      * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
      * informar, e o aplicativo ficaria com um registro fantasma.

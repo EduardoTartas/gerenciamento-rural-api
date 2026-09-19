@@ -79,9 +79,12 @@ model verification {
 // Tabelas compartilhadas entre todos os usuários (sem propriedadeId).
 // Gerenciadas via /catalogos/:entidade
 
+// ATENÇÃO: índice único parcial em lower(nome) WHERE ativo = true, mesma ressalva de
+// pasto/rebanho — Prisma não suporta índice parcial no schema. Rode
+// `prisma migrate dev --create-only` e confira o SQL antes de aplicar.
 model raca {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -93,7 +96,7 @@ model raca {
 
 model sistemaProducao {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -105,7 +108,7 @@ model sistemaProducao {
 
 model regimeAlimentar {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -117,7 +120,7 @@ model regimeAlimentar {
 
 model tipoManejoRebanho {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -129,7 +132,7 @@ model tipoManejoRebanho {
 
 model tipoManejoPasto {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -141,7 +144,7 @@ model tipoManejoPasto {
 
 model tipoInsumo {
   id        String   @id @default(uuid())
-  nome      String   @unique
+  nome      String
   ativo     Boolean  @default(true)
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -393,6 +396,7 @@ model regimeConsumoInsumo {
 
   @@index([rebanhoId])
   @@index([insumoId])
+  @@index([updatedAt])
   @@map("regimes_consumo_insumo")
 }
 
@@ -406,13 +410,14 @@ model regimeConsumoInsumo {
 /// `account`: é tabela operacional, não de domínio, e não deve participar de
 /// cascata de exclusão do usuário.
 model mutacaoAplicada {
-  id         String   @id
+  id         String
   usuarioId  String
   entidade   String
   entidadeId String
   resultado  Json
   aplicadaEm DateTime @default(now())
 
+  @@id([id, usuarioId])
   @@index([usuarioId, aplicadaEm])
   @@map("mutacoes_aplicadas")
 }

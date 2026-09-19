@@ -77,11 +77,30 @@ class ManejoPastoService {
 
         await this.ensureTipoManejoExists(dadosManejo.tipoManejoId);
 
+        // Funde itens repetidos (mesmo insumoId) num só, somando a quantidade —
+        // evita duas movimentações de saída pro mesmo insumo no mesmo manejo.
+        const itensFundidos = [];
+        const fundidoPorInsumoId = new Map();
+        for (const item of itens) {
+            const existente = fundidoPorInsumoId.get(item.insumoId);
+            if (existente) {
+                existente.quantidade += item.quantidade;
+                if (item.observacoes) {
+                    existente.observacoes = existente.observacoes
+                        ? `${existente.observacoes}; ${item.observacoes}`
+                        : item.observacoes;
+                }
+                continue;
+            }
+            const fundido = { ...item };
+            fundidoPorInsumoId.set(item.insumoId, fundido);
+            itensFundidos.push(fundido);
+        }
+
         // Valida os insumos ANTES de abrir a transação: um item inválido é erro 400,
         // não pode chegar a criar o manejo.
         const insumosPorId = new Map();
-        for (const item of itens) {
-            if (insumosPorId.has(item.insumoId)) continue;
+        for (const item of itensFundidos) {
             const insumo = await this.insumoRepository.findById(item.insumoId, usuarioId);
             if (!insumo || insumo.propriedadeId !== pasto.propriedadeId) {
                 throw new CustomError({
@@ -109,7 +128,7 @@ class ManejoPastoService {
 
             const avisos = [];
             const movimentacoes = [];
-            for (const item of itens) {
+            for (const item of itensFundidos) {
                 const insumo = insumosPorId.get(item.insumoId);
                 const mov = await this.movimentacaoInsumoRepository.create({
                     // Preserva o id gerado no cliente (offline-first): o app grava a
