@@ -72,10 +72,19 @@ describe('GET /v1/propriedades', () => {
         expect(r.body.errors[0].path).toBe('limit');
     });
 
-    it('PROP-GET-08 ?ativo=false não filtra nada (divergência conhecida)', async () => {
+    it('PROP-GET-08 ?ativo=false lista só as propriedades inativas', async () => {
         await criarPropriedade(a.id, { nome: 'Ativa' });
         await criarPropriedade(a.id, { nome: 'Inativa', ativo: false });
         const r = await get(a, '?ativo=false');
+        expect(r.status).toBe(200);
+        expect(r.body.data.docs.length).toBe(1);
+        expect(r.body.data.docs[0].nome).toBe('Inativa');
+    });
+
+    it('PROP-GET-08b ?ativo=true lista só as propriedades ativas', async () => {
+        await criarPropriedade(a.id, { nome: 'Ativa' });
+        await criarPropriedade(a.id, { nome: 'Inativa', ativo: false });
+        const r = await get(a, '?ativo=true');
         expect(r.status).toBe(200);
         expect(r.body.data.docs.length).toBe(1);
         expect(r.body.data.docs[0].nome).toBe('Ativa');

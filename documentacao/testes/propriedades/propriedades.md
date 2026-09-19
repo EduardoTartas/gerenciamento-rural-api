@@ -44,7 +44,8 @@ Arquivo: `test/endpoints/propriedades/get-propriedades.test.js`
 | PROP-GET-05 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhuma propriedade encontrada com os filtros informados." |
 | PROP-GET-06 | paginação `page=2` | A tem 15 propriedades, `limit` padrão 10 | 200 | `data.docs.length` = 5; `data.page` = 2; `data.totalPages` = 2 |
 | PROP-GET-07 | `limit` acima de 100 — **divergência**: `PropriedadeQuerySchema` já rejeita antes de chegar ao truncamento do service | — | 400 | issue Zod `limit`, "Too big"; `PropriedadeService.list` teria truncado para 100 (`Math.min(...,100)`), mas o código nunca chega lá; ver `## Divergências` |
-| PROP-GET-08 | `?ativo=false` não filtra nada — **divergência conhecida** | A tem propriedades ativas e inativas | 200 | resposta continua trazendo só as ativas; ver `## Divergências` |
+| PROP-GET-08 | `?ativo=false` lista só as propriedades inativas | A tem propriedades ativas e inativas | 200 | `data.docs` contém só as com `ativo: false` |
+| PROP-GET-08b | `?ativo=true` lista só as propriedades ativas | A tem propriedades ativas e inativas | 200 | `data.docs` contém só as com `ativo: true` |
 | PROP-GET-09 | multi-tenancy: B não vê propriedades de A | A e B com propriedades próprias | 200 | `data.docs` de B não contém nenhuma propriedade de A |
 | PROP-GET-10 | leitura por diferença: `atualizadoDesde` traz também as inativas | A tem propriedade excluída (soft-delete) após a marca de tempo | 200 | `data.docs` inclui a propriedade com `ativo: false` e `updatedAt` mais recente que `atualizadoDesde` |
 | PROP-GET-11 | `limit` ou `page` inválidos (ex.: `page=0`, `limit=-1`) | — | 400 | issue Zod no campo correspondente |
@@ -109,11 +110,3 @@ Arquivo: `test/endpoints/propriedades/delete-propriedades-id.test.js`
   `PropriedadeService.list` (`src/service/PropriedadeService.js:38`) é código morto — nunca
   recebe um valor maior que 100, pois o controller já teria lançado `ZodError`. Coberto por
   `PROP-GET-07`.
-- `GET /propriedades?ativo=false` não filtra propriedades inativas apesar de o schema aceitar
-  o parâmetro. `PropriedadeController.list` (`src/controllers/PropriedadeController.js:32-35`)
-  só atribui `req._parsedQuery` quando a query recebida não está vazia, e mesmo quando
-  atribuída, `PropriedadeService.list` (`src/service/PropriedadeService.js:27-32`) nunca lê
-  `ativo` dos parâmetros — só `nome`, `localizacao` e `atualizadoDesde`. Resultado: não há
-  forma de listar propriedades arquivadas por esta rota (só via `atualizadoDesde`, que traz
-  ativas e inativas juntas). Já documentado como divergência conhecida em
-  `documentacao/rotas/rotas_pastolivre.md:60-63`.
