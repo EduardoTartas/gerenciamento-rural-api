@@ -14,9 +14,9 @@ description: Padrão de entrega — MRs e pipeline. Sempre ativo.
 
 - Pipeline SEMPRE verde antes de pedir review. MR com pipeline vermelho não se abre para review nem se
   mergeia.
-- O `.gitlab-ci.yml` atual só valida manifests Kubernetes (`kubeconform`) — **não** roda `npm test` no CI.
-  Isso não dispensa a validação local: antes de push, rodar `npm test` e conferir os fluxos críticos do
-  domínio alterado manualmente.
+- O `.gitlab-ci.yml` roda `test_job` (Postgres real + `npm test`) em todo `merge_request_event`, além do
+  lint de manifests Kubernetes (`kubeconform`). Ainda assim, rodar `npm test` local antes do push agiliza
+  o feedback e evita pipeline vermelho.
 - Falha de pipeline = corrigir na hora, não empurrar para o revisor.
 
 ## Gitflow
