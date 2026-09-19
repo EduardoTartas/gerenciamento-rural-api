@@ -28,7 +28,7 @@ Arquivo: `test/endpoints/transversal/app.test.js`
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| APP-GET-02 | `GET /v1/rota-que-nao-existe` | — | 404 | envelope de erro; `tipo` = `resourceNotFound`; `recuperavel` = `false`; `errors[0].message` = "Rota não encontrada."; `message` do envelope é literalmente `"Recurso não encontrado em null."` (ver `## Divergências`) |
+| APP-GET-02 | `GET /v1/rota-que-nao-existe` | — | 404 | envelope de erro; `tipo` = `resourceNotFound`; `recuperavel` = `false`; `message` do envelope e `errors[0].message` = "Rota não encontrada." |
 | APP-GET-03 | método não suportado numa rota existente (ex.: `PUT /v1/propriedades`) | — | 404 | mesma resposta do cenário anterior — Express 5 não distingue "rota existe, método não" de "rota não existe" aqui, pois não há roteamento por método nesse nível |
 
 ## JSON inválido
@@ -76,16 +76,6 @@ Arquivo: `test/endpoints/transversal/app.test.js`
 
 ## Divergências
 
-- Mensagem de rota inexistente: o middleware 404 em `src/app.js:95-105` chama
-  `CommonResponse.error(res, 404, 'resourceNotFound', null, [{ message: 'Rota não encontrada.' }])`
-  **sem** passar `customMessage`. Como o 4º argumento (`field`) é `null`,
-  `StatusService.getErrorMessage('resourceNotFound', null)` invoca
-  `messages.error.resourceNotFound(null)` (`src/utils/helpers/messages.js:30`), cujo template
-  é `` `Recurso não encontrado em ${fieldName}.` `` — com `fieldName = null`, o campo
-  `message` do envelope sai literalmente como `"Recurso não encontrado em null."`. O texto
-  legível ("Rota não encontrada.") só existe dentro de `errors[0].message`. Um teste de
-  endpoint deve asserir sobre `errors[0].message`, não sobre `message`, para não ficar
-  acoplado a esse texto acidental.
 - `GET /health` não segue o envelope `CommonResponse` — é a única rota do projeto que
   responde um JSON com forma própria (`{status, database, timestamp, uptime}`), sem
   `{message, data, errors}`.

@@ -100,7 +100,8 @@ app.use((req, res, next) => {
         null,
         [{
             message: 'Rota não encontrada.'
-        }]
+        }],
+        'Rota não encontrada.'
     );
 });
 
