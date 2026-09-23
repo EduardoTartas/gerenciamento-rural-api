@@ -148,7 +148,10 @@ Gerenciamento de eventos operacionais aplicados a um espaço físico (ex: Aduba�
 **Caso de Uso:** Resgatar detalhamento de um manejo específico.
 
 ### 4.4 PATCH /pastagens/manejos/:id
-**Caso de Uso:** Corrigir erros de lançamento (data errada, tipo de manejo trocado).
+**Caso de Uso:** Corrigir erros de lançamento (data errada, tipo de manejo trocado, insumos consumidos errados).
+**Regras de Negócio:**
+- **Campo `itens` (opcional):** ausente preserva o consumo de insumo já registrado; presente — mesmo `[]` — substitui por completo as movimentações ativas ligadas ao manejo (desativa as antigas, cria as novas). Mesma validação de propriedade/destino/saldo do `POST`.
+- A resposta sempre traz `data.itens` com o consumo atualmente ativo do manejo, independente de o `PATCH` ter enviado `itens` ou não.
 
 ### 4.5 DELETE /pastagens/manejos/:id
 **Caso de Uso:** Apagar um log de manejo lançado por engano.

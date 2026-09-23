@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarPasto, criarTipoManejoPasto } from '../../apoio/fabricas.js';
+import { criarPropriedade, criarPasto, criarInsumo, criarTipoManejoPasto } from '../../apoio/fabricas.js';
 import { criarManejoPasto } from './apoio-local.js';
 
 describe('PATCH /v1/pastagens/manejos/:id', () => {
@@ -51,10 +51,62 @@ describe('PATCH /v1/pastagens/manejos/:id', () => {
         expect(r.body.errors[0].message).toContain('extra');
     });
 
-    it('MPAS-PATCH-ID-06 envia itens no corpo', async () => {
+    it('MPAS-PATCH-ID-06 itens: [] desativa as movimentações antigas do manejo, sem criar novas', async () => {
+        const insumo = await criarInsumo(propriedade.id, { destino: 'Pasto' });
+        await patch(a, manejo.id, { itens: [{ insumoId: insumo.id, quantidade: 5 }] });
+
         const r = await patch(a, manejo.id, { itens: [] });
+        expect(r.status).toBe(200);
+        expect(r.body.data.itens).toEqual([]);
+
+        const movs = await DbConnect.prisma.movimentacaoInsumo.findMany({ where: { manejoPastoId: manejo.id } });
+        expect(movs).toHaveLength(1);
+        expect(movs[0].ativo).toBe(false);
+    });
+
+    it('MPAS-PATCH-ID-06b itens ausente preserva o consumo de insumo já registrado', async () => {
+        const insumo = await criarInsumo(propriedade.id, { destino: 'Pasto' });
+        await patch(a, manejo.id, { itens: [{ insumoId: insumo.id, quantidade: 5 }] });
+
+        const r = await patch(a, manejo.id, { observacoes: 'só o texto muda' });
+        expect(r.status).toBe(200);
+        expect(r.body.data.itens).toHaveLength(1);
+        expect(r.body.data.itens[0].insumoId).toBe(insumo.id);
+
+        const movs = await DbConnect.prisma.movimentacaoInsumo.findMany({ where: { manejoPastoId: manejo.id } });
+        expect(movs).toHaveLength(1);
+        expect(movs[0].ativo).toBe(true);
+    });
+
+    it('MPAS-PATCH-ID-06c itens com um novo item troca por completo o consumo, sem duplicar a Saida antiga', async () => {
+        const insumoAntigo = await criarInsumo(propriedade.id, { destino: 'Pasto' });
+        const insumoNovo = await criarInsumo(propriedade.id, { destino: 'Pasto' });
+        await patch(a, manejo.id, { itens: [{ insumoId: insumoAntigo.id, quantidade: 5 }] });
+
+        const r = await patch(a, manejo.id, { itens: [{ insumoId: insumoNovo.id, quantidade: 8 }] });
+        expect(r.status).toBe(200);
+        expect(r.body.data.itens).toHaveLength(1);
+        expect(r.body.data.itens[0].insumoId).toBe(insumoNovo.id);
+
+        const movs = await DbConnect.prisma.movimentacaoInsumo.findMany({ where: { manejoPastoId: manejo.id } });
+        expect(movs).toHaveLength(2);
+        const antiga = movs.find((m) => m.insumoId === insumoAntigo.id);
+        const nova = movs.find((m) => m.insumoId === insumoNovo.id);
+        expect(antiga.ativo).toBe(false);
+        expect(nova.ativo).toBe(true);
+        expect(Number(nova.quantidade)).toBe(8);
+    });
+
+    it('MPAS-PATCH-ID-06d itens com insumo de outra propriedade -> 400, nada muda', async () => {
+        const outraPropriedade = await criarPropriedade(a.id);
+        const insumoDeFora = await criarInsumo(outraPropriedade.id, { destino: 'Pasto' });
+
+        const r = await patch(a, manejo.id, { itens: [{ insumoId: insumoDeFora.id, quantidade: 1 }] });
         expect(r.status).toBe(400);
-        expect(r.body.errors[0].message).toContain('itens');
+        expect(r.body.errors[0].path).toBe('itens');
+
+        const movs = await DbConnect.prisma.movimentacaoInsumo.findMany({ where: { manejoPastoId: manejo.id } });
+        expect(movs).toHaveLength(0);
     });
 
     it('MPAS-PATCH-ID-07 dataAtividade no futuro', async () => {
