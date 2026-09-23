@@ -90,7 +90,10 @@ Arquivo: `test/endpoints/pastagens-manejos/patch-pastagens-manejos-id.test.js`
 | MPAS-PATCH-ID-03 | atualiza `observacoes` | — | 200 | `data.observacoes` atualizado |
 | MPAS-PATCH-ID-04 | corpo vazio (`{}`) | — | 400 | `message` = "Forneça pelo menos um campo para atualizar." |
 | MPAS-PATCH-ID-05 | campo extra no corpo (`.strict()`) | — | 400 | issue `unrecognized_keys` |
-| MPAS-PATCH-ID-06 | envia `itens` no corpo | — | 400 | issue `unrecognized_keys` em `itens` — `ManejoPastoUpdateSchema` não aceita alterar itens via PATCH |
+| MPAS-PATCH-ID-06 | `itens: []` com manejo já tendo um item ativo | 1 movimentação `Saida` ativa vinculada ao manejo | 200 | `data.itens = []`; a movimentação antiga vira `ativo = false`, nenhuma nova é criada |
+| MPAS-PATCH-ID-06b | atualiza só `observacoes`, sem enviar `itens` | 1 movimentação `Saida` ativa vinculada ao manejo | 200 | `data.itens` mostra o item já ativo (resposta sempre reflete o estado atual); a movimentação antiga continua `ativo = true` — troca só ocorre quando `itens` é enviado |
+| MPAS-PATCH-ID-06c | `itens` com um insumo novo, manejo já tendo item de outro insumo | 1 movimentação `Saida` ativa (insumo A) | 200 | `data.itens` traz só o item novo (insumo B); no banco a `Saida` do insumo A vira `ativo = false` e a do insumo B é criada `ativo = true` — troca por completo, não acumula |
+| MPAS-PATCH-ID-06d | `itens` com insumo de outra propriedade | — | 400 | issue no campo `itens`; nenhuma movimentação é criada ou desativada (validação antes da transação) |
 | MPAS-PATCH-ID-07 | `dataAtividade` no futuro | — | 400 | issue `dataAtividade` |
 | MPAS-PATCH-ID-08 | id inexistente | — | 404 | `tipo` = `resourceNotFound` |
 | MPAS-PATCH-ID-09 | multi-tenancy: B tenta editar manejo de A | — | 404 | mesma resposta do cenário anterior; manejo de A permanece inalterado no banco |

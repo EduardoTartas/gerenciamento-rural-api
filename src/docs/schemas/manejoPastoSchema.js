@@ -65,12 +65,12 @@ const manejoPastoSchemas = {
             },
             itens: {
                 type: "array",
-                description: "Presente apenas na resposta de criação quando o corpo enviou `itens`. Lista as movimentações de estoque (`Saida`, origem `ManejoPasto`) geradas para o manejo.",
+                description: "Presente na resposta de criação, ou de atualização quando o corpo enviou `itens`. Lista as movimentações de estoque (`Saida`, origem `ManejoPasto`) geradas para o manejo.",
                 items: { $ref: "#/components/schemas/MovimentacaoInsumo" },
             },
             avisos: {
                 type: "array",
-                description: "Presente apenas na resposta de criação quando algum item deixou o saldo projetado do insumo negativo. Lista de mensagens de estoque insuficiente — o manejo é criado mesmo assim.",
+                description: "Presente quando algum item deixou o saldo projetado do insumo negativo. Lista de mensagens de estoque insuficiente — o manejo é salvo mesmo assim.",
                 items: { type: "string", example: "Estoque insuficiente de \"Ração proteinada 20%\" — saldo ficará negativo." },
             },
         },
@@ -134,6 +134,12 @@ const manejoPastoSchemas = {
             tipoManejo: { type: "string", enum: tiposManejoPasto, description: "Tipo de manejo realizado", example: "Adubação" },
             dataAtividade: { type: "string", format: "date-time", description: "Data em que a atividade foi realizada", example: "2026-04-05T00:00:00.000Z" },
             observacoes: { type: "string", description: "Observações adicionais (máx 500 caracteres)", nullable: true, example: "Adubação NPK 20-05-20" },
+            itens: {
+                type: "array",
+                description: "Opcional. Ausente preserva o consumo de insumo já registrado no manejo. Presente (mesmo `[]`) troca por completo: desativa as `Saida`s antigas do manejo e grava as informadas (máx 50). Saldo insuficiente **avisa, não bloqueia**.",
+                maxItems: 50,
+                items: { $ref: "#/components/schemas/ManejoPastoItemInsumo" },
+            },
         },
         required: [],
         description: "Esquema para atualização parcial de manejo de pasto. Pelo menos um campo é obrigatório.",
