@@ -103,8 +103,8 @@ Veja `MovimentacaoRepository.createComTransacao` como referência.
 `propriedades`, `pastos`, `rebanhos` e catálogos usam `ativo: false`. `DELETE /:recurso/:id`
 delega para o update de `ativo`, aproveitando as travas de integridade. Manejos **também** usam
 soft-delete: `ManejoPastoRepository.remove` e `ManejoRebanhoRepository.remove` fazem
-`update({ data: { ativo: false } })` (ver `documentacao/testes/pastagens-manejos/` e
-`rebanhos-manejos/`).
+`update({ data: { ativo: false } })` (ver `documentacao/plano-de-teste/suite-de-teste/suite-teste-manejo-pastagem.md`
+e `suite-teste-manejo-rebanho.md`).
 
 ## Comandos
 
@@ -134,9 +134,10 @@ Os testes rodam com `supertest` sobre o app, contra o banco `pasto_livre_teste`
 (criado e migrado automaticamente, truncado antes de cada teste) e com usuários BetterAuth
 reais. `DATABASE_URL_TESTE` aponta para outra instância, se necessário.
 
-Cada rota tem seus cenários em `documentacao/testes/<rota>/<rota>.md` — uma tabela por método
-HTTP, com IDs (`PROP-POST-01`) que cada `it(...)` repete. **Ao alterar o comportamento de um
-endpoint, atualize a tabela da rota e a suíte em `test/endpoints/<rota>/` na mesma mudança.**
+Cada rota tem seus cenários em `documentacao/plano-de-teste/suite-de-teste/suite-teste-<rota>.md` —
+uma tabela por método HTTP, com IDs (`PROP-POST-01`) que cada `it(...)` repete. **Ao alterar o
+comportamento de um endpoint, atualize a tabela da rota e a suíte em `test/endpoints/<rota>/` na
+mesma mudança.**
 
 ## Banco de dados
 

@@ -37,7 +37,7 @@ class MovimentacaoService {
             usuarioId,
             filters,
             parseInt(page, 10),
-            Math.min(parseInt(limit, 10) || 10, 100),
+            parseInt(limit, 10) || 10,
         );
     }
 

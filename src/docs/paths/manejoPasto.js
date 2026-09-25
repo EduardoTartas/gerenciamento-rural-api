@@ -142,6 +142,9 @@ const manejoPastoRoutes = {
 
             + Função de Negócio:
                 - Atualiza os campos do manejo (tipoManejo, dataAtividade, observacoes).
+                - **itens** (opcional): ausente preserva o consumo de insumo já registrado; presente
+                  (mesmo array vazio) troca por completo — desativa as movimentações de \`Saida\` antigas
+                  do manejo e grava as informadas. Mesma forma de \`ManejoPastoItemInsumo\` da criação.
                 + Recebe como parâmetro de caminho:
                     - **id**: UUID do manejo de pasto.
 
@@ -150,9 +153,13 @@ const manejoPastoRoutes = {
                 - O manejo deve pertencer a um pasto de uma propriedade do usuário logado.
                 - Pelo menos um campo deve ser fornecido no corpo da requisição.
                 - O tipo de manejo, se alterado, deve ser um dos valores pré-definidos.
+                - Cada item de \`itens\`, quando enviado, precisa referenciar um insumo da mesma
+                  propriedade do pasto, com \`destino\` \`Pasto\` ou \`Ambos\`.
 
             + Resultado Esperado:
-                - HTTP 200 OK com **ManejoPastoDetails** atualizado.
+                - HTTP 200 OK com **ManejoPastoDetails** atualizado. Quando o corpo enviou \`itens\`, a
+                  resposta traz \`itens\` (as movimentações de estoque geradas) e, se algum insumo ficou
+                  com saldo projetado negativo, \`avisos\` (mensagens de estoque insuficiente).
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{

@@ -1,13 +1,13 @@
-# Testes de endpoint por rota
+# Suíte de teste por rota
 
 Suíte de testes de integração HTTP da API Pasto Livre: cada rota tem seu `.md` de cenários
 (esta pasta) e seus arquivos `test/endpoints/<rota>/<metodo>-<caminho>.test.js` correspondentes.
 
-> Esta pasta é a **fonte técnica**: detalha cada verificação, cita arquivo e linha do código e
-> registra as divergências encontradas. O **plano de teste do projeto**, no formato acadêmico
-> (introdução, requisitos, estratégia, ferramentas, severidade de bugs e definição de pronto), está
-> em `documentacao/plano-de-teste/`, com uma suíte por recurso em `plano-de-teste/suite-de-teste/`.
-> Os dois lados usam os mesmos IDs de cenário, então dá para navegar de um para o outro.
+> Esta pasta é a fonte única dos cenários de teste: detalha cada verificação, cita arquivo e
+> linha do código e registra as divergências encontradas. O **plano de teste do projeto**, no
+> formato acadêmico (introdução, requisitos, estratégia, ferramentas, severidade de bugs e
+> definição de pronto), está em `documentacao/plano-de-teste/plano-teste-projeto.md` e referencia
+> os arquivos daqui pelos mesmos IDs de cenário.
 Os testes rodam contra um PostgreSQL real, com usuários BetterAuth reais (A, B e um admin).
 
 Exceção à convenção de um arquivo por endpoint: `transversal.md` não descreve uma rota de
@@ -167,20 +167,20 @@ não para corrigir o código.
 
 | Rota | Arquivo | Sigla |
 | :--- | :--- | :--- |
-| `/propriedades` | [propriedades.md](./propriedades/propriedades.md) | PROP |
-| `/pastagens` | [pastagens.md](./pastagens/pastagens.md) | PAST |
-| `/pastagens/manejos` | [pastagens-manejos.md](./pastagens-manejos/pastagens-manejos.md) | MPAS |
-| `/rebanhos` | [rebanhos.md](./rebanhos/rebanhos.md) | REB |
-| `/rebanhos/manejos` | [rebanhos-manejos.md](./rebanhos-manejos/rebanhos-manejos.md) | MREB |
-| `/rebanhos/movimentacoes` | [rebanhos-movimentacoes.md](./rebanhos-movimentacoes/rebanhos-movimentacoes.md) | MOV |
-| `/rebanhos/regimes-consumo` | [rebanhos-regimes-consumo.md](./rebanhos-regimes-consumo/rebanhos-regimes-consumo.md) | REG |
-| `/insumos` | [insumos.md](./insumos/insumos.md) | INS |
-| `/insumos/movimentacoes` | [insumos-movimentacoes.md](./insumos-movimentacoes/insumos-movimentacoes.md) | MINS |
-| `/catalogos/:entidade` | [catalogos.md](./catalogos/catalogos.md) | CAT |
-| `/usuarios` | [usuarios.md](./usuarios/usuarios.md) | USR |
-| `/uploads` | [uploads.md](./uploads/uploads.md) | UPL |
-| `/sync` | [sync.md](./sync/sync.md) | SYNC |
-| Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [transversal.md](./transversal/transversal.md) | APP |
+| `/propriedades` | [suite-teste-propriedade.md](./suite-teste-propriedade.md) | PROP |
+| `/pastagens` | [suite-teste-pastagem.md](./suite-teste-pastagem.md) | PAST |
+| `/pastagens/manejos` | [suite-teste-manejo-pastagem.md](./suite-teste-manejo-pastagem.md) | MPAS |
+| `/rebanhos` | [suite-teste-rebanho.md](./suite-teste-rebanho.md) | REB |
+| `/rebanhos/manejos` | [suite-teste-manejo-rebanho.md](./suite-teste-manejo-rebanho.md) | MREB |
+| `/rebanhos/movimentacoes` | [suite-teste-movimentacao-rebanho.md](./suite-teste-movimentacao-rebanho.md) | MOV |
+| `/rebanhos/regimes-consumo` | [suite-teste-regime-consumo.md](./suite-teste-regime-consumo.md) | REG |
+| `/insumos` | [suite-teste-insumo.md](./suite-teste-insumo.md) | INS |
+| `/insumos/movimentacoes` | [suite-teste-movimentacao-insumo.md](./suite-teste-movimentacao-insumo.md) | MINS |
+| `/catalogos/:entidade` | [suite-teste-catalogo.md](./suite-teste-catalogo.md) | CAT |
+| `/usuarios` | [suite-teste-usuario.md](./suite-teste-usuario.md) | USR |
+| `/uploads` | [suite-teste-upload.md](./suite-teste-upload.md) | UPL |
+| `/sync` | [suite-teste-sincronizacao.md](./suite-teste-sincronizacao.md) | SYNC |
+| Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [suite-teste-transversal.md](./suite-teste-transversal.md) | APP |
 
 ## Sigla por rota
 

@@ -63,7 +63,7 @@ class InsumoService {
         if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
         const pagina = await this.repository.list(
-            usuarioId, filters, parseInt(page, 10), Math.min(parseInt(limit, 10) || 10, 100),
+            usuarioId, filters, parseInt(page, 10), parseInt(limit, 10) || 10,
         );
         return { ...pagina, docs: pagina.docs.map((d) => this.comSaldo(d)) };
     }

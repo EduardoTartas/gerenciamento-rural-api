@@ -51,7 +51,7 @@ class ManejoPastoService {
             usuarioId,
             filters,
             parseInt(page, 10),
-            Math.min(parseInt(limit, 10) || 10, 100),
+            parseInt(limit, 10) || 10,
         );
     }
 
@@ -77,8 +77,68 @@ class ManejoPastoService {
 
         await this.ensureTipoManejoExists(dadosManejo.tipoManejoId);
 
-        // Funde itens repetidos (mesmo insumoId) num só, somando a quantidade —
-        // evita duas movimentações de saída pro mesmo insumo no mesmo manejo.
+        // Valida os insumos ANTES de abrir a transação: um item inválido é erro 400,
+        // não pode chegar a criar o manejo.
+        const itensFundidos = this._fundirItensPorInsumo(itens);
+        const insumosPorId = await this._validarItensDeManejo(itensFundidos, pasto.propriedadeId, usuarioId);
+
+        return comTransacao(this.prisma, tx, async (trx) => {
+            const manejo = await this.repository.create(dadosManejo, trx);
+            const { movimentacoes, avisos } = await this._criarMovimentacoesDosItens(
+                itensFundidos,
+                insumosPorId,
+                { manejoId: manejo.id, pastoId: pasto.id, dataAtividade: dadosManejo.dataAtividade },
+                trx,
+            );
+            return { ...manejo, itens: movimentacoes, ...(avisos.length ? { avisos } : {}) };
+        });
+    }
+
+    /**
+     * Atualiza um manejo de pasto existente.
+     *
+     * `itens` ausente preserva o consumo de insumo já registrado. `itens`
+     * presente (mesmo `[]`) troca por completo: desativa as `Saida`s antigas
+     * do manejo e grava as informadas — mais simples que diferenciar o que
+     * mudou, e o resultado final é o que o produtor deixou na tela.
+     */
+    async update(id, parsedData, req, tx) {
+        const usuarioId = req.user.id;
+        const { itens, ...dadosManejo } = parsedData;
+
+        const manejoAtual = await this.ensureManejoExists(id, usuarioId);
+
+        if (dadosManejo.tipoManejoId) {
+            await this.ensureTipoManejoExists(dadosManejo.tipoManejoId);
+        }
+
+        if (itens === undefined) {
+            return this.repository.update(id, dadosManejo, tx);
+        }
+
+        const pasto = await this.ensurePastoExists(manejoAtual.pastoId, usuarioId);
+        const itensFundidos = this._fundirItensPorInsumo(itens);
+        const insumosPorId = await this._validarItensDeManejo(itensFundidos, pasto.propriedadeId, usuarioId);
+        const dataAtividade = dadosManejo.dataAtividade ?? manejoAtual.dataAtividade;
+
+        return comTransacao(this.prisma, tx, async (trx) => {
+            const manejo = await this.repository.update(id, dadosManejo, trx);
+            await this.movimentacaoInsumoRepository.desativarPorManejo('manejoPastoId', id, trx);
+            const { movimentacoes, avisos } = await this._criarMovimentacoesDosItens(
+                itensFundidos,
+                insumosPorId,
+                { manejoId: id, pastoId: pasto.id, dataAtividade },
+                trx,
+            );
+            return { ...manejo, itens: movimentacoes, ...(avisos.length ? { avisos } : {}) };
+        });
+    }
+
+    /**
+     * Funde itens repetidos (mesmo insumoId) num só, somando a quantidade —
+     * evita duas movimentações de saída pro mesmo insumo no mesmo manejo.
+     */
+    _fundirItensPorInsumo(itens) {
         const itensFundidos = [];
         const fundidoPorInsumoId = new Map();
         for (const item of itens) {
@@ -96,13 +156,15 @@ class ManejoPastoService {
             fundidoPorInsumoId.set(item.insumoId, fundido);
             itensFundidos.push(fundido);
         }
+        return itensFundidos;
+    }
 
-        // Valida os insumos ANTES de abrir a transação: um item inválido é erro 400,
-        // não pode chegar a criar o manejo.
+    /** Confere propriedade e destino de cada item; devolve o insumo por id. */
+    async _validarItensDeManejo(itensFundidos, propriedadeId, usuarioId) {
         const insumosPorId = new Map();
         for (const item of itensFundidos) {
             const insumo = await this.insumoRepository.findById(item.insumoId, usuarioId);
-            if (!insumo || insumo.propriedadeId !== pasto.propriedadeId) {
+            if (!insumo || insumo.propriedadeId !== propriedadeId) {
                 throw new CustomError({
                     statusCode: HttpStatusCodes.BAD_REQUEST.code,
                     errorType: 'validationError',
@@ -122,59 +184,43 @@ class ManejoPastoService {
             }
             insumosPorId.set(item.insumoId, insumo);
         }
-
-        return comTransacao(this.prisma, tx, async (trx) => {
-            const manejo = await this.repository.create(dadosManejo, trx);
-
-            const avisos = [];
-            const movimentacoes = [];
-            for (const item of itensFundidos) {
-                const insumo = insumosPorId.get(item.insumoId);
-                const mov = await this.movimentacaoInsumoRepository.create({
-                    // Preserva o id gerado no cliente (offline-first): o app grava a
-                    // linha local com o mesmo id que a API vai persistir, então o
-                    // pull seguinte reconhece a movimentação em vez de duplicá-la.
-                    ...(item.id ? { id: item.id } : {}),
-                    insumoId: item.insumoId,
-                    tipo: 'Saida',
-                    quantidade: item.quantidade,
-                    data: dadosManejo.dataAtividade,
-                    origem: 'ManejoPasto',
-                    manejoPastoId: manejo.id,
-                    pastoId: pasto.id,
-                    observacoes: item.observacoes ?? null,
-                }, trx);
-                movimentacoes.push(mov);
-
-                const movs = (insumo.movimentacoes ?? []).map((m) => ({
-                    tipo: m.tipo, quantidade: Number(m.quantidade), origem: m.origem, data: m.data,
-                }));
-                movs.push({ tipo: 'Saida', quantidade: item.quantidade, origem: 'ManejoPasto', data: dadosManejo.dataAtividade });
-                const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
-                    quantidadeDia: Number(r.quantidadeDia), dataInicio: r.dataInicio, dataFim: r.dataFim, ativo: r.ativo,
-                }));
-                if (calcularSaldos({ movimentacoes: movs, regimes, agora: new Date() }).saldoProjetado < 0) {
-                    avisos.push(`Estoque insuficiente de "${insumo.nome}" — saldo ficará negativo.`);
-                }
-            }
-
-            return { ...manejo, itens: movimentacoes, ...(avisos.length ? { avisos } : {}) };
-        });
+        return insumosPorId;
     }
 
-    /**
-     * Atualiza um manejo de pasto existente.
-     */
-    async update(id, parsedData, req, tx) {
-        const usuarioId = req.user.id;
+    /** Grava uma `Saida` por item, dentro da transação do manejo, e reúne avisos de estoque. */
+    async _criarMovimentacoesDosItens(itensFundidos, insumosPorId, { manejoId, pastoId, dataAtividade }, trx) {
+        const avisos = [];
+        const movimentacoes = [];
+        for (const item of itensFundidos) {
+            const insumo = insumosPorId.get(item.insumoId);
+            const mov = await this.movimentacaoInsumoRepository.create({
+                // Preserva o id gerado no cliente (offline-first): o app grava a
+                // linha local com o mesmo id que a API vai persistir, então o
+                // pull seguinte reconhece a movimentação em vez de duplicá-la.
+                ...(item.id ? { id: item.id } : {}),
+                insumoId: item.insumoId,
+                tipo: 'Saida',
+                quantidade: item.quantidade,
+                data: dataAtividade,
+                origem: 'ManejoPasto',
+                manejoPastoId: manejoId,
+                pastoId,
+                observacoes: item.observacoes ?? null,
+            }, trx);
+            movimentacoes.push(mov);
 
-        await this.ensureManejoExists(id, usuarioId);
-
-        if (parsedData.tipoManejoId) {
-            await this.ensureTipoManejoExists(parsedData.tipoManejoId);
+            const movs = (insumo.movimentacoes ?? []).map((m) => ({
+                tipo: m.tipo, quantidade: Number(m.quantidade), origem: m.origem, data: m.data,
+            }));
+            movs.push({ tipo: 'Saida', quantidade: item.quantidade, origem: 'ManejoPasto', data: dataAtividade });
+            const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
+                quantidadeDia: Number(r.quantidadeDia), dataInicio: r.dataInicio, dataFim: r.dataFim, ativo: r.ativo,
+            }));
+            if (calcularSaldos({ movimentacoes: movs, regimes, agora: new Date() }).saldoProjetado < 0) {
+                avisos.push(`Estoque insuficiente de "${insumo.nome}" — saldo ficará negativo.`);
+            }
         }
-
-        return this.repository.update(id, parsedData, tx);
+        return { movimentacoes, avisos };
     }
 
     /**

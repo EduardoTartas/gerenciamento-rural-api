@@ -52,7 +52,7 @@ class MovimentacaoInsumoService {
         if (ativo !== undefined) filters.ativo = ativo;
         if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
-        return this.repository.list(usuarioId, filters, parseInt(page, 10), Math.min(parseInt(limit, 10) || 10, 100));
+        return this.repository.list(usuarioId, filters, parseInt(page, 10), parseInt(limit, 10) || 10);
     }
 
     async create(parsedData, req, tx) {
