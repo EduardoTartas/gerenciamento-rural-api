@@ -68,6 +68,27 @@ class RegimeConsumoInsumoRepository {
     async update(id, data, tx) {
         return ondeEscrever(tx, this.prisma).regimeConsumoInsumo.update({ where: { id }, data, select: REGIME_SELECT });
     }
+
+    /**
+     * Desativa os regimes ativos de um insumo (exclusão do insumo). Mesma regra da
+     * exclusão de um regime: `ativo: false` e `dataFim = max(agora, dataInicio)` —
+     * um regime que ainda não começou encerra na própria `dataInicio`, nunca antes
+     * dela. Regimes já inativos não são tocados. Um `update` por regime (e não
+     * `updateMany`) porque o `dataFim` depende da `dataInicio` de cada um.
+     */
+    async desativarPorInsumo(insumoId, tx) {
+        const db = ondeEscrever(tx, this.prisma);
+        const ativos = await db.regimeConsumoInsumo.findMany({
+            where: { insumoId, ativo: true },
+            select: { id: true, dataInicio: true },
+        });
+        const agora = Date.now();
+        for (const regime of ativos) {
+            const dataFim = new Date(Math.max(agora, new Date(regime.dataInicio).getTime()));
+            await db.regimeConsumoInsumo.update({ where: { id: regime.id }, data: { ativo: false, dataFim } });
+        }
+        return ativos.length;
+    }
 }
 
 export default RegimeConsumoInsumoRepository;

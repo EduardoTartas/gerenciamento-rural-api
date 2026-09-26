@@ -155,7 +155,7 @@ const insumoRoutes = {
         delete: {
             tags: ["Insumos"],
             summary: "Exclui (inativa) um insumo",
-            description: "Soft-delete: marca `ativo: false`. A linha permanece no banco para a leitura por diferença reportar a exclusão. O ledger de movimentações não é afetado.",
+            description: "Soft-delete: marca `ativo: false`. A linha permanece no banco para a leitura por diferença reportar a exclusão. Os regimes de consumo ativos do insumo são desativados na mesma transação (`ativo: false`, `dataFim = max(agora, dataInicio)`). O ledger de movimentações e os itens de manejo não são afetados.",
             security: [{ bearerAuth: [] }],
             parameters: [idParam("o Insumo")],
             responses: {
