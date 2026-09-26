@@ -291,6 +291,51 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(salvo.ativo).toBe(false);
     });
 
+    it('SYNC-POST-57b insumos:DELETE desativa os regimes de consumo dele e mantém o histórico', async () => {
+        const pasto = await criarPasto(propriedade.id);
+        const rebanho = await criarRebanho(propriedade.id, pasto.id);
+        const insumo = await criarInsumo(propriedade.id, { destino: 'Ambos' });
+        const outro = await criarInsumo(propriedade.id, { destino: 'Ambos' });
+        const regime = await criarRegimeConsumo(rebanho.id, insumo.id);
+        const regimeDoOutro = await criarRegimeConsumo(rebanho.id, outro.id);
+        const mov = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 10 });
+
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'insumos', acao: 'DELETE', entidadeId: insumo.id,
+        });
+        expect(res.situacao).toBe('aceito');
+
+        const salvo = await DbConnect.prisma.regimeConsumoInsumo.findUnique({ where: { id: regime.id } });
+        expect(salvo.ativo).toBe(false);
+        expect(salvo.dataFim).not.toBeNull();
+
+        const doOutro = await DbConnect.prisma.regimeConsumoInsumo.findUnique({ where: { id: regimeDoOutro.id } });
+        expect(doOutro.ativo).toBe(true);
+
+        const movSalva = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: mov.id } });
+        expect(movSalva.ativo).toBe(true);
+    });
+
+    it('SYNC-POST-57c lote offline: cria o regime e exclui o insumo no mesmo envio', async () => {
+        const pasto = await criarPasto(propriedade.id);
+        const rebanho = await criarRebanho(propriedade.id, pasto.id);
+        const insumo = await criarInsumo(propriedade.id, { destino: 'Ambos' });
+        const regimeId = randomUUID();
+
+        const r = await sync(a, [
+            {
+                id: randomUUID(), entidade: 'regimes_consumo_insumo', acao: 'CREATE', entidadeId: regimeId,
+                dados: { rebanhoId: rebanho.id, insumoId: insumo.id, quantidadeDia: 3, dataInicio: '2026-01-01T00:00:00.000Z' },
+            },
+            { id: randomUUID(), entidade: 'insumos', acao: 'DELETE', entidadeId: insumo.id },
+        ]);
+
+        expect(r.body.data.resultados.map((x) => x.situacao)).toEqual(['aceito', 'aceito']);
+        const salvo = await DbConnect.prisma.regimeConsumoInsumo.findUnique({ where: { id: regimeId } });
+        expect(salvo.ativo).toBe(false);
+        expect(salvo.dataFim).not.toBeNull();
+    });
+
     it('SYNC-POST-58 movimentacoes_insumo:CREATE', async () => {
         const insumo = await criarInsumo(propriedade.id);
         const entidadeId = randomUUID();

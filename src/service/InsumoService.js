@@ -1,13 +1,15 @@
 // src/service/InsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import { insumoRepository, propriedadeRepository } from '../repository/index.js';
+import { insumoRepository, propriedadeRepository, regimeConsumoInsumoRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
+import { comTransacao } from '../utils/helpers/transacao.js';
 import { calcularSaldos, calcularSaldosComResumo } from './insumo/calculoSaldo.js';
 
 class InsumoService {
     constructor() {
         this.repository = insumoRepository;
         this.propriedadeRepository = propriedadeRepository;
+        this.regimeConsumoInsumoRepository = regimeConsumoInsumoRepository;
         this.prisma = DbConnect.prisma;
     }
 
@@ -99,7 +101,15 @@ class InsumoService {
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureInsumoExists(id, usuarioId);
-        return this.repository.remove(id, tx);
+        // Os regimes de consumo do insumo saem junto, na mesma transação: sem
+        // isso o rebanho seguiria "consumindo" um insumo que não existe mais e a
+        // projeção de saldo dele ficaria errada. Movimentações e itens de manejo
+        // ficam — são o histórico.
+        return comTransacao(this.prisma, tx, async (trx) => {
+            const removido = await this.repository.remove(id, trx);
+            await this.regimeConsumoInsumoRepository.desativarPorInsumo(id, trx);
+            return removido;
+        });
     }
 
     // utilitários

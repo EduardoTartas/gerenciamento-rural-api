@@ -114,6 +114,12 @@ Arquivo: `test/endpoints/insumos/delete-insumos-id.test.js`
 | INS-DELETE-ID-03 | sem token | — | 401 | `tipo` = unauthorized |
 | INS-DELETE-ID-04 | `id` inexistente | — | 404 | mensagem "Recurso não encontrado em Insumo." |
 | INS-DELETE-ID-05 | multi-tenancy: B exclui `id` de um insumo de A | — | 404 | mesma mensagem de INS-DELETE-ID-04 |
+| INS-DELETE-ID-06 | desativa e encerra os regimes ativos do insumo | insumo com regime ativo e aberto (`dataFim` nulo) | 200 | regime `ativo = false` e `dataFim` preenchido (agora) |
+| INS-DELETE-ID-07 | regime que ainda não começou | regime com `dataInicio` no futuro | 200 | `ativo = false` e `dataFim` = `dataInicio` (nunca antes dela) |
+| INS-DELETE-ID-08 | regime já encerrado não é alterado | regime `ativo = false` com `dataFim` | 200 | `dataFim` e `updatedAt` intactos |
+| INS-DELETE-ID-09 | regime de outro insumo continua ativo | regime de um segundo insumo | 200 | regime do outro insumo segue `ativo = true`, sem `dataFim` |
+| INS-DELETE-ID-10 | histórico permanece | movimentação `Saida` do insumo excluído | 200 | movimentação segue `ativo = true` |
+| INS-DELETE-ID-11 | insumo sem regimes | — | 200 | exclui normalmente |
 
 ## Divergências
 
