@@ -72,7 +72,11 @@ class UploadService {
 
         let buffer;
         try {
+            // `.rotate()` sem argumento aplica a orientação do EXIF. Câmera de
+            // celular grava os pixels deitados e só a tag diz como girar — e o
+            // sharp descarta a tag ao gerar o JPEG, então sem isso a foto sai torta.
             buffer = await sharp(file.data)
+                .rotate()
                 .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
                 .jpeg({ quality: 80, progressive: true, mozjpeg: true })
                 .toBuffer();

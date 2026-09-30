@@ -48,7 +48,7 @@ class UserService {
      * Somente o próprio usuário pode atualizar seus dados.
      */
     async update(id, parsedData, req) {
-        await this.ensureUserExists(id);
+        const user = await this.ensureUserExists(id);
         if (!req.user.admin) {
             this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
         }
@@ -58,7 +58,14 @@ class UserService {
             await this.validateUniqueEmail(parsedData.email, id);
         }
 
-        return this.repository.update(id, parsedData);
+        const updated = await this.repository.update(id, parsedData);
+
+        // `image: null` ("remover foto") ou outra URL: a foto anterior sai do bucket.
+        if ('image' in parsedData && parsedData.image !== user.image) {
+            this.descartarFoto(user.image);
+        }
+
+        return updated;
     }
 
     /**
@@ -83,10 +90,8 @@ class UserService {
             throw error;
         }
 
-        if (user.image && user.image !== url) {
-            this.uploadService.deletarImagem(user.image).catch((err) => {
-                logger.error('Falha ao remover avatar antigo.', { url: user.image, error: err.message });
-            });
+        if (user.image !== url) {
+            this.descartarFoto(user.image);
         }
 
         return updated;
@@ -98,7 +103,7 @@ class UserService {
      * Revoga todas as sessões ativas antes de excluir.
      */
     async remove(id, req) {
-        await this.ensureUserExists(id);
+        const user = await this.ensureUserExists(id);
         if (!req.user.admin) {
             this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
         }
@@ -116,12 +121,30 @@ class UserService {
             }
         }
 
-        return this.repository.remove(id);
+        const removido = await this.repository.remove(id);
+        // Só depois de apagar o usuário: se a exclusão falhar, a foto continua valendo.
+        this.descartarFoto(user.image);
+        return removido;
     }
 
     // ================================
     // MÉTODOS ÚTEIS
     // ================================
+
+    /**
+     * Apaga do bucket uma foto que deixou de ser usada, em segundo plano.
+     *
+     * Só mexe em URL do próprio bucket: foto externa (a do Google, gravada no
+     * primeiro login social) não é nossa, e usar o fim da URL dela como nome de
+     * objeto poderia apagar outro arquivo. Falha no storage não desfaz a operação
+     * que já foi concluída no banco — fica registrada no log.
+     */
+    descartarFoto(url) {
+        if (!url || !url.startsWith(`${baseUrlPublica()}/`)) return;
+        this.uploadService.deletarImagem(url).catch((err) => {
+            logger.error('Falha ao remover foto antiga do bucket.', { url, error: err.message });
+        });
+    }
 
     /**
      * Valida que o e-mail não está em uso por outro usuário.
