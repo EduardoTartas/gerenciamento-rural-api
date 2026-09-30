@@ -73,6 +73,38 @@ describe('POST /v1/uploads/imagens', () => {
         expect(putObject.mock.calls[0][4]).toMatchObject({ 'Content-Type': 'image/jpeg' });
     });
 
+    it('UPL-POST-02b aplica a orientação do EXIF (foto de câmera não sai torta)', async () => {
+        // Metade esquerda vermelha, direita azul, com a tag "girar 90° horário"
+        // (Orientation 6) — como a câmera do Android grava foto em retrato.
+        const azul = await sharp({
+            create: { width: 400, height: 400, channels: 3, background: { r: 0, g: 0, b: 255 } },
+        }).png().toBuffer();
+        const buffer = await sharp({
+            create: { width: 800, height: 400, channels: 3, background: { r: 255, g: 0, b: 0 } },
+        })
+            .composite([{ input: azul, left: 400, top: 0 }])
+            .jpeg()
+            .withMetadata({ orientation: 6 })
+            .toBuffer();
+
+        const r = await enviar(a, buffer, { filename: 'foto.jpg', contentType: 'image/jpeg' });
+
+        expect(r.status).toBe(201);
+        const enviado = putObject.mock.calls[0][2];
+        const { data, info } = await sharp(enviado).raw().toBuffer({ resolveWithObject: true });
+        const pixel = (x, y) => {
+            const i = (y * info.width + x) * info.channels;
+            return { r: data[i], b: data[i + 2] };
+        };
+        // Girada, a metade esquerda (vermelha) vira a de cima.
+        const topo = pixel(5, 5);
+        const base = pixel(5, info.height - 6);
+        expect(topo.r).toBeGreaterThan(200);
+        expect(topo.b).toBeLessThan(60);
+        expect(base.b).toBeGreaterThan(200);
+        expect(base.r).toBeLessThan(60);
+    });
+
     it('UPL-POST-03 nenhum arquivo enviado', async () => {
         const r = await enviar(a, null);
 
