@@ -1,12 +1,31 @@
 import { randomUUID } from 'node:crypto';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 
+// Mock do Garage/MinIO (mesmo padrão de patch-usuarios-id-foto): a suíte não sobe
+// storage real, e o descarte da foto antiga precisa ser espiado.
+const { removeObject } = vi.hoisted(() => ({
+    removeObject: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../src/config/garageConnect.js', async (importOriginal) => {
+    const real = await importOriginal();
+    return {
+        ...real,
+        default: vi.fn().mockResolvedValue({ removeObject }),
+    };
+});
+
 describe('PATCH /v1/usuarios/:id', () => {
+    const BUCKET_URL = process.env.GARAGE_PUBLIC_URL.replace(/\/$/, '');
     let a;
-    beforeEach(async () => { a = await criarUsuario(); });
+    beforeEach(async () => {
+        a = await criarUsuario();
+        removeObject.mockClear();
+    });
+    const esperarDescarte = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
     const patch = (usuario, id, corpo) =>
         api().patch(`/v1/usuarios/${id}`).set('Authorization', usuario.bearer).send(corpo);
@@ -42,6 +61,42 @@ describe('PATCH /v1/usuarios/:id', () => {
         expect(r.body.data.image).toBeNull();
         const salvo = await DbConnect.prisma.user.findUnique({ where: { id: a.id } });
         expect(salvo.image).toBeNull();
+    });
+
+    it('USR-PATCH-04b limpar image apaga a foto do bucket', async () => {
+        const foto = `${BUCKET_URL}/${randomUUID()}.jpeg`;
+        await DbConnect.prisma.user.update({ where: { id: a.id }, data: { image: foto } });
+
+        const r = await patch(a, a.id, { image: null });
+
+        expect(r.status).toBe(200);
+        await esperarDescarte();
+        expect(removeObject).toHaveBeenCalledTimes(1);
+        expect(removeObject.mock.calls[0][1]).toBe(foto.split('/').pop());
+    });
+
+    it('USR-PATCH-04c foto externa (Google) não é apagada do bucket', async () => {
+        await DbConnect.prisma.user.update({
+            where: { id: a.id },
+            data: { image: 'https://lh3.googleusercontent.com/a/foto=s96-c' },
+        });
+
+        const r = await patch(a, a.id, { image: null });
+
+        expect(r.status).toBe(200);
+        await esperarDescarte();
+        expect(removeObject).not.toHaveBeenCalled();
+    });
+
+    it('USR-PATCH-04d editar só o nome não mexe na foto', async () => {
+        const foto = `${BUCKET_URL}/${randomUUID()}.jpeg`;
+        await DbConnect.prisma.user.update({ where: { id: a.id }, data: { image: foto } });
+
+        const r = await patch(a, a.id, { name: 'Outro Nome' });
+
+        expect(r.status).toBe(200);
+        await esperarDescarte();
+        expect(removeObject).not.toHaveBeenCalled();
     });
 
     it('USR-PATCH-05 corpo vazio', async () => {

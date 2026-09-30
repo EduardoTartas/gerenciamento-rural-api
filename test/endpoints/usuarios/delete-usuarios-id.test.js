@@ -1,12 +1,29 @@
 import { randomUUID } from 'node:crypto';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import { criarPropriedade } from '../../apoio/fabricas.js';
 
+// Mock do Garage/MinIO (mesmo padrão de patch-usuarios-id-foto): a suíte não sobe
+// storage real, e o descarte da foto antiga precisa ser espiado.
+const { removeObject } = vi.hoisted(() => ({
+    removeObject: vi.fn().mockResolvedValue(undefined),
+}));
+
+vi.mock('../../../src/config/garageConnect.js', async (importOriginal) => {
+    const real = await importOriginal();
+    return {
+        ...real,
+        default: vi.fn().mockResolvedValue({ removeObject }),
+    };
+});
+
 describe('DELETE /v1/usuarios/:id', () => {
     const del = (usuario, id) => api().delete(`/v1/usuarios/${id}`).set('Authorization', usuario.bearer);
+    const BUCKET_URL = process.env.GARAGE_PUBLIC_URL.replace(/\/$/, '');
+    beforeEach(() => { removeObject.mockClear(); });
+    const esperarDescarte = () => new Promise((resolve) => { setTimeout(resolve, 0); });
 
     it('USR-DELETE-01 usuário exclui a própria conta', async () => {
         const a = await criarUsuario();
@@ -38,6 +55,19 @@ describe('DELETE /v1/usuarios/:id', () => {
         expect(r.status).toBe(200);
         const salvo = await DbConnect.prisma.propriedade.findUnique({ where: { id: propriedade.id } });
         expect(salvo).toBeNull();
+    });
+
+    it('USR-DELETE-03b excluir a conta apaga a foto do bucket', async () => {
+        const a = await criarUsuario();
+        const foto = `${BUCKET_URL}/${randomUUID()}.jpeg`;
+        await DbConnect.prisma.user.update({ where: { id: a.id }, data: { image: foto } });
+
+        const r = await del(a, a.id);
+
+        expect(r.status).toBe(200);
+        await esperarDescarte();
+        expect(removeObject).toHaveBeenCalledTimes(1);
+        expect(removeObject.mock.calls[0][1]).toBe(foto.split('/').pop());
     });
 
     it('USR-DELETE-04 usuário comum tenta excluir outro usuário', async () => {
