@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarRaca } from '../../apoio/fabricas.js';
+import { criarRaca, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('GET /v1/catalogos/:entidade', () => {
     let a;
@@ -118,5 +118,16 @@ describe('GET /v1/catalogos/:entidade', () => {
         expect(rB.status).toBe(200);
         expect(rA.body.data.docs.map((item) => item.id)).toContain(raca.id);
         expect(rB.body.data.docs.map((item) => item.id)).toContain(raca.id);
+    });
+
+    it('CAT-GET-12 tipos-pastagem devolve diasDescanso; outros catálogos não', async () => {
+        await criarTipoPastagem({ nome: 'Tifton 85', diasDescanso: 30 });
+        const r = await api().get('/v1/catalogos/tipos-pastagem').set('Authorization', a.bearer);
+        expect(r.status).toBe(200);
+        expect(r.body.data.docs[0]).toMatchObject({ nome: 'Tifton 85', diasDescanso: 30 });
+
+        await criarRaca({ nome: 'Nelore' });
+        const racas = await api().get('/v1/catalogos/racas').set('Authorization', a.bearer);
+        expect(racas.body.data.docs[0]).not.toHaveProperty('diasDescanso');
     });
 });

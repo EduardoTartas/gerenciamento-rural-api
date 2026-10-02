@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarRaca } from '../../apoio/fabricas.js';
+import { criarRaca, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('PATCH /v1/catalogos/:entidade/:id', () => {
     let admin;
@@ -101,5 +101,21 @@ describe('PATCH /v1/catalogos/:entidade/:id', () => {
         const r = await patch(a, 'racas', raca.id, { nome: 'X' });
         expect(r.status).toBe(403);
         expect(r.body.tipo).toBe('forbidden');
+    });
+
+    it('CAT-PATCH-13 tipos-pastagem atualiza diasDescanso sem exigir nome', async () => {
+        const tipo = await criarTipoPastagem({ diasDescanso: 30 });
+        const r = await api().patch(`/v1/catalogos/tipos-pastagem/${tipo.id}`)
+            .set('Authorization', admin.bearer).send({ diasDescanso: 42 });
+        expect(r.status).toBe(200);
+        expect(r.body.data.diasDescanso).toBe(42);
+        expect(r.body.data.nome).toBe(tipo.nome);
+    });
+
+    it('CAT-PATCH-14 tipos-pastagem recusa diasDescanso inválido', async () => {
+        const tipo = await criarTipoPastagem();
+        const r = await api().patch(`/v1/catalogos/tipos-pastagem/${tipo.id}`)
+            .set('Authorization', admin.bearer).send({ diasDescanso: 0 });
+        expect(r.status).toBe(400);
     });
 });

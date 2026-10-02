@@ -35,6 +35,7 @@ Arquivo: `test/endpoints/catalogos/get-catalogos-entidade.test.js`
 | CAT-GET-09 | `:entidade` inexistente | `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound`; mensagem lista as entidades disponíveis |
 | CAT-GET-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized`; `recuperavel === true` |
 | CAT-GET-11 | leitura não exige admin | usuário comum A autenticado (não admin) | 200 | lista normalmente, sem 403 |
+| CAT-GET-12 | `tipos-pastagem` devolve `diasDescanso`; outros catálogos não | tipo de pastagem e raça cadastrados | 200 | item de `tipos-pastagem` traz `diasDescanso`; item de `racas` não tem a propriedade |
 
 ## GET /catalogos/:entidade/:id
 
@@ -67,6 +68,9 @@ Arquivo: `test/endpoints/catalogos/post-catalogos-entidade.test.js`
 | CAT-POST-09 | `:entidade` inexistente | admin; `/catalogos/nao-existe` | 404 | `tipo` `resourceNotFound` |
 | CAT-POST-10 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 | CAT-POST-11 | 403 usuário comum (não admin) | usuário A autenticado, não admin | 403 | `tipo` `forbidden`; mensagem "Esta ação exige perfil administrativo."; corpo nem chega a ser validado |
+| CAT-POST-12 | `tipos-pastagem` cria com `diasDescanso` | admin | 201 | `data.diasDescanso` gravado |
+| CAT-POST-13 | `tipos-pastagem` sem `diasDescanso`, 0, 366 ou fracionário | admin | 400 | erro em `diasDescanso` |
+| CAT-POST-14 | `diasDescanso` em catálogo que não tem o campo | admin, entidade `racas` | 400 | `.strict()` |
 
 ## PATCH /catalogos/:entidade/:id
 
@@ -86,6 +90,8 @@ Arquivo: `test/endpoints/catalogos/patch-catalogos-entidade-id.test.js`
 | CAT-PATCH-10 | `:entidade` inexistente | admin | 404 | `tipo` `resourceNotFound` |
 | CAT-PATCH-11 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 | CAT-PATCH-12 | 403 usuário comum (não admin) | usuário A, não admin | 403 | `tipo` `forbidden` |
+| CAT-PATCH-13 | `tipos-pastagem` atualiza só `diasDescanso` | admin | 200 | `diasDescanso` novo, `nome` mantido |
+| CAT-PATCH-14 | `tipos-pastagem` com `diasDescanso: 0` | admin | 400 | validação Zod |
 
 ## DELETE /catalogos/:entidade/:id
 
@@ -100,6 +106,7 @@ Arquivo: `test/endpoints/catalogos/delete-catalogos-entidade-id.test.js`
 | CAT-DELETE-05 | `:entidade` inexistente | admin | 404 | `tipo` `resourceNotFound` |
 | CAT-DELETE-06 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 | CAT-DELETE-07 | 403 usuário comum (não admin) | usuário A, não admin | 403 | `tipo` `forbidden` |
+| CAT-DELETE-08 | `tipos-pastagem` com pasto vinculado | pasto com `tipoPastagemId` do item | 409 | trava de dependência |
 
 ## Ausência de multi-tenancy
 

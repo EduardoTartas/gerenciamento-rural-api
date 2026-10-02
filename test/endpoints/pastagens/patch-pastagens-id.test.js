@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarPasto, criarRebanho } from '../../apoio/fabricas.js';
+import { criarPropriedade, criarPasto, criarRebanho, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('PATCH /v1/pastagens/:id', () => {
     let a;
@@ -26,12 +26,40 @@ describe('PATCH /v1/pastagens/:id', () => {
         expect(salvo.nome).toBe('Novo Nome');
     });
 
-    it('PAST-PATCH-ID-02 atualiza extensaoHa e tipoPastagem', async () => {
+    it('PAST-PATCH-ID-02 atualiza extensaoHa, tipoPastagemId e diasDescanso', async () => {
+        const tipo = await criarTipoPastagem({ nome: 'Mombaça', diasDescanso: 35 });
         const pasto = await criarPasto(propriedade.id);
-        const r = await patch(a, pasto.id, { extensaoHa: 8.5, tipoPastagem: 'Mombaça' });
+        const r = await patch(a, pasto.id, { extensaoHa: 8.5, tipoPastagemId: tipo.id, diasDescanso: 28 });
         expect(r.status).toBe(200);
         expect(r.body.data.extensaoHa).toBe('8.5');
-        expect(r.body.data.tipoPastagem).toBe('Mombaça');
+        expect(r.body.data.tipoPastagem).toEqual({ id: tipo.id, nome: 'Mombaça', diasDescanso: 35 });
+        expect(r.body.data.diasDescanso).toBe(28);
+    });
+
+    it('PAST-PATCH-ID-02b limpa o ajuste e o tipo com null', async () => {
+        const tipo = await criarTipoPastagem();
+        const pasto = await criarPasto(propriedade.id, { tipoPastagemId: tipo.id, diasDescanso: 20 });
+        const r = await patch(a, pasto.id, { tipoPastagemId: null, diasDescanso: null });
+        expect(r.status).toBe(200);
+        expect(r.body.data.tipoPastagemId).toBeNull();
+        expect(r.body.data.diasDescanso).toBeNull();
+    });
+
+    it('PAST-PATCH-ID-02c tipo desativado depois não trava a edição de outros campos', async () => {
+        const tipo = await criarTipoPastagem();
+        const pasto = await criarPasto(propriedade.id, { tipoPastagemId: tipo.id });
+        await DbConnect.prisma.tipoPastagem.update({ where: { id: tipo.id }, data: { ativo: false } });
+        const r = await patch(a, pasto.id, { nome: 'Renomeado', tipoPastagemId: tipo.id });
+        expect(r.status).toBe(200);
+        expect(r.body.data.nome).toBe('Renomeado');
+    });
+
+    it('PAST-PATCH-ID-02d trocar para tipo inativo é recusado', async () => {
+        const inativo = await criarTipoPastagem({ ativo: false });
+        const pasto = await criarPasto(propriedade.id);
+        const r = await patch(a, pasto.id, { tipoPastagemId: inativo.id });
+        expect(r.status).toBe(404);
+        expect(r.body.errors[0].path).toBe('tipoPastagemId');
     });
 
     it('PAST-PATCH-ID-03 recusa status "Ocupado" sem rebanho ativo vinculado', async () => {

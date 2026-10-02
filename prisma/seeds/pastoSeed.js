@@ -2,12 +2,6 @@
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
-const TIPOS_PASTAGEM = [
-  'Brachiaria Brizantha', 'Brachiaria Decumbens', 'Brachiaria Humidicola',
-  'Mombaça', 'Tanzânia', 'Marandu', 'Tifton 85', 'Capim Elefante',
-  'Andropogon', 'Massai',
-];
-
 const NOMES_PASTO = [
   'Pasto da Lagoa', 'Pasto do Morro', 'Piquete Central', 'Pasto da Mangueira',
   'Pasto do Córrego', 'Retiro Norte', 'Retiro Sul', 'Pasto Principal',
@@ -25,6 +19,10 @@ const STATUS_PASTO = ['Ocupado', 'Vazio', 'Descanso'];
  */
 export async function seedPastos(prisma, propriedades, quantidadePorPropriedade = 3) {
   console.log('Semeando pastos...');
+
+  // O catálogo de forrageiras vem da migration (20261001120000_tipo_pastagem_descanso);
+  // o seed só sorteia entre os tipos ativos. Sem catálogo, o pasto nasce sem tipo.
+  const tipos = await prisma.tipoPastagem.findMany({ where: { ativo: true }, select: { id: true, nome: true } });
 
   const created = [];
   const nomesUsadosPorProp = {};
@@ -46,7 +44,7 @@ export async function seedPastos(prisma, propriedades, quantidadePorPropriedade 
 
       const status = faker.helpers.arrayElement(STATUS_PASTO);
       const extensaoHa = faker.number.float({ min: 2, max: 25, fractionDigits: 1 });
-      const tipoPastagem = faker.helpers.arrayElement(TIPOS_PASTAGEM);
+      const tipo = tipos.length > 0 ? faker.helpers.arrayElement(tipos) : null;
 
       // Se status é Descanso ou Vazio, gera uma data de última saída recente
       const dataUltimaSaida = status !== 'Ocupado'
@@ -68,13 +66,13 @@ export async function seedPastos(prisma, propriedades, quantidadePorPropriedade 
           propriedadeId: prop.id,
           nome,
           extensaoHa,
-          tipoPastagem,
+          tipoPastagemId: tipo?.id ?? null,
           status,
           dataUltimaSaida,
         },
       });
 
-      console.log(`  ✅ Pasto "${nome}" criado (${extensaoHa}ha - ${tipoPastagem} - ${status})`);
+      console.log(`  ✅ Pasto "${nome}" criado (${extensaoHa}ha - ${tipo?.nome ?? 'sem tipo'} - ${status})`);
       created.push(pasto);
     }
   }

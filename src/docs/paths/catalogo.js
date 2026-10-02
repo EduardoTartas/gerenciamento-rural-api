@@ -4,7 +4,7 @@ import commonResponses from "../schemas/swaggerCommonResponses.js";
 import catalogoSchemas from "../schemas/catalogoSchema.js";
 import { generateParameters } from "./utils/generateParameters.js";
 
-const entidadesDisponiveis = "racas | sistemas-producao | regimes-alimentares | tipos-manejo-rebanho | tipos-manejo-pasto | tipos-insumo";
+const entidadesDisponiveis = "racas | sistemas-producao | regimes-alimentares | tipos-manejo-rebanho | tipos-manejo-pasto | tipos-insumo | tipos-pastagem";
 
 const catalogoRoutes = {
     "/v1/catalogos/{entidade}": {
@@ -19,6 +19,7 @@ const catalogoRoutes = {
                 - \`tipos-manejo-rebanho\` — Tipos de manejo de rebanho (ex: Vacinação, Pesagem)
                 - \`tipos-manejo-pasto\` — Tipos de manejo de pasto (ex: Roçagem, Adubação)
                 - \`tipos-insumo\` — Tipos de insumo (ex: Ração, Sal mineral, Vacina, Medicamento, Fertilizante, Semente, Defensivo, Outro)
+                - \`tipos-pastagem\` — Forrageiras com **diasDescanso** (média para o período das águas, Embrapa Cerrados CT 101): Brachiaria brizantha 35, decumbens 35, humidicola 25, Panicum maximum (Mombaça) 35, (Tanzânia) 35, Tifton 85 30, Coast-cross 30, Capim-elefante 38, Andropógon 28. **diasDescanso** (inteiro, 1 a 365) é obrigatório no POST e opcional no PATCH desta entidade; as demais rejeitam o campo.
 
             + Regras de Negócio:
                 - Requer sessão autenticada válida.

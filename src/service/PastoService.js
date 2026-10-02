@@ -25,13 +25,13 @@ class PastoService {
             return this.ensurePastoExists(id, usuarioId);
         }
 
-        const { nome, propriedadeId, status, tipoPastagem, ativo, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
+        const { nome, propriedadeId, status, tipoPastagemId, ativo, atualizadoDesde, page = 1, limit = 10 } = req._parsedQuery ?? req.query;
         const filters = {};
 
         if (nome) filters.nome = nome;
         if (propriedadeId) filters.propriedadeId = propriedadeId;
         if (status) filters.status = status;
-        if (tipoPastagem) filters.tipoPastagem = tipoPastagem;
+        if (tipoPastagemId) filters.tipoPastagemId = tipoPastagemId;
         if (ativo !== undefined) filters.ativo = ativo;
         if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
@@ -66,6 +66,11 @@ class PastoService {
         // Valida nome único por propriedade
         await this.validateUniqueNome(parsedData.nome, parsedData.propriedadeId);
 
+        await this.converterTipoPastagemLegado(parsedData);
+        if (parsedData.tipoPastagemId) {
+            await this.ensureTipoPastagemExists(parsedData.tipoPastagemId);
+        }
+
         return this.repository.create(parsedData, tx);
     }
 
@@ -81,6 +86,14 @@ class PastoService {
         // Valida nome único se estiver alterando
         if (parsedData.nome) {
             await this.validateUniqueNome(parsedData.nome, pasto.propriedadeId, id);
+        }
+
+        await this.converterTipoPastagemLegado(parsedData);
+
+        // Trocar para outro tipo exige que ele exista ativo; manter o atual não,
+        // para um tipo desativado depois não travar a edição de outros campos.
+        if (parsedData.tipoPastagemId && parsedData.tipoPastagemId !== pasto.tipoPastagemId) {
+            await this.ensureTipoPastagemExists(parsedData.tipoPastagemId);
         }
 
         // Validação de estado "Ativo" e "Status" usando rebanhos
@@ -202,6 +215,42 @@ class PastoService {
             });
         }
         return propriedade;
+    }
+
+    /**
+     * Troca o texto livre antigo `tipoPastagem` pelo `tipoPastagemId` de mesmo
+     * nome (sem diferenciar maiúsculas). `tipoPastagemId` enviado junto vence.
+     * Sem correspondência, o campo é só descartado: o pasto fica sem tipo, como
+     * na migration que converteu os pastos existentes.
+     */
+    async converterTipoPastagemLegado(parsedData) {
+        if (!('tipoPastagem' in parsedData)) return;
+        const texto = parsedData.tipoPastagem?.trim();
+        delete parsedData.tipoPastagem;
+        if (parsedData.tipoPastagemId !== undefined) return;
+        if (!texto) {
+            parsedData.tipoPastagemId = null;
+            return;
+        }
+        const tipo = await this.repository.findTipoPastagemPorNome(texto);
+        parsedData.tipoPastagemId = tipo?.id ?? null;
+    }
+
+    /**
+     * Garante que o tipo de pastagem existe e está ativo no catálogo.
+     */
+    async ensureTipoPastagemExists(tipoPastagemId) {
+        const tipo = await this.repository.findTipoPastagemAtivo(tipoPastagemId);
+        if (!tipo) {
+            throw new CustomError({
+                statusCode: HttpStatusCodes.NOT_FOUND.code,
+                errorType: 'resourceNotFound',
+                field: 'tipoPastagemId',
+                details: [{ path: 'tipoPastagemId', message: 'Tipo de pastagem não encontrado ou inativo.' }],
+                customMessage: 'Tipo de pastagem não encontrado.',
+            });
+        }
+        return tipo;
     }
 }
 

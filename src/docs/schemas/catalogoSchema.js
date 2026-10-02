@@ -7,6 +7,7 @@ const catalogoSchemas = {
             id:        { type: "string", format: "uuid", example: "a1b2c3d4-e5f6-7890-abcd-ef1234567890" },
             nome:      { type: "string", example: "Nelore" },
             ativo:     { type: "boolean", example: true },
+            diasDescanso: { type: "integer", description: "Só em tipos-pastagem: descanso padrão da forrageira, em dias", example: 35 },
             createdAt: { type: "string", format: "date-time", example: "2026-04-01T12:00:00.000Z" },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-01T12:00:00.000Z" },
         },
@@ -29,6 +30,7 @@ const catalogoSchemas = {
         type: "object",
         properties: {
             nome: { type: "string", description: "Nome do item de catálogo (2-100 caracteres)", example: "Nelore" },
+            diasDescanso: { type: "integer", minimum: 1, maximum: 365, description: "Obrigatório e exclusivo de tipos-pastagem", example: 35 },
         },
         required: ["nome"],
         example: { nome: "Nelore" }
@@ -39,6 +41,7 @@ const catalogoSchemas = {
         properties: {
             nome:  { type: "string", description: "Novo nome do item (2-100 caracteres)", example: "Nelore P.O." },
             ativo: { type: "boolean", description: "Status ativo/inativo", example: true },
+            diasDescanso: { type: "integer", minimum: 1, maximum: 365, description: "Só em tipos-pastagem", example: 42 },
         },
         example: { nome: "Nelore P.O." }
     },
