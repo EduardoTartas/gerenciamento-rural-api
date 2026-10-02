@@ -11,13 +11,13 @@ export const PastoIdSchema = z
 
 /**
  * Valida os parâmetros de consulta (query) para listagem de pastos.
- * Suporta filtragem por nome, propriedadeId, status e tipoPastagem.
+ * Suporta filtragem por nome, propriedadeId, status e tipoPastagemId.
  */
 export const PastoQuerySchema = z.object({
     nome: z.string().optional(),
     propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
     status: z.enum(['Ocupado', 'Vazio', 'Descanso']).optional(),
-    tipoPastagem: z.string().optional(),
+    tipoPastagemId: z.string().uuid('O ID do tipo de pastagem deve ser um UUID válido.').optional(),
     ativo: z.enum(['true', 'false'], {
         error: "O filtro 'ativo' deve ser 'true' ou 'false'",
     }).transform(v => v === 'true').optional(),

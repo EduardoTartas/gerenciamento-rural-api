@@ -4,6 +4,31 @@ import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
+/**
+ * Campos devolvidos em toda leitura e escrita de pasto. `tipoPastagem` vem junto
+ * com `diasDescanso` para o app calcular o descanso efetivo sem outra consulta:
+ * `pasto.diasDescanso` (ajuste do produtor) ?? `tipoPastagem.diasDescanso`.
+ */
+const PASTO_SELECT = {
+    id: true,
+    propriedadeId: true,
+    nome: true,
+    extensaoHa: true,
+    tipoPastagemId: true,
+    tipoPastagem: { select: { id: true, nome: true, diasDescanso: true } },
+    diasDescanso: true,
+    status: true,
+    dataUltimaSaida: true,
+    ativo: true,
+    createdAt: true,
+    updatedAt: true,
+    propriedade: {
+        select: {
+            id: true,
+            nome: true,
+        },
+    },
+};
 
 class PastoRepository {
     constructor() {
@@ -28,7 +53,7 @@ class PastoRepository {
         if (filters.status) {
             where.status = filters.status;
         }
-        if (filters.tipoPastagem) where.tipoPastagem = contemInsensitive(filters.tipoPastagem);
+        if (filters.tipoPastagemId) where.tipoPastagemId = filters.tipoPastagemId;
 
         const [docs, totalDocs] = await Promise.all([
             this.prisma.pasto.findMany({
@@ -36,24 +61,7 @@ class PastoRepository {
                 skip: (page - 1) * limit,
                 take: limit,
                 orderBy: { nome: 'asc' },
-                select: {
-                    id: true,
-                    propriedadeId: true,
-                    nome: true,
-                    extensaoHa: true,
-                    tipoPastagem: true,
-                    status: true,
-                    dataUltimaSaida: true,
-                    ativo: true,
-                    createdAt: true,
-                    updatedAt: true,
-                    propriedade: {
-                        select: {
-                            id: true,
-                            nome: true,
-                        },
-                    },
-                },
+                select: PASTO_SELECT,
             }),
             this.prisma.pasto.count({ where }),
         ]);
@@ -77,27 +85,27 @@ class PastoRepository {
                 id,
                 propriedade: { usuarioId },
             },
-            select: {
-                id: true,
-                propriedadeId: true,
-                nome: true,
-                extensaoHa: true,
-                tipoPastagem: true,
-                status: true,
-                dataUltimaSaida: true,
-                ativo: true,
-                createdAt: true,
-                updatedAt: true,
-                propriedade: {
-                    select: {
-                        id: true,
-                        nome: true,
-                    },
-                },
-            },
+            select: PASTO_SELECT,
         });
 
         return pasto;
+    }
+
+    /**
+     * Tipo de pastagem ativo com este nome (sem diferenciar maiúsculas), ou null.
+     */
+    async findTipoPastagemPorNome(nome) {
+        return this.prisma.tipoPastagem.findFirst({
+            where: { nome: igualInsensitive(nome), ativo: true },
+            select: { id: true },
+        });
+    }
+
+    /**
+     * Tipo de pastagem ativo do catálogo, ou null.
+     */
+    async findTipoPastagemAtivo(id) {
+        return this.prisma.tipoPastagem.findFirst({ where: { id, ativo: true }, select: { id: true } });
     }
 
     /**
@@ -126,24 +134,7 @@ class PastoRepository {
     async create(data, tx) {
         return ondeEscrever(tx, this.prisma).pasto.create({
             data,
-            select: {
-                id: true,
-                propriedadeId: true,
-                nome: true,
-                extensaoHa: true,
-                tipoPastagem: true,
-                status: true,
-                dataUltimaSaida: true,
-                ativo: true,
-                createdAt: true,
-                updatedAt: true,
-                propriedade: {
-                    select: {
-                        id: true,
-                        nome: true,
-                    },
-                },
-            },
+            select: PASTO_SELECT,
         });
     }
 
@@ -158,24 +149,7 @@ class PastoRepository {
         return ondeEscrever(tx, this.prisma).pasto.update({
             where: { id },
             data,
-            select: {
-                id: true,
-                propriedadeId: true,
-                nome: true,
-                extensaoHa: true,
-                tipoPastagem: true,
-                status: true,
-                dataUltimaSaida: true,
-                ativo: true,
-                createdAt: true,
-                updatedAt: true,
-                propriedade: {
-                    select: {
-                        id: true,
-                        nome: true,
-                    },
-                },
-            },
+            select: PASTO_SELECT,
         });
     }
 

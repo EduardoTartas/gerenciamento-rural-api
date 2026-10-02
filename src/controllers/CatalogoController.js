@@ -1,7 +1,7 @@
 // src/controllers/CatalogoController.js
 
 import CatalogoService from '../service/CatalogoService.js';
-import { CatalogoCreateSchema, CatalogoUpdateSchema } from '../utils/validators/schemas/zod/CatalogoSchema.js';
+import { schemaDeCriacao, schemaDeAtualizacao } from '../utils/validators/schemas/zod/CatalogoSchema.js';
 import { CatalogoQuerySchema, CatalogoIdSchema } from '../utils/validators/schemas/zod/querys/CatalogoQuerySchema.js';
 import { CommonResponse, CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
 
@@ -57,7 +57,7 @@ class CatalogoController {
             });
         }
 
-        const parsedData = CatalogoCreateSchema.parse(req.body);
+        const parsedData = schemaDeCriacao(req.params.entidade).parse(req.body);
         const data = await this.service.create(parsedData, req);
 
         return CommonResponse.created(res, data, 'Item de catálogo criado com sucesso.');
@@ -81,7 +81,7 @@ class CatalogoController {
             });
         }
 
-        const parsedData = CatalogoUpdateSchema.parse(req.body);
+        const parsedData = schemaDeAtualizacao(req.params.entidade).parse(req.body);
         const data = await this.service.update(id, parsedData, req);
 
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Item de catálogo atualizado com sucesso.');

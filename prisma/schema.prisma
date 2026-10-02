@@ -10,18 +10,18 @@ datasource db {
 }
 
 model user {
-  id            String    @id @default(uuid())
+  id            String   @id @default(uuid())
   name          String
-  email         String    @unique
-  emailVerified Boolean   @default(false)
+  email         String   @unique
+  emailVerified Boolean  @default(false)
   image         String?
-  admin         Boolean   @default(false)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  admin         Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  sessions      session[]
-  accounts      account[]
-  propriedades  propriedade[]
+  sessions     session[]
+  accounts     account[]
+  propriedades propriedade[]
 
   @@map("users")
 }
@@ -69,8 +69,8 @@ model verification {
   value      String
   expiresAt  DateTime
 
-  createdAt  DateTime @default(now())
-  updatedAt  DateTime @updatedAt
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
 
   @@map("verifications")
 }
@@ -89,7 +89,7 @@ model raca {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rebanhos  rebanho[]
+  rebanhos rebanho[]
 
   @@map("racas")
 }
@@ -101,7 +101,7 @@ model sistemaProducao {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rebanhos  rebanho[]
+  rebanhos rebanho[]
 
   @@map("sistemas_producao")
 }
@@ -113,7 +113,7 @@ model regimeAlimentar {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  rebanhos  rebanho[]
+  rebanhos rebanho[]
 
   @@map("regimes_alimentares")
 }
@@ -125,7 +125,7 @@ model tipoManejoRebanho {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  manejos   manejoRebanho[]
+  manejos manejoRebanho[]
 
   @@map("tipos_manejo_rebanho")
 }
@@ -137,7 +137,7 @@ model tipoManejoPasto {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  manejos   manejoPasto[]
+  manejos manejoPasto[]
 
   @@map("tipos_manejo_pasto")
 }
@@ -149,9 +149,25 @@ model tipoInsumo {
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
 
-  insumos   insumo[]
+  insumos insumo[]
 
   @@map("tipos_insumo")
+}
+
+// Forrageira do pasto. `diasDescanso` é a média recomendada para o período das águas
+// (Embrapa Cerrados, Comunicado Técnico 101) — padrão sugerido; cada pasto pode
+// ajustar no próprio `pasto.diasDescanso`. Catálogo base inserido por migration.
+model tipoPastagem {
+  id           String   @id @default(uuid())
+  nome         String
+  diasDescanso Int
+  ativo        Boolean  @default(true)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  pastos pasto[]
+
+  @@map("tipos_pastagem")
 }
 
 // --- TABELAS DE ESTRUTURA E PROPRIEDADE ---
@@ -188,17 +204,20 @@ model propriedade {
 // model propriedade acima — Prisma não suporta índice parcial no schema. Rode
 // `prisma migrate dev --create-only` e confira o SQL antes de aplicar.
 model pasto {
-  id              String      @id @default(uuid())
+  id              String        @id @default(uuid())
   propriedadeId   String
-  propriedade     propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  propriedade     propriedade   @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
   nome            String
   extensaoHa      Decimal?
-  tipoPastagem    String?
-  status          String      @default("Vazio") // Enum validado em application: Ocupado | Vazio | Descanso
+  tipoPastagemId  String?
+  tipoPastagem    tipoPastagem? @relation(fields: [tipoPastagemId], references: [id])
+  // Ajuste do produtor para este pasto; nulo = usa `tipoPastagem.diasDescanso`.
+  diasDescanso    Int?
+  status          String        @default("Vazio") // Enum validado em application: Ocupado | Vazio | Descanso
   dataUltimaSaida DateTime?
-  ativo           Boolean     @default(true)
-  createdAt       DateTime    @default(now())
-  updatedAt       DateTime    @updatedAt
+  ativo           Boolean       @default(true)
+  createdAt       DateTime      @default(now())
+  updatedAt       DateTime      @updatedAt
 
   rebanhos             rebanho[]
   manejosPasto         manejoPasto[]
@@ -208,6 +227,7 @@ model pasto {
 
   @@index([propriedadeId])
   @@index([propriedadeId, updatedAt])
+  @@index([tipoPastagemId])
   @@map("pastos")
 }
 
@@ -215,18 +235,18 @@ model pasto {
 // criado por migration. Prisma não suporta índice parcial no schema — mesma
 // ressalva de pasto/rebanho. Rode `prisma migrate dev --create-only` e confira o SQL.
 model insumo {
-  id            String   @id @default(uuid())
+  id            String      @id @default(uuid())
   propriedadeId String
   propriedade   propriedade @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
   tipoInsumoId  String
   tipoInsumo    tipoInsumo  @relation(fields: [tipoInsumoId], references: [id])
   nome          String
-  destino       String   // enum aplicação: Pasto | Rebanho | Ambos
-  unidadeMedida String   // enum aplicação: kg | g | L | mL | dose | saco | unidade
+  destino       String // enum aplicação: Pasto | Rebanho | Ambos
+  unidadeMedida String // enum aplicação: kg | g | L | mL | dose | saco | unidade
   estoqueMinimo Decimal?
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  ativo         Boolean     @default(true)
+  createdAt     DateTime    @default(now())
+  updatedAt     DateTime    @updatedAt
 
   movimentacoes  movimentacaoInsumo[]
   regimesConsumo regimeConsumoInsumo[]
@@ -243,24 +263,24 @@ model insumo {
 // migration 20260729000000_partial_unique_index_pasto_rebanho. Mesma ressalva do model
 // pasto acima — não representável no schema, confira antes de rodar migrate dev.
 model rebanho {
-  id                    String            @id @default(uuid())
+  id                    String           @id @default(uuid())
   propriedadeId         String
-  propriedade           propriedade       @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
+  propriedade           propriedade      @relation(fields: [propriedadeId], references: [id], onDelete: Cascade)
   pastoAtualId          String?
-  pastoAtual            pasto?            @relation(fields: [pastoAtualId], references: [id], onDelete: SetNull)
+  pastoAtual            pasto?           @relation(fields: [pastoAtualId], references: [id], onDelete: SetNull)
   racaId                String?
-  raca                  raca?             @relation(fields: [racaId], references: [id], onDelete: SetNull)
+  raca                  raca?            @relation(fields: [racaId], references: [id], onDelete: SetNull)
   sistemaProducaoId     String?
-  sistemaProducao       sistemaProducao?  @relation(fields: [sistemaProducaoId], references: [id], onDelete: SetNull)
+  sistemaProducao       sistemaProducao? @relation(fields: [sistemaProducaoId], references: [id], onDelete: SetNull)
   regimeAlimentarId     String?
-  regimeAlimentar       regimeAlimentar?  @relation(fields: [regimeAlimentarId], references: [id], onDelete: SetNull)
+  regimeAlimentar       regimeAlimentar? @relation(fields: [regimeAlimentarId], references: [id], onDelete: SetNull)
   nomeRebanho           String
   quantidadeCabecas     Int?
   pesoMedioAtual        Decimal?
   dataEntradaPastoAtual DateTime?
-  ativo                 Boolean           @default(true)
-  createdAt             DateTime          @default(now())
-  updatedAt             DateTime          @updatedAt
+  ativo                 Boolean          @default(true)
+  createdAt             DateTime         @default(now())
+  updatedAt             DateTime         @updatedAt
 
   movimentacoes       historicoMovimentacao[]
   manejos             manejoRebanho[]
@@ -346,25 +366,25 @@ model manejoPasto {
 /// `historicoMovimentacao`. Saldo = soma (Entrada + / Saida - / Ajuste com sinal).
 /// Cada item de insumo de um manejo é uma linha `Saida` com `manejoXId` preenchido.
 model movimentacaoInsumo {
-  id              String   @id @default(uuid())
+  id              String         @id @default(uuid())
   insumoId        String
-  insumo          insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
-  tipo            String   // enum aplicação: Entrada | Saida | Ajuste
-  quantidade      Decimal  // positiva em Entrada/Saida; assinada em Ajuste
+  insumo          insumo         @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  tipo            String // enum aplicação: Entrada | Saida | Ajuste
+  quantidade      Decimal // positiva em Entrada/Saida; assinada em Ajuste
   data            DateTime
-  origem          String   // enum aplicação: Compra | CadastroInicial | ManejoRebanho | ManejoPasto | ConsumoRebanho | AjusteContagem | Perda
+  origem          String // enum aplicação: Compra | CadastroInicial | ManejoRebanho | ManejoPasto | ConsumoRebanho | AjusteContagem | Perda
   manejoRebanhoId String?
   manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
   manejoPastoId   String?
   manejoPasto     manejoPasto?   @relation(fields: [manejoPastoId], references: [id], onDelete: Cascade)
   rebanhoId       String?
-  rebanho         rebanho? @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
+  rebanho         rebanho?       @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
   pastoId         String?
-  pasto           pasto?   @relation(fields: [pastoId], references: [id], onDelete: SetNull)
+  pasto           pasto?         @relation(fields: [pastoId], references: [id], onDelete: SetNull)
   observacoes     String?
-  ativo           Boolean  @default(true)
-  createdAt       DateTime @default(now())
-  updatedAt       DateTime @updatedAt
+  ativo           Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
 
   @@index([insumoId])
   @@index([insumoId, data])
@@ -382,17 +402,17 @@ model movimentacaoInsumo {
 /// o saldo projetado é calculado na leitura. Um regime ativo por par
 /// (rebanhoId, insumoId) — índice único parcial WHERE ativo = true AND dataFim IS NULL.
 model regimeConsumoInsumo {
-  id            String   @id @default(uuid())
+  id            String    @id @default(uuid())
   rebanhoId     String
-  rebanho       rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  rebanho       rebanho   @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
   insumoId      String
-  insumo        insumo   @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  insumo        insumo    @relation(fields: [insumoId], references: [id], onDelete: Cascade)
   quantidadeDia Decimal
   dataInicio    DateTime
   dataFim       DateTime?
-  ativo         Boolean  @default(true)
-  createdAt     DateTime @default(now())
-  updatedAt     DateTime @updatedAt
+  ativo         Boolean   @default(true)
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
 
   @@index([rebanhoId])
   @@index([insumoId])

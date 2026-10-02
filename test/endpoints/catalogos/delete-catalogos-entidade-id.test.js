@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarPasto, criarRebanho, criarRaca } from '../../apoio/fabricas.js';
+import { criarPropriedade, criarPasto, criarRebanho, criarRaca, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('DELETE /v1/catalogos/:entidade/:id', () => {
     let admin;
@@ -72,5 +72,14 @@ describe('DELETE /v1/catalogos/:entidade/:id', () => {
         const r = await del(a, 'racas', raca.id);
         expect(r.status).toBe(403);
         expect(r.body.tipo).toBe('forbidden');
+    });
+
+    it('CAT-DELETE-08 tipos-pastagem com pasto vinculado não é arquivado (409)', async () => {
+        const dono = await criarUsuario();
+        const propriedade = await criarPropriedade(dono.id);
+        const tipo = await criarTipoPastagem();
+        await criarPasto(propriedade.id, { tipoPastagemId: tipo.id });
+        const r = await api().delete(`/v1/catalogos/tipos-pastagem/${tipo.id}`).set('Authorization', admin.bearer);
+        expect(r.status).toBe(409);
     });
 });

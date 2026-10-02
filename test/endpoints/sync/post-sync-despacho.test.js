@@ -5,7 +5,7 @@ import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import {
     criarPropriedade, criarPasto, criarRebanho, criarTipoManejoPasto, criarTipoManejoRebanho,
-    criarTipoInsumo, criarInsumo,
+    criarTipoInsumo, criarInsumo, criarTipoPastagem,
 } from '../../apoio/fabricas.js';
 import {
     criarManejoPasto, criarManejoRebanho, criarMovimentacaoInsumo, criarRegimeConsumo,
@@ -66,6 +66,27 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(res.situacao).toBe('aceito');
         const salvo = await DbConnect.prisma.pasto.findUnique({ where: { id: entidadeId } });
         expect(salvo).not.toBeNull();
+    });
+
+    it('SYNC-POST-77 pastos:CREATE com tipoPastagemId e ajuste de diasDescanso', async () => {
+        const tipo = await criarTipoPastagem({ diasDescanso: 35 });
+        const entidadeId = randomUUID();
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'pastos', acao: 'CREATE', entidadeId,
+            dados: { propriedadeId: propriedade.id, nome: 'Piquete Forrageira', tipoPastagemId: tipo.id, diasDescanso: 40 },
+        });
+        expect(res.situacao).toBe('aceito');
+        const salvo = await DbConnect.prisma.pasto.findUnique({ where: { id: entidadeId } });
+        expect(salvo.tipoPastagemId).toBe(tipo.id);
+        expect(salvo.diasDescanso).toBe(40);
+    });
+
+    it('SYNC-POST-78 pastos:CREATE com tipoPastagemId inexistente é recusado', async () => {
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'pastos', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: { propriedadeId: propriedade.id, nome: 'Piquete Órfão', tipoPastagemId: randomUUID() },
+        });
+        expect(res.situacao).toBe('recusado');
     });
 
     it('SYNC-POST-42 pastos:UPDATE', async () => {
