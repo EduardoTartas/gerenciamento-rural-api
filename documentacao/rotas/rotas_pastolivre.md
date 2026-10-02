@@ -86,12 +86,15 @@ Gerenciamento das subdivisões vitais da propriedade: Piquetes, Pastos e Inverna
 - **Campos Mínimos:** `nome`, `propriedadeId`. 
 - **Trava Estrutural:** Não é possível criar pastas em propriedades inativas.
 - **Duplicidade Flexível:** O `nome` do pasto precisa ser único dentro daquela Propriedade apenas se ele estiver *ativo*. Se existir um pasto com o mesmo nome que foi arquivado (inativo), o sistema permite a "reciclagem" do nome.
+- **Forrageira:** `tipoPastagemId` (opcional) referencia um item **ativo** do catálogo `tipos-pastagem` (404 se inexistente ou inativo).
+- **Descanso por pasto:** `diasDescanso` (opcional, inteiro de 1 a 365) é o ajuste do produtor para aquele pasto. Nulo = usa o padrão da forrageira (`tipoPastagem.diasDescanso`); sem forrageira, o app usa 30 dias.
 
 ### 3.2 GET /pastagens
 **Caso de Uso:** Listar os pastos.
 **Regras de Negócio:**
 - Retorna por padrão apenas pastos `ativo: true`.
-- Filtragem opcional por `propriedadeId`, `nome`, `status` (Ex: "Vazio", "Ocupado") e `tipoPastagem`.
+- Filtragem opcional por `propriedadeId`, `nome`, `status` (Ex: "Vazio", "Ocupado") e `tipoPastagemId`.
+- Cada pasto traz `tipoPastagemId`, `diasDescanso` (ajuste, pode ser nulo) e `tipoPastagem: { id, nome, diasDescanso }`, para o app calcular o descanso efetivo sem outra consulta: `diasDescanso` do pasto ?? `tipoPastagem.diasDescanso` ?? 30.
 
 ### 3.3 GET /pastagens/:id
 **Caso de Uso:** Obter detalhes do pasto com listagem contendo cálculos de extensão e status.
@@ -109,14 +112,17 @@ Gerenciamento das subdivisões vitais da propriedade: Piquetes, Pastos e Inverna
 > vira o marco zero da rebrota. Ao receber lote, volta a `Ocupado` e a contagem
 > é descartada; ela recomeça do zero na próxima saída.
 >
-> Os dias de descanso **não são persistidos**: são derivados de `dataUltimaSaida`
-> na leitura, o que dispensa job agendado e nunca fica defasado. O período de
-> referência (30 dias) é alvo visual do aplicativo — a API não bloqueia a entrada
-> antes do prazo, porque quem conhece a chuva e o estágio do capim é o produtor.
+> Os dias **já decorridos** de descanso não são persistidos: são derivados de
+> `dataUltimaSaida` na leitura, o que dispensa job agendado e nunca fica defasado.
+> O **alvo** de descanso vem do pasto (`diasDescanso`) ou da forrageira
+> (`tipoPastagem.diasDescanso`), com 30 dias quando nenhum dos dois existe. É alvo
+> visual do aplicativo — a API não bloqueia a entrada antes do prazo, porque quem
+> conhece a chuva e o estágio do capim é o produtor.
 
 ### 3.4 PATCH /pastagens/:id
-**Caso de Uso:** Atualizar dados do Pasto (área, tipo de capim e status).
+**Caso de Uso:** Atualizar dados do Pasto (área, forrageira, descanso e status).
 **Regras de Negócio:**
+- **Forrageira:** trocar `tipoPastagemId` exige item ativo do catálogo. Reenviar o tipo atual é aceito mesmo que ele tenha sido desativado depois, para não travar a edição de outros campos. `null` remove a forrageira; `diasDescanso: null` volta ao padrão dela.
 - **Status Coerente:** Bloqueia a tentativa de forçar o status para `Vazio` ou `Descanso` caso a contagem indique que há **Rebanhos** ativos ali alojados. Também bloqueia forçar `Ocupado` quando não há nenhum rebanho ativo vinculado ao pasto (Erro 400) — o status manual não pode divergir da realidade.
 - **Inativação Segura:** Se mudar o `ativo` para `false`, também barra se o pasto estiver ocupado por gado.
 
@@ -278,7 +284,26 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 Tabelas de referência **compartilhadas entre todos os usuários** da plataforma — não pertencem a nenhuma propriedade.
 
 **Entidades disponíveis em `:entidade`:**
-`racas` · `sistemas-producao` · `regimes-alimentares` · `tipos-manejo-rebanho` · `tipos-manejo-pasto` · `tipos-insumo`
+`racas` · `sistemas-producao` · `regimes-alimentares` · `tipos-manejo-rebanho` · `tipos-manejo-pasto` · `tipos-insumo` · `tipos-pastagem`
+
+**`tipos-pastagem`** é o único catálogo com campo extra: `diasDescanso`, o descanso padrão
+da forrageira em dias (inteiro, 1 a 365) — obrigatório no POST, opcional no PATCH; as
+demais entidades rejeitam o campo. O catálogo base nasce da migration
+`20261001120000_tipo_pastagem_descanso`, com a média da faixa recomendada para o período
+das águas, sem considerar solo, região e época do ano (Embrapa Cerrados, Comunicado
+Técnico 101, Tabela 2):
+
+| Forrageira | Faixa (dias) | Padrão |
+| :--- | :--- | :--- |
+| Brachiaria brizantha | 28 a 42 | 35 |
+| Brachiaria decumbens | 28 a 42 | 35 |
+| Brachiaria humidicola | 20 a 30 | 25 |
+| Panicum maximum (Mombaça) | 28 a 42 | 35 |
+| Panicum maximum (Tanzânia) | 28 a 42 | 35 |
+| Tifton 85 | 25 a 35 | 30 |
+| Coast-cross | 25 a 35 | 30 |
+| Capim-elefante | 30 a 45 | 38 |
+| Andropógon | 25 a 30 | 28 |
 
 Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
 
@@ -295,7 +320,7 @@ Uma entidade não reconhecida retorna 404 com a lista de valores aceitos.
 **Caso de Uso:** Cadastrar um novo item de catálogo. **Somente admin.**
 **Regras de Negócio:**
 - **Perfil Administrativo:** exige `admin: true` no usuário autenticado (403 caso contrário).
-- **Campo:** apenas `nome` (2 a 100 caracteres).
+- **Campo:** `nome` (2 a 100 caracteres); em `tipos-pastagem`, também `diasDescanso` (obrigatório).
 - **Nome Único:** validado globalmente, sem diferenciar maiúsculas de minúsculas.
 
 ### 8.4 PATCH /catalogos/:entidade/:id

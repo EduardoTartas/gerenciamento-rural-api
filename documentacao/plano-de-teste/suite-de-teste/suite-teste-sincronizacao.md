@@ -176,6 +176,8 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
 | :--- | :--- | :--- | :--- | :--- |
 | SYNC-POST-75 | 401 sem token | sem header `Authorization`; lote bem formado | 401 | `tipo: unauthorized`; nenhuma mutação é tentada (nenhum registro em `mutacaoAplicada`) |
 | SYNC-POST-76 | 401 com token inválido/expirado | header `Authorization` com token quebrado ou revogado | 401 | `tipo: unauthorized` |
+| SYNC-POST-77 | `pastos:CREATE` com `tipoPastagemId` e `diasDescanso` | tipo de pastagem ativo | 200 | `aceito`; pasto gravado com tipo e ajuste |
+| SYNC-POST-78 | `pastos:CREATE` com `tipoPastagemId` inexistente | — | 200 | mutação `recusado` |
 
 ## Divergências
 

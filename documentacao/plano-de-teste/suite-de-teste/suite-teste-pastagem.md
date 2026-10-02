@@ -15,7 +15,11 @@ Arquivo: `test/endpoints/pastagens/post-pastagens.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | PAST-POST-01 | cria com `propriedadeId` e `nome` (campos opcionais ausentes) | propriedade ativa de A | 201 | envelope; `data.status` = `"Vazio"` (default); `data.ativo` = `true` |
-| PAST-POST-02 | cria com `extensaoHa`, `tipoPastagem` e `status` explícitos | — | 201 | `data.extensaoHa`, `data.tipoPastagem`, `data.status` refletem o enviado |
+| PAST-POST-02 | cria com `extensaoHa`, `tipoPastagemId`, `diasDescanso` e `status` explícitos | — | 201 | `data.tipoPastagem` = `{ id, nome, diasDescanso }` do catálogo; `data.diasDescanso` = ajuste enviado |
+| PAST-POST-02b | sem tipo e sem ajuste | — | 201 | `tipoPastagemId`, `tipoPastagem` e `diasDescanso` nulos |
+| PAST-POST-02c | `tipoPastagemId` inexistente ou inativo | — | 404 | `errors[0].path = "tipoPastagemId"` |
+| PAST-POST-02d | `diasDescanso` 0, 366 ou fracionário | — | 400 | validação Zod |
+| PAST-POST-02e | texto livre `tipoPastagem` (campo antigo) | — | 400 | `.strict()` recusa campo desconhecido |
 | PAST-POST-03 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao UUID enviado |
 | PAST-POST-04 | corpo vazio (`{}`) | — | 400 | `errors[0].path` = `body`; `message` = "Forneça os dados da pastagem." |
 | PAST-POST-05 | sem `propriedadeId` (obrigatório) | — | 400 | issue `propriedadeId` |
@@ -43,7 +47,8 @@ Arquivo: `test/endpoints/pastagens/get-pastagens.test.js`
 | PAST-GET-03 | filtro `nome` (substring, case-insensitive) | — | 200 | filtra pelo texto |
 | PAST-GET-04 | filtro `propriedadeId` | A tem pastos em 2 propriedades | 200 | só devolve pastos da propriedade filtrada |
 | PAST-GET-05 | filtro `status` | — | 200 | só devolve pastos com aquele status |
-| PAST-GET-06 | filtro `tipoPastagem` (substring, case-insensitive) | — | 200 | filtra pelo texto |
+| PAST-GET-06 | filtro `tipoPastagemId` | — | 200 | só o pasto daquele tipo; resposta traz `tipoPastagem` com `diasDescanso` |
+| PAST-GET-06b | filtro `tipoPastagemId` que não é UUID | — | 400 | validação Zod |
 | PAST-GET-07 | filtros sem nenhum resultado | — | 200 | `message` = "Nenhuma pastagem encontrada com os filtros informados." |
 | PAST-GET-08 | paginação `page=2` | A tem 15 pastos | 200 | `data.page` = 2; `data.docs.length` = 5 |
 | PAST-GET-09 | `limit` acima de 100 é recusado pela query | — | 400 | issue `limit` — `PastoQuerySchema.limit` já tem `.max(100)` |
@@ -73,7 +78,10 @@ Arquivo: `test/endpoints/pastagens/patch-pastagens-id.test.js`
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
 | PAST-PATCH-ID-01 | atualiza `nome` | — | 200 | `data.nome` atualizado |
-| PAST-PATCH-ID-02 | atualiza `extensaoHa` e `tipoPastagem` | — | 200 | valores refletidos em `data` |
+| PAST-PATCH-ID-02 | atualiza `extensaoHa`, `tipoPastagemId` e `diasDescanso` | — | 200 | valores refletidos em `data` |
+| PAST-PATCH-ID-02b | `tipoPastagemId: null` e `diasDescanso: null` | — | 200 | limpa forrageira e ajuste |
+| PAST-PATCH-ID-02c | reenvia tipo atual que foi desativado depois | — | 200 | não trava edição de outros campos |
+| PAST-PATCH-ID-02d | troca para tipo inativo | — | 404 | `errors[0].path = "tipoPastagemId"` |
 | PAST-PATCH-ID-03 | recusa `status` `"Ocupado"` sem rebanho ativo vinculado | — | 400 | `tipo` = `validationError`; `errors[0].path` = `status` |
 | PAST-PATCH-ID-03b | aceita `status` `"Ocupado"` com rebanho ativo vinculado | pasto com rebanho ativo | 200 | `data.status` = `"Ocupado"` |
 | PAST-PATCH-ID-04 | corpo vazio (`{}`) | — | 400 | `errors[0].path` = `body`; `message` = "Forneça pelo menos um campo para atualizar." |
