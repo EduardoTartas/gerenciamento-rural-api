@@ -3,7 +3,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarPasto } from '../../apoio/fabricas.js';
+import { criarPropriedade, criarPasto, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('POST /v1/pastagens', () => {
     let a;
@@ -27,18 +27,57 @@ describe('POST /v1/pastagens', () => {
         expect(salvo.propriedadeId).toBe(propriedade.id);
     });
 
-    it('PAST-POST-02 cria com extensaoHa, tipoPastagem e status explícitos', async () => {
+    it('PAST-POST-02 cria com extensaoHa, tipoPastagemId, diasDescanso e status explícitos', async () => {
+        const tipo = await criarTipoPastagem({ nome: 'Braquiária', diasDescanso: 35 });
         const r = await post(a, {
             propriedadeId: propriedade.id,
             nome: 'Piquete 2',
             extensaoHa: 5.5,
-            tipoPastagem: 'Braquiária',
+            tipoPastagemId: tipo.id,
+            diasDescanso: 40,
             status: 'Ocupado',
         });
         expect(r.status).toBe(201);
         expect(r.body.data.extensaoHa).toBe('5.5');
-        expect(r.body.data.tipoPastagem).toBe('Braquiária');
+        expect(r.body.data.tipoPastagemId).toBe(tipo.id);
+        expect(r.body.data.tipoPastagem).toEqual({ id: tipo.id, nome: 'Braquiária', diasDescanso: 35 });
+        expect(r.body.data.diasDescanso).toBe(40);
         expect(r.body.data.status).toBe('Ocupado');
+    });
+
+    it('PAST-POST-02b sem tipo e sem ajuste: os dois campos voltam nulos', async () => {
+        const r = await post(a, { propriedadeId: propriedade.id, nome: 'Piquete sem tipo' });
+        expect(r.status).toBe(201);
+        expect(r.body.data.tipoPastagemId).toBeNull();
+        expect(r.body.data.tipoPastagem).toBeNull();
+        expect(r.body.data.diasDescanso).toBeNull();
+    });
+
+    it('PAST-POST-02c tipoPastagemId inexistente ou inativo', async () => {
+        const inativo = await criarTipoPastagem({ ativo: false });
+        for (const tipoPastagemId of [randomUUID(), inativo.id]) {
+            const r = await post(a, { propriedadeId: propriedade.id, nome: `P ${tipoPastagemId}`, tipoPastagemId });
+            expect(r.status).toBe(404);
+            expect(r.body.errors[0].path).toBe('tipoPastagemId');
+        }
+    });
+
+    it('PAST-POST-02d diasDescanso fora de 1 a 365 ou não inteiro', async () => {
+        for (const diasDescanso of [0, 366, 10.5]) {
+            const r = await post(a, { propriedadeId: propriedade.id, nome: `P ${diasDescanso}`, diasDescanso });
+            expect(r.status).toBe(400);
+        }
+    });
+
+    it('PAST-POST-02e texto livre tipoPastagem (app antigo) vira tipoPastagemId pelo nome', async () => {
+        const tipo = await criarTipoPastagem({ nome: 'Tifton 85' });
+        const casa = await post(a, { propriedadeId: propriedade.id, nome: 'Antigo', tipoPastagem: ' tifton 85 ' });
+        expect(casa.status).toBe(201);
+        expect(casa.body.data.tipoPastagemId).toBe(tipo.id);
+
+        const semPar = await post(a, { propriedadeId: propriedade.id, nome: 'Antigo 2', tipoPastagem: 'Capim inventado' });
+        expect(semPar.status).toBe(201);
+        expect(semPar.body.data.tipoPastagemId).toBeNull();
     });
 
     it('PAST-POST-03 aceita id gerado pelo cliente (offline-first)', async () => {

@@ -96,4 +96,25 @@ describe('POST /v1/catalogos/:entidade', () => {
         expect(r.body.tipo).toBe('forbidden');
         expect(r.body.message).toBe('Esta ação exige perfil administrativo.');
     });
+
+    it('CAT-POST-12 tipos-pastagem cria com diasDescanso', async () => {
+        const r = await post(admin, 'tipos-pastagem', { nome: 'Marandu', diasDescanso: 35 });
+        expect(r.status).toBe(201);
+        expect(r.body.data).toMatchObject({ nome: 'Marandu', diasDescanso: 35, ativo: true });
+        const salvo = await DbConnect.prisma.tipoPastagem.findUnique({ where: { id: r.body.data.id } });
+        expect(salvo.diasDescanso).toBe(35);
+    });
+
+    it('CAT-POST-13 tipos-pastagem exige diasDescanso inteiro de 1 a 365', async () => {
+        for (const corpo of [{ nome: 'Sem dias' }, { nome: 'Zero', diasDescanso: 0 }, { nome: 'Ano+', diasDescanso: 366 }, { nome: 'Fração', diasDescanso: 30.5 }]) {
+            const r = await post(admin, 'tipos-pastagem', corpo);
+            expect(r.status).toBe(400);
+            expect(r.body.errors.some((e) => e.path === 'diasDescanso')).toBe(true);
+        }
+    });
+
+    it('CAT-POST-14 diasDescanso é recusado em catálogo que não tem o campo (.strict())', async () => {
+        const r = await post(admin, 'racas', { nome: 'Gir', diasDescanso: 30 });
+        expect(r.status).toBe(400);
+    });
 });

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarPasto } from '../../apoio/fabricas.js';
+import { criarPropriedade, criarPasto, criarTipoPastagem } from '../../apoio/fabricas.js';
 
 describe('GET /v1/pastagens', () => {
     let a;
@@ -60,13 +60,22 @@ describe('GET /v1/pastagens', () => {
         expect(r.body.data.docs[0].status).toBe('Ocupado');
     });
 
-    it('PAST-GET-06 filtro tipoPastagem (substring, case-insensitive)', async () => {
-        await criarPasto(propriedade.id, { nome: 'Piquete 1', tipoPastagem: 'Braquiária' });
-        await criarPasto(propriedade.id, { nome: 'Piquete 2', tipoPastagem: 'Tifton' });
-        const r = await get(a, '?tipoPastagem=braqui');
+    it('PAST-GET-06 filtro tipoPastagemId e tipo com diasDescanso na resposta', async () => {
+        const braquiaria = await criarTipoPastagem({ nome: 'Braquiária', diasDescanso: 35 });
+        const tifton = await criarTipoPastagem({ nome: 'Tifton', diasDescanso: 30 });
+        await criarPasto(propriedade.id, { nome: 'Piquete 1', tipoPastagemId: braquiaria.id });
+        await criarPasto(propriedade.id, { nome: 'Piquete 2', tipoPastagemId: tifton.id });
+        const r = await get(a, `?tipoPastagemId=${braquiaria.id}`);
         expect(r.status).toBe(200);
         expect(r.body.data.docs).toHaveLength(1);
-        expect(r.body.data.docs[0].tipoPastagem).toBe('Braquiária');
+        expect(r.body.data.docs[0].tipoPastagemId).toBe(braquiaria.id);
+        expect(r.body.data.docs[0].tipoPastagem).toEqual({ id: braquiaria.id, nome: 'Braquiária', diasDescanso: 35 });
+        expect(r.body.data.docs[0].diasDescanso).toBeNull();
+    });
+
+    it('PAST-GET-06b filtro tipoPastagemId que não é UUID', async () => {
+        const r = await get(a, '?tipoPastagemId=braqui');
+        expect(r.status).toBe(400);
     });
 
     it('PAST-GET-07 filtros sem nenhum resultado', async () => {

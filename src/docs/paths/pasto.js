@@ -18,7 +18,7 @@ const pastoRoutes = {
                     • **nome**: filtrar por nome da pastagem (correspondência parcial, não sensível a maiúsculas).
                     • **propriedadeId**: filtrar por ID da propriedade (UUID).
                     • **status**: filtrar por status da pastagem (Ocupado, Vazio, Descanso).
-                    • **tipoPastagem**: filtrar por tipo de pastagem (correspondência parcial, não sensível a maiúsculas).
+                    • **tipoPastagemId**: filtrar pelo ID do tipo de pastagem (catálogo \`tipos-pastagem\`).
                     • **page**: número da página (padrão: 1).
                     • **limit**: registros por página (padrão: 10, máximo: 100).
 
@@ -67,7 +67,8 @@ const pastoRoutes = {
                     • **propriedadeId** (obrigatório): UUID da propriedade à qual a pastagem pertence.
                     • **nome** (obrigatório): Nome da pastagem (2-150 caracteres).
                     • **extensaoHa** (opcional): Extensão da pastagem em hectares.
-                    • **tipoPastagem** (opcional): Tipo de forrageira (2-100 caracteres), ex: "Brachiaria Brizantha".
+                    • **tipoPastagemId** (opcional): ID do tipo de pastagem (catálogo \`tipos-pastagem\`, ativo).
+                    • **diasDescanso** (opcional): ajuste do descanso para este pasto (1 a 365). Nulo = usa o padrão da forrageira.
                     • **status** (opcional): Status inicial (Ocupado, Vazio, Descanso). Padrão: "Vazio".
 
             + Regras de Negócio:
@@ -142,7 +143,7 @@ const pastoRoutes = {
             + Caso de uso: Permite que o dono de uma propriedade atualize os dados de uma pastagem.
 
             + Função de Negócio:
-                - Atualiza os campos da pastagem (nome, extensaoHa, tipoPastagem, status, dataUltimaSaida, ativo).
+                - Atualiza os campos da pastagem (nome, extensaoHa, tipoPastagemId, diasDescanso, status, dataUltimaSaida, ativo).
                 + Recebe como parâmetro de caminho:
                     - **id**: UUID da pastagem.
 

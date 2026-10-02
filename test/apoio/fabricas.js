@@ -84,6 +84,16 @@ export async function criarTipoManejoPasto(dados = {}) {
     });
 }
 
+export async function criarTipoPastagem(dados = {}) {
+    return prisma.tipoPastagem.create({
+        data: {
+            nome: `Tipo Pastagem Teste ${sufixo()}`,
+            diasDescanso: 30,
+            ...dados,
+        },
+    });
+}
+
 export async function criarTipoInsumo(dados = {}) {
     return prisma.tipoInsumo.create({
         data: {

@@ -47,7 +47,7 @@ class PastoController {
 
         const totalDocs = data?.totalDocs ?? data?.docs?.length ?? 0;
         if (totalDocs === 0) {
-            const hasFilters = query && (query.nome || query.propriedadeId || query.status || query.tipoPastagem);
+            const hasFilters = query && (query.nome || query.propriedadeId || query.status || query.tipoPastagemId);
             const message = hasFilters
                 ? 'Nenhuma pastagem encontrada com os filtros informados.'
                 : 'Nenhuma pastagem cadastrada.';
