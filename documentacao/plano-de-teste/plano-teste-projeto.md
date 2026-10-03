@@ -71,6 +71,7 @@ global de erros.
 | **RF-012** | Manter usuários | Consultar e editar os próprios dados, registrar foto de perfil e excluir a conta; a listagem geral é restrita a administradores. |
 | **RF-013** | Enviar imagens | Enviar imagens para o armazenamento de objetos, com validação de formato e tamanho e redimensionamento. |
 | **RF-014** | Sincronizar em lote | Receber um lote de mutações geradas offline, aplicar cada uma de forma independente, respeitar dependências entre elas e garantir idempotência no reenvio. |
+| **RF-015** | Registrar saída de animais | Registrar venda, morte, abate ou outra saída de cabeças, baixando a quantidade do rebanho sem passar do saldo e finalizando o lote (com liberação do pasto) quando ele acaba. |
 
 | Código | Requisito Não Funcional | Descrição |
 | :--- | :--- | :--- |

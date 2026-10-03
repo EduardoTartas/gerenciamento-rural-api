@@ -242,6 +242,34 @@ Registro histórico da transferência de lotes entre pastos. **Recurso imutável
 
 ---
 
+## 6A. /rebanhos/saidas
+Saída de animais do rebanho: venda, morte, abate ou outro motivo. **Recurso imutável**: não há PATCH nem DELETE — corrigir uma saída fica para a edição de lançamentos.
+
+### 6A.1 POST /rebanhos/saidas
+**Caso de Uso:** Lançar a venda, morte ou abate de cabeças de um lote e, quando o lote acaba, encerrar o ciclo dele.
+**Regras de Negócio:**
+- **Campos:** `rebanhoId`, `motivo` (`Venda`, `Morte`, `Abate` ou `Outro`), `quantidadeCabecas` (inteiro > 0) e opcionalmente `dataSaida`, `observacoes` e `finalizar`.
+- **Rebanho Ativo:** não é possível registrar saída de um lote finalizado ou inativo (400).
+- **Saldo:** a saída não pode passar das cabeças atuais do rebanho — retorna **409** (`conflict`, não recuperável).
+- **Rebanho sem contagem:** com `quantidadeCabecas` vazio no rebanho, a saída parcial é recusada (400) com orientação para preencher a quantidade; só a saída com `finalizar: true` é aceita, e a contagem continua vazia.
+- **Baixa:** `rebanho.quantidadeCabecas` diminui pela quantidade da saída.
+- **Finalização:** a saída que zera o rebanho, ou qualquer saída com `finalizar: true`, encerra o lote: `ativo: false`, `pastoAtualId` e `dataEntradaPastoAtual` nulos. O pasto que o lote ocupava tem o `status` recalculado contando rebanhos ativos (nunca lendo o campo `status`, mesma regra do desfazer movimentação): sem outro lote, entra em `Descanso` com `dataUltimaSaida` = data da saída. A saída grava `finalizouRebanho: true`.
+- **Data Não Futura:** `dataSaida` não pode ser posterior ao momento atual.
+- **Transação Atômica:** baixa, finalização, pasto e registro da saída entram juntos. A baixa é condicional (`quantidadeCabecas >= saída`) dentro da transação: duas saídas simultâneas do mesmo lote não tiram, juntas, mais cabeças do que existem — a segunda recebe 409.
+- **Resposta:** a saída com o rebanho **depois** da baixa (`quantidadeCabecas`, `ativo`, `pastoAtualId`).
+
+### 6A.2 GET /rebanhos/saidas
+**Caso de Uso:** Consultar o histórico de saídas.
+**Regras de Negócio:**
+- Ordenado por `dataSaida` decrescente.
+- Filtros: `rebanhoId`, `propriedadeId`, `motivo`, `dataInicio`, `dataFim`, `ativo`, `atualizadoDesde`, `page`, `limit`.
+- **Leitura por diferença:** com `?atualizadoDesde=<ISO 8601>` o filtro padrão de `ativo` sai; cada item carrega `ativo` e `updatedAt` (marca d'água).
+
+### 6A.3 GET /rebanhos/saidas/:id
+**Caso de Uso:** Detalhar uma saída.
+
+---
+
 ## 7. /rebanhos/manejos
 Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugação, pesagem).
 
@@ -397,7 +425,7 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
 - **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
 - **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
-- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`.
+- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`.
 - **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
 - **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
 - **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.

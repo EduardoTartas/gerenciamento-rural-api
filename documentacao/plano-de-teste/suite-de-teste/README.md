@@ -173,6 +173,7 @@ não para corrigir o código.
 | `/rebanhos` | [suite-teste-rebanho.md](./suite-teste-rebanho.md) | REB |
 | `/rebanhos/manejos` | [suite-teste-manejo-rebanho.md](./suite-teste-manejo-rebanho.md) | MREB |
 | `/rebanhos/movimentacoes` | [suite-teste-movimentacao-rebanho.md](./suite-teste-movimentacao-rebanho.md) | MOV |
+| `/rebanhos/saidas` | [suite-teste-saida-rebanho.md](./suite-teste-saida-rebanho.md) | SAI |
 | `/rebanhos/regimes-consumo` | [suite-teste-regime-consumo.md](./suite-teste-regime-consumo.md) | REG |
 | `/insumos` | [suite-teste-insumo.md](./suite-teste-insumo.md) | INS |
 | `/insumos/movimentacoes` | [suite-teste-movimentacao-insumo.md](./suite-teste-movimentacao-insumo.md) | MINS |
@@ -192,6 +193,7 @@ não para corrigir o código.
 | REB | `/rebanhos` |
 | MREB | `/rebanhos/manejos` |
 | MOV | `/rebanhos/movimentacoes` |
+| SAI | `/rebanhos/saidas` |
 | REG | `/rebanhos/regimes-consumo` |
 | INS | `/insumos` |
 | MINS | `/insumos/movimentacoes` |

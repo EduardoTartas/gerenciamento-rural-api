@@ -250,10 +250,12 @@ limitação conhecida para o escopo deste projeto.
 | `manejo_pastos`            | ✅  | ✅  | ✅  |
 | `manejo_rebanhos`          | ✅  | ✅  | ✅  |
 | `historico_movimentacoes`  | ✅  | ❌  | ✅  |
+| `saidas_rebanho`           | ✅  | ❌  | ❌  |
 
 `historico_movimentacoes` não aceita `UPDATE`: movimentação é evento que já
 produziu efeito, corrigir significa desfazer a última (`DELETE`) ou lançar
-outra, nunca editar a que já aconteceu.
+outra, nunca editar a que já aconteceu. `saidas_rebanho` segue a mesma ideia e
+ainda não tem desfazer: só `CREATE`.
 
 ---
 
