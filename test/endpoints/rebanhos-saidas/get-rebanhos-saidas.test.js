@@ -18,8 +18,9 @@ describe('GET /v1/rebanhos/saidas', () => {
     const get = (usuario, query = '') =>
         api().get(`/v1/rebanhos/saidas${query}`).set('Authorization', usuario.bearer);
 
+    // Motivo padrão Abate: venda exigiria preço e valor (issue #66).
     const saida = (extra = {}) =>
-        registrarSaida(a, { rebanhoId: rebanhoA.id, motivo: 'Venda', quantidadeCabecas: 5, ...extra });
+        registrarSaida(a, { rebanhoId: rebanhoA.id, motivo: 'Abate', quantidadeCabecas: 5, ...extra });
 
     it('SAI-GET-01 lista as saídas de A com o rebanho', async () => {
         await saida();
@@ -59,7 +60,7 @@ describe('GET /v1/rebanhos/saidas', () => {
     it('SAI-GET-05 filtro rebanhoId', async () => {
         const outro = await criarRebanho(propriedadeA.id, pastoA.id, { quantidadeCabecas: 10 });
         await saida();
-        await registrarSaida(a, { rebanhoId: outro.id, motivo: 'Venda', quantidadeCabecas: 1 });
+        await registrarSaida(a, { rebanhoId: outro.id, motivo: 'Abate', quantidadeCabecas: 1 });
 
         const r = await get(a, `?rebanhoId=${rebanhoA.id}`);
         expect(r.body.data.docs).toHaveLength(1);
@@ -139,7 +140,7 @@ describe('GET /v1/rebanhos/saidas/:id', () => {
         const propriedade = await criarPropriedade(a.id);
         const pasto = await criarPasto(propriedade.id, { status: 'Ocupado' });
         const rebanho = await criarRebanho(propriedade.id, pasto.id, { quantidadeCabecas: 10 });
-        saidaA = await registrarSaida(a, { rebanhoId: rebanho.id, motivo: 'Venda', quantidadeCabecas: 4 });
+        saidaA = await registrarSaida(a, { rebanhoId: rebanho.id, motivo: 'Venda', quantidadeCabecas: 4, precoArroba: 300, valorTotal: 8000 });
     });
 
     const get = (usuario, id) =>
@@ -151,6 +152,7 @@ describe('GET /v1/rebanhos/saidas/:id', () => {
         expect(r.body.data.id).toBe(saidaA.id);
         expect(r.body.data.quantidadeCabecas).toBe(4);
         expect(r.body.data.rebanho.quantidadeCabecas).toBe(6);
+        expect(Number(r.body.data.valorTotal)).toBe(8000);
     });
 
     it('SAI-GET-ID-02 id não é UUID', async () => {

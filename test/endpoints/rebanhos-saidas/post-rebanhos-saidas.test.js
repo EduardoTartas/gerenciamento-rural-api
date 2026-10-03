@@ -18,12 +18,21 @@ describe('POST /v1/rebanhos/saidas', () => {
     const post = (usuario, corpo) =>
         api().post('/v1/rebanhos/saidas').set('Authorization', usuario.bearer).send(corpo);
 
+    // Venda exige preço da arroba e valor total (issue #66).
     const corpoBase = (extra = {}) => ({
         rebanhoId: rebanhoA.id,
         motivo: 'Venda',
         quantidadeCabecas: 10,
+        precoArroba: 310,
+        valorTotal: 50000,
         ...extra,
     });
+
+    /** Corpo de saída que não é venda: sem os campos de valor. */
+    const corpoSemVenda = (motivo, extra = {}) => {
+        const { precoArroba, valorTotal, ...corpo } = corpoBase({ motivo });
+        return { ...corpo, ...extra };
+    };
 
     const rebanhoSalvo = () => DbConnect.prisma.rebanho.findUnique({ where: { id: rebanhoA.id } });
     const pastoSalvo = () => DbConnect.prisma.pasto.findUnique({ where: { id: pastoA.id } });
@@ -54,7 +63,7 @@ describe('POST /v1/rebanhos/saidas', () => {
 
     it('SAI-POST-03 saída total finaliza o rebanho e libera o pasto', async () => {
         const dataSaida = '2026-09-20T12:00:00.000Z';
-        const r = await post(a, corpoBase({ motivo: 'Abate', quantidadeCabecas: 50, dataSaida }));
+        const r = await post(a, corpoSemVenda('Abate', { quantidadeCabecas: 50, dataSaida }));
         expect(r.status).toBe(201);
         expect(r.body.message).toBe('Saída registrada e rebanho finalizado.');
         expect(r.body.data.finalizouRebanho).toBe(true);
@@ -72,7 +81,7 @@ describe('POST /v1/rebanhos/saidas', () => {
     });
 
     it('SAI-POST-04 finalizar: true com saída parcial encerra o rebanho', async () => {
-        const r = await post(a, corpoBase({ motivo: 'Morte', quantidadeCabecas: 3, finalizar: true }));
+        const r = await post(a, corpoSemVenda('Morte', { quantidadeCabecas: 3, finalizar: true }));
         expect(r.status).toBe(201);
         expect(r.body.data.finalizouRebanho).toBe(true);
 
@@ -151,7 +160,7 @@ describe('POST /v1/rebanhos/saidas', () => {
     });
 
     it('SAI-POST-13 motivo fora da lista', async () => {
-        const r = await post(a, corpoBase({ motivo: 'Doação' }));
+        const r = await post(a, corpoSemVenda('Doação'));
         expect(r.status).toBe(400);
         expect(r.body.errors[0].message).toContain('Venda, Morte, Abate ou Outro');
     });
@@ -216,9 +225,59 @@ describe('POST /v1/rebanhos/saidas', () => {
 
     it('SAI-POST-22 saídas em sequência acumulam a baixa até finalizar', async () => {
         await post(a, corpoBase({ quantidadeCabecas: 20 }));
-        const r = await post(a, corpoBase({ motivo: 'Morte', quantidadeCabecas: 30 }));
+        const r = await post(a, corpoSemVenda('Morte', { quantidadeCabecas: 30 }));
         expect(r.status).toBe(201);
         expect(r.body.data.finalizouRebanho).toBe(true);
         expect((await rebanhoSalvo()).ativo).toBe(false);
+    });
+
+    it('SAI-POST-23 venda grava preço da arroba, peso e valor total', async () => {
+        const r = await post(a, corpoBase({ precoArroba: 312.5, pesoTotalKg: 5400, valorTotal: 110000 }));
+        expect(r.status).toBe(201);
+        expect(Number(r.body.data.precoArroba)).toBe(312.5);
+        expect(Number(r.body.data.pesoTotalKg)).toBe(5400);
+        expect(Number(r.body.data.valorTotal)).toBe(110000);
+    });
+
+    it('SAI-POST-24 venda aceita valor diferente de peso/15 x arroba (o negócio real manda)', async () => {
+        // 5400 / 15 * 300 = 108000; vendido por 100000 com desconto.
+        const r = await post(a, corpoBase({ precoArroba: 300, pesoTotalKg: 5400, valorTotal: 100000 }));
+        expect(r.status).toBe(201);
+        expect(Number(r.body.data.valorTotal)).toBe(100000);
+    });
+
+    it('SAI-POST-25 venda sem preço da arroba ou sem valor total', async () => {
+        const { precoArroba, ...semPreco } = corpoBase();
+        const r1 = await post(a, semPreco);
+        expect(r1.status).toBe(400);
+        expect(r1.body.errors[0].path).toBe('precoArroba');
+
+        const { valorTotal, ...semValor } = corpoBase();
+        const r2 = await post(a, semValor);
+        expect(r2.status).toBe(400);
+        expect(r2.body.errors[0].path).toBe('valorTotal');
+        expect(await DbConnect.prisma.saidaRebanho.count()).toBe(0);
+    });
+
+    it('SAI-POST-26 morte com dados de venda é recusada', async () => {
+        const r = await post(a, corpoSemVenda('Morte', { valorTotal: 1000 }));
+        expect(r.status).toBe(400);
+        expect(r.body.errors[0].path).toBe('valorTotal');
+        expect(r.body.errors[0].message).toContain('só são informados quando o motivo é Venda');
+    });
+
+    it('SAI-POST-27 valores de venda zerados ou negativos', async () => {
+        for (const extra of [{ precoArroba: 0 }, { valorTotal: -1 }, { pesoTotalKg: 0 }]) {
+            const r = await post(a, corpoBase(extra));
+            expect(r.status).toBe(400);
+            expect(r.body.tipo).toBe('validationError');
+        }
+    });
+
+    it('SAI-POST-28 abate sem dados de venda grava os campos nulos', async () => {
+        const r = await post(a, corpoSemVenda('Abate', { quantidadeCabecas: 2 }));
+        expect(r.status).toBe(201);
+        expect(r.body.data.precoArroba).toBeNull();
+        expect(r.body.data.valorTotal).toBeNull();
     });
 });

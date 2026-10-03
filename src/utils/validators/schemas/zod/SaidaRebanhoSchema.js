@@ -24,6 +24,37 @@ export const SaidaRebanhoCreateSchema = z.object({
     // Encerra o ciclo do rebanho mesmo que sobrem cabeças no cadastro. Saída
     // da quantidade inteira finaliza sozinha, sem precisar deste campo.
     finalizar:         z.boolean().optional().default(false),
-}).strict();
+    // Dados da venda (issue #66). Só existem quando o motivo é Venda.
+    precoArroba:       z.number({ error: 'O preço da arroba deve ser um número.' })
+                        .positive('O preço da arroba deve ser maior que zero.').optional().nullable(),
+    pesoTotalKg:       z.number({ error: 'O peso total deve ser um número.' })
+                        .positive('O peso total deve ser maior que zero.').optional().nullable(),
+    valorTotal:        z.number({ error: 'O valor total deve ser um número.' })
+                        .positive('O valor total deve ser maior que zero.').optional().nullable(),
+}).strict().superRefine((dados, ctx) => {
+    const campos = ['precoArroba', 'pesoTotalKg', 'valorTotal'];
+
+    if (dados.motivo === 'Venda') {
+        // O valor é sempre o digitado: peso/15 * arroba é só a sugestão do
+        // aplicativo, e o negócio real pode ter desconto ou ágio.
+        if (dados.precoArroba == null) {
+            ctx.addIssue({ code: 'custom', path: ['precoArroba'], message: 'Informe o preço da arroba da venda.' });
+        }
+        if (dados.valorTotal == null) {
+            ctx.addIssue({ code: 'custom', path: ['valorTotal'], message: 'Informe o valor total da venda.' });
+        }
+        return;
+    }
+
+    for (const campo of campos) {
+        if (dados[campo] != null) {
+            ctx.addIssue({
+                code: 'custom',
+                path: [campo],
+                message: 'Preço, peso e valor só são informados quando o motivo é Venda.',
+            });
+        }
+    }
+});
 
 export default SaidaRebanhoCreateSchema;

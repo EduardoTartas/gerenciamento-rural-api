@@ -11,6 +11,9 @@ const SAIDA_SELECT = {
     quantidadeCabecas: true,
     dataSaida: true,
     finalizouRebanho: true,
+    precoArroba: true,
+    pesoTotalKg: true,
+    valorTotal: true,
     observacoes: true,
     ativo: true,
     createdAt: true,
@@ -85,7 +88,7 @@ class SaidaRebanhoRepository {
      * rebanhos ativos — nunca lendo o campo `status`, que é cache.
      */
     async createComTransacao(
-        { id, rebanhoId, motivo, quantidadeCabecas, dataSaida, observacoes, finalizar },
+        { id, rebanhoId, motivo, quantidadeCabecas, dataSaida, observacoes, finalizar, precoArroba, pesoTotalKg, valorTotal },
         executor,
     ) {
         // Reaproveita a transação do lote quando houver (issues #34 e #35).
@@ -151,6 +154,9 @@ class SaidaRebanhoRepository {
                     quantidadeCabecas,
                     dataSaida,
                     finalizouRebanho: finalizou,
+                    precoArroba,
+                    pesoTotalKg,
+                    valorTotal,
                     observacoes,
                 },
                 select: SAIDA_SELECT,

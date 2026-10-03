@@ -101,6 +101,9 @@ class SaidaRebanhoService {
             dataSaida: parsedData.dataSaida ?? new Date(),
             observacoes: parsedData.observacoes ?? null,
             finalizar: parsedData.finalizar ?? false,
+            precoArroba: parsedData.precoArroba ?? null,
+            pesoTotalKg: parsedData.pesoTotalKg ?? null,
+            valorTotal: parsedData.valorTotal ?? null,
         }, tx);
     }
 

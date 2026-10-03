@@ -61,6 +61,7 @@ const saidaRebanhoRoutes = {
                 - A saída não pode passar das cabeças atuais do rebanho → HTTP 409.
                 - Rebanho com \`quantidadeCabecas\` vazio só aceita saída com \`finalizar: true\` → do contrário HTTP 400.
                 - A data da saída **não pode ser no futuro**.
+                - **Venda** exige \`precoArroba\` e \`valorTotal\` (> 0); \`pesoTotalKg\` é opcional. Outros motivos recusam esses campos (HTTP 400). O valor total é o digitado: pode divergir de peso/15 × arroba (desconto, ágio).
                 - Duas saídas simultâneas do mesmo rebanho não tiram, juntas, mais cabeças do que existem: a segunda recebe 409.
 
             + Resultado Esperado:
