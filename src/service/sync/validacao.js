@@ -10,6 +10,7 @@ import {
     ManejoRebanhoUpdateSchema,
 } from '../../utils/validators/schemas/zod/ManejoRebanhoSchema.js';
 import { MovimentacaoCreateSchema } from '../../utils/validators/schemas/zod/MovimentacaoSchema.js';
+import { SaidaRebanhoCreateSchema } from '../../utils/validators/schemas/zod/SaidaRebanhoSchema.js';
 import { MovimentacaoInsumoCreateSchema } from '../../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
 import {
     RegimeConsumoInsumoCreateSchema,
@@ -63,6 +64,8 @@ export const SCHEMAS_DE_MUTACAO = {
     'manejo_rebanhos:UPDATE': ManejoRebanhoUpdateSchema,
 
     'historico_movimentacoes:CREATE': MovimentacaoCreateSchema,
+
+    'saidas_rebanho:CREATE': SaidaRebanhoCreateSchema,
 
     'insumos:CREATE': InsumoCreateSchema,
     'insumos:UPDATE': InsumoUpdateSchema,

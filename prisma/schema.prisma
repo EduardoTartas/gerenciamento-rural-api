@@ -283,6 +283,7 @@ model rebanho {
   updatedAt             DateTime         @updatedAt
 
   movimentacoes       historicoMovimentacao[]
+  saidas              saidaRebanho[]
   manejos             manejoRebanho[]
   regimesConsumo      regimeConsumoInsumo[]
   movimentacoesInsumo movimentacaoInsumo[]
@@ -317,6 +318,26 @@ model historicoMovimentacao {
   @@index([pastoDestinoId])
   @@index([rebanhoId, updatedAt])
   @@map("historico_movimentacoes")
+}
+
+// Saída de animais do rebanho (venda, morte, abate). `motivo` é texto validado
+// na aplicação (`Venda | Morte | Abate | Outro`), como `pasto.status`.
+model saidaRebanho {
+  id                String   @id @default(uuid())
+  rebanhoId         String
+  rebanho           rebanho  @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  motivo            String
+  quantidadeCabecas Int
+  dataSaida         DateTime @default(now())
+  finalizouRebanho  Boolean  @default(false)
+  observacoes       String?
+  ativo             Boolean  @default(true)
+  createdAt         DateTime @default(now())
+  updatedAt         DateTime @updatedAt
+
+  @@index([rebanhoId])
+  @@index([rebanhoId, updatedAt])
+  @@map("saidas_rebanho")
 }
 
 model manejoRebanho {
