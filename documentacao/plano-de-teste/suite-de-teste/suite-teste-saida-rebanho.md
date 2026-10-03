@@ -5,7 +5,8 @@ Repository `SaidaRebanhoRepository` · Schema `SaidaRebanhoCreateSchema` (única
 imutável), `SaidaRebanhoQuerySchema`, `SaidaRebanhoIdSchema` · Regras: rotas_pastolivre.md § 6A
 
 Pré-condições comuns: usuário A e usuário B autenticados via BetterAuth. A tem um rebanho ativo
-(`rebanhoA`, 50 cabeças) num pasto `Ocupado` (`pastoA`).
+(`rebanhoA`, 50 cabeças) num pasto `Ocupado` (`pastoA`). O corpo base é uma **venda** com
+`precoArroba` e `valorTotal`; os cenários de outro motivo os removem.
 
 **Recurso imutável**: não há `PATCH` nem `DELETE` — corrigir uma saída fica para a edição de
 lançamentos. Nenhuma rota usa `AdminMiddleware`: o admin recebe o mesmo 404 de qualquer não-dono.
@@ -38,6 +39,12 @@ Arquivo: `test/endpoints/rebanhos-saidas/post-rebanhos-saidas.test.js`
 | SAI-POST-20 | `rebanhoId` inexistente | — | 404 | `resourceNotFound` |
 | SAI-POST-21 | duas saídas simultâneas de 30 | 50 cabeças | 201 + 409 | sobra 20; só uma saída gravada |
 | SAI-POST-22 | saídas em sequência até zerar | 20 e depois 30 | 201 | a segunda finaliza o rebanho |
+| SAI-POST-23 | venda com preço, peso e valor | — | 201 | os três campos gravados e devolvidos |
+| SAI-POST-24 | venda com valor diferente de peso/15 × arroba | 5400 kg, R$ 300/@, R$ 100.000 | 201 | valor informado prevalece |
+| SAI-POST-25 | venda sem `precoArroba` ou sem `valorTotal` | — | 400 | `path` do campo faltante; nada gravado |
+| SAI-POST-26 | morte com `valorTotal` | — | 400 | "só são informados quando o motivo é Venda" |
+| SAI-POST-27 | valores de venda zerados ou negativos | — | 400 | `validationError` |
+| SAI-POST-28 | abate sem dados de venda | — | 201 | `precoArroba` e `valorTotal` nulos |
 
 ## GET /rebanhos/saidas
 

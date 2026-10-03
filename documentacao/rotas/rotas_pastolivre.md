@@ -248,13 +248,14 @@ Saída de animais do rebanho: venda, morte, abate ou outro motivo. **Recurso imu
 ### 6A.1 POST /rebanhos/saidas
 **Caso de Uso:** Lançar a venda, morte ou abate de cabeças de um lote e, quando o lote acaba, encerrar o ciclo dele.
 **Regras de Negócio:**
-- **Campos:** `rebanhoId`, `motivo` (`Venda`, `Morte`, `Abate` ou `Outro`), `quantidadeCabecas` (inteiro > 0) e opcionalmente `dataSaida`, `observacoes` e `finalizar`.
+- **Campos:** `rebanhoId`, `motivo` (`Venda`, `Morte`, `Abate` ou `Outro`), `quantidadeCabecas` (inteiro > 0) e opcionalmente `dataSaida`, `observacoes`, `finalizar` e, na venda, `precoArroba`, `pesoTotalKg` e `valorTotal`.
 - **Rebanho Ativo:** não é possível registrar saída de um lote finalizado ou inativo (400).
 - **Saldo:** a saída não pode passar das cabeças atuais do rebanho — retorna **409** (`conflict`, não recuperável).
 - **Rebanho sem contagem:** com `quantidadeCabecas` vazio no rebanho, a saída parcial é recusada (400) com orientação para preencher a quantidade; só a saída com `finalizar: true` é aceita, e a contagem continua vazia.
 - **Baixa:** `rebanho.quantidadeCabecas` diminui pela quantidade da saída.
 - **Finalização:** a saída que zera o rebanho, ou qualquer saída com `finalizar: true`, encerra o lote: `ativo: false`, `pastoAtualId` e `dataEntradaPastoAtual` nulos. O pasto que o lote ocupava tem o `status` recalculado contando rebanhos ativos (nunca lendo o campo `status`, mesma regra do desfazer movimentação): sem outro lote, entra em `Descanso` com `dataUltimaSaida` = data da saída. A saída grava `finalizouRebanho: true`.
 - **Data Não Futura:** `dataSaida` não pode ser posterior ao momento atual.
+- **Dados da venda:** com `motivo: Venda`, `precoArroba` (R$/@) e `valorTotal` (R$) são obrigatórios e maiores que zero; `pesoTotalKg` é opcional. Nos outros motivos esses campos são recusados (400). `valorTotal` é sempre o informado — o valor real do negócio pode divergir de `pesoTotalKg / 15 × precoArroba` (desconto, ágio), e a API não recalcula nem bloqueia. Os três voltam como decimal em texto, nulos fora de Venda.
 - **Transação Atômica:** baixa, finalização, pasto e registro da saída entram juntos. A baixa é condicional (`quantidadeCabecas >= saída`) dentro da transação: duas saídas simultâneas do mesmo lote não tiram, juntas, mais cabeças do que existem — a segunda recebe 409.
 - **Resposta:** a saída com o rebanho **depois** da baixa (`quantidadeCabecas`, `ativo`, `pastoAtualId`).
 
