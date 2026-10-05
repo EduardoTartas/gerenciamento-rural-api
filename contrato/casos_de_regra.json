@@ -145,5 +145,73 @@
       "entrada": { "pastoId": "pastoA", "confirmouLotacaoConjunta": false },
       "esperado": "recusa"
     }
+  ],
+  "saidaDeAnimais": [
+    {
+      "descricao": "saída parcial dentro do saldo",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 10, "finalizar": false },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "saída do rebanho inteiro",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 50, "finalizar": false },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "saída acima das cabeças do rebanho",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 51, "finalizar": true },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "quantidade zero",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 0, "finalizar": false },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "rebanho inativo não registra saída",
+      "existentes": [{ "id": "r1", "ativo": false, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 1, "finalizar": false },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "rebanho sem contagem recusa saída parcial",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": null }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 5, "finalizar": false },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "rebanho sem contagem aceita saída que finaliza",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": null }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 5, "finalizar": true },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "venda com preço da arroba e valor total",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 10, "finalizar": false, "motivo": "Venda", "precoArroba": 310, "valorTotal": 50000 },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "venda sem valor total",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 10, "finalizar": false, "motivo": "Venda", "precoArroba": 310 },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "venda com preço da arroba zerado",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 10, "finalizar": false, "motivo": "Venda", "precoArroba": 0, "valorTotal": 50000 },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "morte não leva valor de venda",
+      "existentes": [{ "id": "r1", "ativo": true, "quantidadeCabecas": 50 }],
+      "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 1, "finalizar": false, "motivo": "Morte", "valorTotal": 1000 },
+      "esperado": "recusa"
+    }
   ]
 }

@@ -276,6 +276,58 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(rebanhoAtual.pastoAtualId).toBe(pastoOrigem.id);
     });
 
+    it('SYNC-POST-79 saidas_rebanho:CREATE baixa as cabeças e finaliza na saída total', async () => {
+        const pasto = await criarPasto(propriedade.id, { status: 'Ocupado' });
+        const rebanho = await criarRebanho(propriedade.id, pasto.id, { quantidadeCabecas: 12 });
+
+        const parcialId = randomUUID();
+        const parcial = await enviarUma({
+            id: randomUUID(), entidade: 'saidas_rebanho', acao: 'CREATE', entidadeId: parcialId,
+            dados: { rebanhoId: rebanho.id, motivo: 'Venda', quantidadeCabecas: 2, dataSaida: '2026-09-01T00:00:00.000Z', precoArroba: 310, valorTotal: 6000 },
+        });
+        expect(parcial.res.situacao).toBe('aceito');
+        expect(parcial.res.dados.rebanho.quantidadeCabecas).toBe(10);
+        const salva = await DbConnect.prisma.saidaRebanho.findUnique({ where: { id: parcialId } });
+        expect(salva.dataSaida.toISOString()).toBe('2026-09-01T00:00:00.000Z');
+        expect(Number(salva.valorTotal)).toBe(6000);
+
+        const total = await enviarUma({
+            id: randomUUID(), entidade: 'saidas_rebanho', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: { rebanhoId: rebanho.id, motivo: 'Abate', quantidadeCabecas: 10 },
+        });
+        expect(total.res.situacao).toBe('aceito');
+        expect(total.res.dados.finalizouRebanho).toBe(true);
+        const rebanhoAtual = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(rebanhoAtual.ativo).toBe(false);
+        const pastoAtual = await DbConnect.prisma.pasto.findUnique({ where: { id: pasto.id } });
+        expect(pastoAtual.status).toBe('Descanso');
+    });
+
+    it('SYNC-POST-80 saidas_rebanho:CREATE acima do saldo é recusado sem retry', async () => {
+        const pasto = await criarPasto(propriedade.id, { status: 'Ocupado' });
+        const rebanho = await criarRebanho(propriedade.id, pasto.id, { quantidadeCabecas: 3 });
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'saidas_rebanho', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: { rebanhoId: rebanho.id, motivo: 'Morte', quantidadeCabecas: 4 },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.tipo).toBe('conflict');
+        expect(res.erro.recuperavel).toBe(false);
+        expect(res.erro.campo).toBe('quantidadeCabecas');
+    });
+
+    it('SYNC-POST-81 saidas_rebanho:CREATE de venda sem valor é recusado', async () => {
+        const pasto = await criarPasto(propriedade.id, { status: 'Ocupado' });
+        const rebanho = await criarRebanho(propriedade.id, pasto.id, { quantidadeCabecas: 3 });
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'saidas_rebanho', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: { rebanhoId: rebanho.id, motivo: 'Venda', quantidadeCabecas: 1 },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.tipo).toBe('validationError');
+        expect(res.erro.campo).toBe('precoArroba');
+    });
+
     it('SYNC-POST-55 insumos:CREATE', async () => {
         const tipoInsumo = await criarTipoInsumo();
         const entidadeId = randomUUID();

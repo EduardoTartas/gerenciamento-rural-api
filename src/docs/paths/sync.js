@@ -12,13 +12,14 @@ const syncRoutes = {
 
             + Função de Negócio:
                 1. Reordena as mutações por dependência (\`dependeDe\`), respeitando a ordem em que precisam ser aplicadas dentro do próprio lote.
-                2. Aplica cada mutação em sua **própria transação**, delegando ao service de domínio correspondente (propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes).
+                2. Aplica cada mutação em sua **própria transação**, delegando ao service de domínio correspondente (propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes, saidas_rebanho, insumos, movimentacoes_insumo, regimes_consumo_insumo).
                 3. **Idempotência:** reenviar uma mutação com o mesmo \`id\` já aplicada anteriormente devolve o resultado registrado da primeira vez, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
                 4. **Cascata de bloqueio:** se uma mutação é recusada, toda mutação do lote que dependia dela (direta ou indiretamente, via \`dependeDe\`) sai como \`bloqueado\` em vez de ser tentada.
 
             + Regras de Negócio:
                 - O lote aceita de **1 a 100** mutações por requisição.
                 - \`historico_movimentacoes\` não aceita \`UPDATE\` — é evento imutável, corrige-se desfazendo ou lançando outra movimentação.
+                - \`saidas_rebanho\` aceita só \`CREATE\` — a saída de animais também é evento imutável.
                 - O identificador da entidade vem sempre em \`entidadeId\`; \`dados\` nunca pode conter a chave \`id\`.
                 - \`dados\` é obrigatório em \`CREATE\`/\`UPDATE\` e ausente em \`DELETE\`.
                 - **\`dados\` passa pelo mesmo schema da rota REST equivalente**, incluindo a recusa de campos fora do schema. Um \`pastos:UPDATE\` com \`propriedadeId\`, por exemplo, é recusado aqui como seria com 400 no \`PATCH /pastagens/:id\` — mudar o vínculo de propriedade não é edição de pasto. A recusa é do item, com \`erro.tipo = validationError\`, e não derruba o lote.

@@ -40,6 +40,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const movimentacaoPaths = (await import(new URL("../paths/movimentacao.js",
         import.meta.url).href + t)).default;
+    const saidaRebanhoPaths = (await import(new URL("../paths/saidaRebanho.js",
+        import.meta.url).href + t)).default;
     const insumoPaths = (await import(new URL("../paths/insumo.js",
         import.meta.url).href + t)).default;
     const syncPaths = (await import(new URL("../paths/sync.js",
@@ -65,6 +67,8 @@ const getSwaggerOptions = async () => {
     const manejoRebanhoSchemas = (await import(new URL("../schemas/manejoRebanhoSchema.js",
         import.meta.url).href + t)).default;
     const movimentacaoSchemas = (await import(new URL("../schemas/movimentacaoSchema.js",
+        import.meta.url).href + t)).default;
+    const saidaRebanhoSchemas = (await import(new URL("../schemas/saidaRebanhoSchema.js",
         import.meta.url).href + t)).default;
     const insumoSchemas = (await import(new URL("../schemas/insumoSchema.js",
         import.meta.url).href + t)).default;
@@ -176,6 +180,10 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     description: "Histórico imutável de transferências entre pastos"
                 },
                 {
+                    name: "Saídas de Animais",
+                    description: "Venda, morte e abate: baixa de cabeças e finalização do rebanho"
+                },
+                {
                     name: "Insumos",
                     description: "Estoque de insumos, movimentações (ledger) e consumo diário do rebanho"
                 },
@@ -198,6 +206,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...rebanhoPaths,
                 ...manejoRebanhoPaths,
                 ...movimentacaoPaths,
+                ...saidaRebanhoPaths,
                 ...insumoPaths,
                 ...syncPaths,
                 ...uploadPaths,
@@ -220,6 +229,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     ...rebanhoSchemas,
                     ...manejoRebanhoSchemas,
                     ...movimentacaoSchemas,
+                    ...saidaRebanhoSchemas,
                     ...insumoSchemas,
                     ...syncSchemas,
                     ...uploadSchemas,
