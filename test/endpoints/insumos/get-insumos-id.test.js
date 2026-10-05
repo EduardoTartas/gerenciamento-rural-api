@@ -41,7 +41,11 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-02 saldo esgotado (saldoProjetado <= 0)', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 5 });
+        // Entrada antes do regime: a projeção começa na última movimentação
+        // (issue #67), então o consumo desde janeiro ainda é descontado.
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 5, data: new Date('2025-12-01T00:00:00Z'),
+        });
         const rebanho = await criarRebanhoDeA();
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, { quantidadeDia: 10, dataInicio: new Date('2026-01-01T00:00:00Z') });
 
@@ -64,7 +68,11 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-04 regime encerrado soma no consumoProjetado, mas não no consumoDiaTotal', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 500 });
+        // Entrada antes do regime: a projeção conta a partir da última
+        // movimentação (issue #67), e aqui ela não corta o regime encerrado.
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 500, data: new Date('2025-12-01T00:00:00Z'),
+        });
         const rebanho = await criarRebanhoDeA();
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
             quantidadeDia: 2, ativo: false,
@@ -84,6 +92,29 @@ describe('GET /v1/insumos/:id', () => {
         // o regime encerrado contribuiu com seus 10 dias * 2/dia = 20 para a projeção
         expect(r.body.data.saldo.consumoProjetado).toBeGreaterThanOrEqual(20);
         expect(r.body.data.saldo.consumoProjetado).toBeLessThan(26);
+    });
+
+    it('INS-GET-ID-04b projeção conta a partir da última movimentação, não de uma contagem', async () => {
+        const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
+        const rebanho = await criarRebanhoDeA();
+        // Regime de 2/dia de 01/01 a 11/01 (10 dias = 20 se contado inteiro).
+        await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 2, ativo: false,
+            dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
+        });
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 100, data: new Date('2025-12-01T00:00:00Z'),
+        });
+        // Última movimentação em 05/01: do consumo projetado só sobram 6 dias (12).
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Saida', origem: 'Perda', quantidade: 10, data: new Date('2026-01-05T00:00:00Z'),
+        });
+
+        const r = await get(a, insumo.id);
+        expect(r.status).toBe(200);
+        expect(r.body.data.saldo.saldoReal).toBe(90);
+        expect(r.body.data.saldo.consumoProjetado).toBe(12);
+        expect(r.body.data.saldo.saldoProjetado).toBe(78);
     });
 
     it('INS-GET-ID-05 id não é UUID', async () => {

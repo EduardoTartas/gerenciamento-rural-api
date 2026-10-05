@@ -1,8 +1,8 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade, criarTipoInsumo, criarInsumo } from '../../apoio/fabricas.js';
-import { criarMovimentacaoInsumo } from './apoio-local.js';
+import { criarPropriedade, criarPasto, criarRebanho, criarTipoInsumo, criarInsumo } from '../../apoio/fabricas.js';
+import { criarMovimentacaoInsumo, criarRegimeConsumoInsumo } from './apoio-local.js';
 
 describe('GET /v1/insumos', () => {
     let a;
@@ -162,5 +162,24 @@ describe('GET /v1/insumos', () => {
         expect(r.status).toBe(200);
         expect(r.body.message).toBe('Nenhum insumo cadastrado.');
         expect(r.body.data.docs).toEqual([]);
+    });
+
+    it('INS-GET-10 saldo da listagem usa a última movimentação como marco, igual ao detalhe', async () => {
+        const insumo = await criarInsumo(propriedade.id, { nome: 'Sal mineral', tipoInsumoId: tipoInsumo.id });
+        const pasto = await criarPasto(propriedade.id);
+        const rebanho = await criarRebanho(propriedade.id, pasto.id);
+        await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 2, ativo: false,
+            dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
+        });
+        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 100, data: new Date('2025-12-01T00:00:00Z') });
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Saida', origem: 'Perda', quantidade: 10, data: new Date('2026-01-05T00:00:00Z'),
+        });
+
+        const r = await get(a);
+        const doc = r.body.data.docs.find((d) => d.id === insumo.id);
+        expect(doc.saldo.saldoReal).toBe(90);
+        expect(doc.saldo.consumoProjetado).toBe(12);
     });
 });

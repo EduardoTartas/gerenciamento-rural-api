@@ -213,5 +213,55 @@
       "entrada": { "rebanhoId": "r1", "quantidadeCabecas": 1, "finalizar": false, "motivo": "Morte", "valorTotal": 1000 },
       "esperado": "recusa"
     }
+  ],
+  "motivoMovimentacaoInsumo": [
+    {
+      "descricao": "entrada por compra",
+      "existentes": [],
+      "entrada": { "tipo": "Entrada", "origem": "Compra", "observacoes": null },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "perda não é motivo de entrada",
+      "existentes": [],
+      "entrada": { "tipo": "Entrada", "origem": "Perda", "observacoes": null },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "compra não é motivo de saída",
+      "existentes": [],
+      "entrada": { "tipo": "Saida", "origem": "Compra", "observacoes": null },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "saída por perda",
+      "existentes": [],
+      "entrada": { "tipo": "Saida", "origem": "Perda", "observacoes": null },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "entrada por devolução",
+      "existentes": [],
+      "entrada": { "tipo": "Entrada", "origem": "Devolucao", "observacoes": null },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "outro sem observação",
+      "existentes": [],
+      "entrada": { "tipo": "Saida", "origem": "Outro", "observacoes": null },
+      "esperado": "recusa"
+    },
+    {
+      "descricao": "outro com observação",
+      "existentes": [],
+      "entrada": { "tipo": "Saida", "origem": "Outro", "observacoes": "Molhou na chuva" },
+      "esperado": "aceita"
+    },
+    {
+      "descricao": "contagem não é mais lançamento",
+      "existentes": [],
+      "entrada": { "tipo": "Ajuste", "origem": "AjusteContagem", "observacoes": null },
+      "esperado": "recusa"
+    }
   ]
 }

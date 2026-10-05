@@ -6,7 +6,7 @@ export const MovimentacaoInsumoIdSchema = z.string().uuid('ID de movimentação 
 export const MovimentacaoInsumoQuerySchema = z.object({
     insumoId:      z.string().uuid('O ID do insumo deve ser um UUID válido.').optional(),
     propriedadeId: z.string().uuid('O ID da propriedade deve ser um UUID válido.').optional(),
-    tipo:       z.enum(['Entrada', 'Saida', 'Ajuste']).optional(),
+    tipo:       z.enum(['Entrada', 'Saida'], { message: "tipo deve ser 'Entrada' ou 'Saida'." }).optional(),
     origem:     z.string().optional(),
     dataInicio: z.coerce.date().optional(),
     dataFim:    z.coerce.date().optional(),

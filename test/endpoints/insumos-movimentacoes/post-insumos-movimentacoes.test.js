@@ -47,10 +47,13 @@ describe('POST /v1/insumos/movimentacoes', () => {
         expect(r.body.data.tipo).toBe('Saida');
     });
 
-    it('MINS-POST-03 cria Ajuste com quantidade negativa (contagem para baixo)', async () => {
-        const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: -12, origem: 'AjusteContagem' }));
+    it('MINS-POST-03 Ajuste legado negativo vira saída "Outro" (app antigo)', async () => {
+        const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: -12, origem: 'AjusteContagem', observacoes: 'contei' }));
         expect(r.status).toBe(201);
-        expect(Number(r.body.data.quantidade)).toBe(-12);
+        expect(r.body.data.tipo).toBe('Saida');
+        expect(Number(r.body.data.quantidade)).toBe(12);
+        expect(r.body.data.origem).toBe('Outro');
+        expect(r.body.data.observacoes).toBe('Ajuste de contagem (convertido) — contei');
     });
 
     it('MINS-POST-04 aceita id gerado pelo cliente (offline-first)', async () => {
@@ -117,26 +120,24 @@ describe('POST /v1/insumos/movimentacoes', () => {
     });
 
     it('MINS-POST-13 quantidade = 0', async () => {
-        // tipo Ajuste passa pelo primeiro refine (positividade), expondo o
-        // segundo refine, que recusa quantidade zero em qualquer tipo.
-        const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: 0, origem: 'AjusteContagem' }));
+        const r = await post(a, corpoValido({ quantidade: 0 }));
         expect(r.status).toBe(400);
-        // ZodError bruto: mensagem específica do .refine() vive em errors[0].message,
-        // não em `message` (genérica) — ver Divergências no .md.
-        expect(r.body.errors[0].message).toBe('A quantidade não pode ser zero.');
+        // ZodError bruto: mensagem específica do refinamento vive em
+        // errors[0].message, não em `message` (genérica) — ver Divergências no .md.
+        expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero.');
         expect(r.body.errors[0].path).toBe('quantidade');
     });
 
     it('MINS-POST-14 quantidade negativa em Entrada', async () => {
         const r = await post(a, corpoValido({ tipo: 'Entrada', quantidade: -5 }));
         expect(r.status).toBe(400);
-        expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero para Entrada e Saída.');
+        expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero.');
     });
 
     it('MINS-POST-15 quantidade negativa em Saida', async () => {
         const r = await post(a, corpoValido({ tipo: 'Saida', quantidade: -5, origem: 'Perda' }));
         expect(r.status).toBe(400);
-        expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero para Entrada e Saída.');
+        expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero.');
     });
 
     it('MINS-POST-16 data no futuro (mais de 5 minutos)', async () => {
@@ -236,5 +237,55 @@ describe('POST /v1/insumos/movimentacoes', () => {
         expect(r.status).toBe(400);
         expect(r.body.message).toBe('O pasto pertence a outra propriedade.');
         expect(r.body.errors[0].path).toBe('pastoId');
+    });
+
+    it('MINS-POST-28 motivos aceitos por tipo', async () => {
+        const aceitos = [
+            ['Entrada', 'Compra'], ['Entrada', 'CadastroInicial'], ['Entrada', 'Devolucao'],
+            ['Saida', 'ConsumoRebanho'], ['Saida', 'Perda'],
+        ];
+        for (const [tipo, origem] of aceitos) {
+            const r = await post(a, corpoValido({ tipo, origem }));
+            expect(r.status, `${tipo}/${origem}`).toBe(201);
+            expect(r.body.data.origem).toBe(origem);
+        }
+    });
+
+    it('MINS-POST-29 motivo de outro tipo é recusado', async () => {
+        for (const [tipo, origem] of [['Entrada', 'Perda'], ['Entrada', 'ConsumoRebanho'], ['Saida', 'Compra'], ['Saida', 'Devolucao']]) {
+            const r = await post(a, corpoValido({ tipo, origem }));
+            expect(r.status, `${tipo}/${origem}`).toBe(400);
+            expect(r.body.errors[0].path).toBe('origem');
+            expect(r.body.errors[0].message).toContain('Motivo inválido para');
+        }
+    });
+
+    it('MINS-POST-30 "Outro" exige observação', async () => {
+        for (const observacoes of [undefined, '   ']) {
+            const r = await post(a, corpoValido({ tipo: 'Saida', origem: 'Outro', observacoes }));
+            expect(r.status).toBe(400);
+            expect(r.body.errors[0].path).toBe('observacoes');
+        }
+        const ok = await post(a, corpoValido({ tipo: 'Entrada', origem: 'Outro', observacoes: 'Doação do vizinho' }));
+        expect(ok.status).toBe(201);
+    });
+
+    it('MINS-POST-31 Ajuste legado positivo vira entrada "Outro"; sem quantidade é recusado', async () => {
+        const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: 7, origem: 'AjusteContagem' }));
+        expect(r.status).toBe(201);
+        expect(r.body.data.tipo).toBe('Entrada');
+        expect(Number(r.body.data.quantidade)).toBe(7);
+        expect(r.body.data.origem).toBe('Outro');
+        expect(r.body.data.observacoes).toBe('Ajuste de contagem (convertido)');
+
+        const zero = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: 0, origem: 'AjusteContagem' }));
+        expect(zero.status).toBe(400);
+        expect(zero.body.errors[0].message).toBe('Ajuste sem quantidade não altera o estoque.');
+    });
+
+    it('MINS-POST-32 AjusteContagem fora do tipo Ajuste é recusado', async () => {
+        const r = await post(a, corpoValido({ tipo: 'Entrada', origem: 'AjusteContagem' }));
+        expect(r.status).toBe(400);
+        expect(r.body.errors[0].path).toBe('origem');
     });
 });

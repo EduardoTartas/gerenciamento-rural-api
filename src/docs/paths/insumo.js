@@ -180,7 +180,7 @@ const insumoRoutes = {
                 - Sem \`insumoId\` e sem \`atualizadoDesde\` retorna 400.
                 - Quando informado, o insumo deve pertencer ao usuário logado.
                 - Lista paginada ordenada por \`data\` decrescente. Toda consulta é escopada ao usuário autenticado.
-                + Filtros: **insumoId**, **propriedadeId**, **tipo** (Entrada, Saida, Ajuste), **origem**, **dataInicio**, **dataFim**, **ativo**, **atualizadoDesde**.
+                + Filtros: **insumoId**, **propriedadeId**, **tipo** (Entrada, Saida), **origem**, **dataInicio**, **dataFim**, **ativo**, **atualizadoDesde**.
 
             + Resultado Esperado:
                 - HTTP 200 com lista paginada de **MovimentacaoInsumo**.
@@ -189,7 +189,7 @@ const insumoRoutes = {
             parameters: [
                 { name: "insumoId", in: "query", required: false, schema: { type: "string", format: "uuid" }, description: "UUID do insumo. Obrigatório, exceto quando atualizadoDesde é informado (leitura por diferença)." },
                 { name: "propriedadeId", in: "query", required: false, schema: { type: "string", format: "uuid" }, description: "Restringe a leitura por diferença a uma propriedade" },
-                { name: "tipo", in: "query", schema: { type: "string", enum: ["Entrada", "Saida", "Ajuste"] }, required: false, description: "Filtrar por tipo" },
+                { name: "tipo", in: "query", schema: { type: "string", enum: ["Entrada", "Saida"] }, required: false, description: "Filtrar por tipo" },
                 { name: "origem", in: "query", schema: { type: "string" }, required: false, description: "Filtrar por origem" },
                 { name: "dataInicio", in: "query", schema: { type: "string", format: "date-time" }, required: false, description: "Movimentações a partir desta data" },
                 { name: "dataFim", in: "query", schema: { type: "string", format: "date-time" }, required: false, description: "Movimentações até esta data" },
@@ -209,15 +209,17 @@ const insumoRoutes = {
             tags: ["Insumos"],
             summary: "Registra uma movimentação avulsa de estoque",
             description: `
-            + Caso de uso: Lançar entrada (compra, cadastro inicial), saída (consumo, perda) ou ajuste (contagem física) de estoque.
+            + Caso de uso: Lançar entrada (compra, cadastro inicial, devolução) ou saída (consumo, perda) de estoque, sempre com motivo.
 
             + Regras de Negócio:
                 - O insumo deve pertencer ao usuário logado.
-                - \`tipo\`: Entrada, Saida ou Ajuste.
-                - \`origem\` **restrita** neste endpoint a: Compra, CadastroInicial, ConsumoRebanho, AjusteContagem, Perda. As origens **ManejoRebanho** e **ManejoPasto** não são aceitas aqui — só nascem pelo fluxo de manejo (itens de insumo no POST de manejo).
-                - \`quantidade\` > 0 para Entrada/Saida; em Ajuste aceita valor negativo (contagem para baixo); nunca zero.
+                - \`tipo\`: Entrada ou Saida. Não existe mais contagem/ajuste (issue #67).
+                - Motivo (\`origem\`) por tipo — Entrada: Compra, CadastroInicial, Devolucao, Outro; Saída: ConsumoRebanho, Perda, Outro. Motivo de outro tipo → 400. **ManejoRebanho** e **ManejoPasto** não são aceitos aqui — só nascem pelo fluxo de manejo.
+                - \`observacoes\` obrigatória quando o motivo é \`Outro\`.
+                - \`quantidade\` > 0.
                 - \`data\` não pode ser no futuro.
-                - Uma movimentação de origem \`AjusteContagem\` funciona como marco de reconciliação: a projeção de consumo dos regimes zera a partir dessa data.
+                - **Compatibilidade:** \`tipo: Ajuste\` (app antigo com contagem na fila) é convertido, não recusado: positivo → Entrada/Outro, negativo → Saida/Outro com a quantidade em módulo, observação "Ajuste de contagem (convertido)". Ajuste zerado → 400.
+                - A projeção de consumo dos regimes conta a partir da última movimentação do insumo (de qualquer tipo).
                 - Recurso **imutável**: não há PATCH; a exclusão é soft-delete.
                 - Aceita \`id\` (UUID) opcional gerado pelo cliente offline.
 
