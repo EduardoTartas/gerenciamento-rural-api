@@ -5,8 +5,8 @@ const syncSchemas = {
         type: "object",
         properties: {
             id:         { type: "string", format: "uuid", description: "Identificador da mutação em si (gerado pelo cliente), usado para idempotência.", example: "11111111-1111-4111-8111-111111111111" },
-            entidade:   { type: "string", description: "Nome da entidade alvo. Suportadas: propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes.", example: "pastos" },
-            acao:       { type: "string", enum: ["CREATE", "UPDATE", "DELETE"], description: "historico_movimentacoes não aceita UPDATE — movimentação é evento, não é editada." },
+            entidade:   { type: "string", description: "Nome da entidade alvo. Suportadas: propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes, saidas_rebanho, insumos, movimentacoes_insumo, regimes_consumo_insumo.", example: "pastos" },
+            acao:       { type: "string", enum: ["CREATE", "UPDATE", "DELETE"], description: "historico_movimentacoes não aceita UPDATE — movimentação é evento, não é editada. saidas_rebanho aceita só CREATE." },
             entidadeId: { type: "string", format: "uuid", description: "Identificador da entidade afetada. Fonte única do id — não deve ser repetido dentro de `dados`.", example: "22222222-2222-4222-8222-222222222222" },
             dependeDe:  { type: "string", format: "uuid", nullable: true, description: "Id de outra mutação deste mesmo lote que precisa ser aplicada antes desta. Referencia sempre uma mutação, nunca uma entidade do banco." },
             dados:      { type: "object", additionalProperties: true, description: "Corpo da mutação. Obrigatório em CREATE e UPDATE; ausente em DELETE. Nunca deve conter a chave `id`." },

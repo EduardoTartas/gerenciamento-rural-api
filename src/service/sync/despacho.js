@@ -9,6 +9,7 @@ import PastoService from '../PastoService.js';
 import PropriedadeService from '../PropriedadeService.js';
 import RebanhoService from '../RebanhoService.js';
 import RegimeConsumoInsumoService from '../RegimeConsumoInsumoService.js';
+import SaidaRebanhoService from '../SaidaRebanhoService.js';
 
 const propriedade = new PropriedadeService();
 const pasto = new PastoService();
@@ -19,6 +20,7 @@ const movimentacao = new MovimentacaoService();
 const insumo = new InsumoService();
 const movimentacaoInsumo = new MovimentacaoInsumoService();
 const regimeConsumoInsumo = new RegimeConsumoInsumoService();
+const saidaRebanho = new SaidaRebanhoService();
 
 /**
  * Liga `(entidade, ação)` ao método do service de domínio.
@@ -29,6 +31,7 @@ const regimeConsumoInsumo = new RegimeConsumoInsumoService();
  *
  * `historico_movimentacoes` não tem `UPDATE`: movimentação é evento que
  * produziu efeito, e corrigir significa desfazer a última ou lançar outra.
+ * `saidas_rebanho` só tem `CREATE`: a saída também é evento imutável.
  */
 export const DESPACHO = {
     'propriedades:CREATE': ({ entidadeId, dados, req, tx }) =>
@@ -65,6 +68,9 @@ export const DESPACHO = {
         movimentacao.create({ ...dados, id: entidadeId }, req, tx),
     'historico_movimentacoes:DELETE': ({ entidadeId, req, tx }) =>
         movimentacao.remove(entidadeId, req, tx),
+
+    'saidas_rebanho:CREATE': ({ entidadeId, dados, req, tx }) =>
+        saidaRebanho.create({ ...dados, id: entidadeId }, req, tx),
 
     'insumos:CREATE': ({ entidadeId, dados, req, tx }) =>
         insumo.create({ ...dados, id: entidadeId }, req, tx),

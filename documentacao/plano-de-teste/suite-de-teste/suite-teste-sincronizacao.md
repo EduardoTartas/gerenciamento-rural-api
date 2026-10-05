@@ -178,6 +178,9 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
 | SYNC-POST-76 | 401 com token inválido/expirado | header `Authorization` com token quebrado ou revogado | 401 | `tipo: unauthorized` |
 | SYNC-POST-77 | `pastos:CREATE` com `tipoPastagemId` e `diasDescanso` | tipo de pastagem ativo | 200 | `aceito`; pasto gravado com tipo e ajuste |
 | SYNC-POST-78 | `pastos:CREATE` com `tipoPastagemId` inexistente | — | 200 | mutação `recusado` |
+| SYNC-POST-79 | `saidas_rebanho:CREATE` parcial e depois total | rebanho com 12 cabeças | 200 | `aceito`; `dados.rebanho.quantidadeCabecas` 10; `dataSaida` coagida; a total finaliza o rebanho e põe o pasto em `Descanso` |
+| SYNC-POST-81 | `saidas_rebanho:CREATE` de venda sem valor | rebanho com 3 cabeças | 200 | `recusado`, `erro.tipo: validationError`, `campo: precoArroba` |
+| SYNC-POST-80 | `saidas_rebanho:CREATE` acima do saldo | rebanho com 3 cabeças, saída de 4 | 200 | `recusado`, `erro.tipo: conflict`, `recuperavel: false`, `campo: quantidadeCabecas` |
 
 ## Divergências
 
