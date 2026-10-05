@@ -423,8 +423,8 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: entidadeId } });
         expect(salvo.tipo).toBe('Saida');
         expect(Number(salvo.quantidade)).toBe(4);
-        expect(salvo.origem).toBe('Outro');
-        expect(salvo.observacoes).toBe('Ajuste de contagem (convertido)');
+        expect(salvo.origem).toBe('AjusteContagem');
+        expect(salvo.observacoes).toBeNull();
     });
 
     it('SYNC-POST-83 movimentacoes_insumo:CREATE com Ajuste legado zerado é recusado sem retry', async () => {

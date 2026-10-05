@@ -164,22 +164,26 @@ describe('GET /v1/insumos', () => {
         expect(r.body.data.docs).toEqual([]);
     });
 
-    it('INS-GET-10 saldo da listagem usa a última movimentação como marco, igual ao detalhe', async () => {
-        const insumo = await criarInsumo(propriedade.id, { nome: 'Sal mineral', tipoInsumoId: tipoInsumo.id });
+    it('INS-GET-16 saldo da listagem usa o mesmo marco do detalhe (consumo lançado, não compra)', async () => {
         const pasto = await criarPasto(propriedade.id);
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
-        await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
-            quantidadeDia: 2, ativo: false,
-            dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
-        });
-        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 100, data: new Date('2025-12-01T00:00:00Z') });
-        await criarMovimentacaoInsumo(insumo.id, {
-            tipo: 'Saida', origem: 'Perda', quantidade: 10, data: new Date('2026-01-05T00:00:00Z'),
-        });
+        const preparar = async (nome, lancamento05) => {
+            const insumo = await criarInsumo(propriedade.id, { nome, tipoInsumoId: tipoInsumo.id });
+            await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
+                quantidadeDia: 2, ativo: false,
+                dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
+            });
+            await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 100, data: new Date('2025-12-01T00:00:00Z') });
+            await criarMovimentacaoInsumo(insumo.id, { ...lancamento05, data: new Date('2026-01-05T00:00:00Z') });
+            return insumo;
+        };
+        const comCompra = await preparar('Sal', { tipo: 'Entrada', origem: 'Compra', quantidade: 50 });
+        const comConsumo = await preparar('Ração', { tipo: 'Saida', origem: 'ConsumoRebanho', quantidade: 8 });
 
         const r = await get(a);
-        const doc = r.body.data.docs.find((d) => d.id === insumo.id);
-        expect(doc.saldo.saldoReal).toBe(90);
-        expect(doc.saldo.consumoProjetado).toBe(12);
+        const doc = (id) => r.body.data.docs.find((d) => d.id === id);
+        expect(doc(comCompra.id).saldo.consumoProjetado).toBe(20);
+        expect(doc(comConsumo.id).saldo.saldoReal).toBe(92);
+        expect(doc(comConsumo.id).saldo.consumoProjetado).toBe(12);
     });
 });

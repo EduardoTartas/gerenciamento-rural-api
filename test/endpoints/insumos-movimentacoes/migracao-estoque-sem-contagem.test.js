@@ -56,26 +56,31 @@ describe('migration estoque_sem_contagem', () => {
 
         await rodarMigration();
 
+        // A origem continua AjusteContagem (legado que vale como marco) e a
+        // observação original é mantida.
         const cima = await ler(paraCima.id);
         expect(cima.tipo).toBe('Entrada');
         expect(Number(cima.quantidade)).toBe(5);
-        expect(cima.origem).toBe('Outro');
-        expect(cima.observacoes).toBe('Ajuste de contagem (convertido) — sobrou');
+        expect(cima.origem).toBe('AjusteContagem');
+        expect(cima.observacoes).toBe('sobrou');
         expect(cima.updatedAt.getTime()).toBeGreaterThan(antiga.getTime());
 
         const baixo = await ler(paraBaixo.id);
         expect(baixo.tipo).toBe('Saida');
         expect(Number(baixo.quantidade)).toBe(12);
-        expect(baixo.observacoes).toBe('Ajuste de contagem (convertido)');
+        expect(baixo.origem).toBe('AjusteContagem');
+        expect(baixo.observacoes).toBeNull();
 
         const zero = await ler(zerada.id);
         expect(zero.ativo).toBe(false);
         expect(zero.tipo).toBe('Entrada');
-        expect(zero.origem).toBe('Outro');
+        expect(zero.updatedAt.getTime()).toBeGreaterThan(antiga.getTime());
 
+        // Já era saída: fica como está.
         const saida = await ler(contagemComoSaida.id);
         expect(saida.tipo).toBe('Saida');
-        expect(saida.origem).toBe('Outro');
+        expect(saida.origem).toBe('AjusteContagem');
+        expect(saida.updatedAt.getTime()).toBe(antiga.getTime());
 
         // Compra não é contagem: fica intocada.
         const intocada = await ler(compra.id);
@@ -87,9 +92,7 @@ describe('migration estoque_sem_contagem', () => {
         const saldo = ativas.reduce((t, m) => t + (m.tipo === 'Entrada' ? 1 : -1) * Number(m.quantidade), 0);
         expect(saldo).toBe(90);
 
-        const restantes = await DbConnect.prisma.movimentacaoInsumo.count({
-            where: { OR: [{ tipo: 'Ajuste' }, { origem: 'AjusteContagem' }] },
-        });
+        const restantes = await DbConnect.prisma.movimentacaoInsumo.count({ where: { tipo: 'Ajuste' } });
         expect(restantes).toBe(0);
     });
 });

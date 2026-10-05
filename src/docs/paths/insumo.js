@@ -218,8 +218,8 @@ const insumoRoutes = {
                 - \`observacoes\` obrigatória quando o motivo é \`Outro\`.
                 - \`quantidade\` > 0.
                 - \`data\` não pode ser no futuro.
-                - **Compatibilidade:** \`tipo: Ajuste\` (app antigo com contagem na fila) é convertido, não recusado: positivo → Entrada/Outro, negativo → Saida/Outro com a quantidade em módulo, observação "Ajuste de contagem (convertido)". Ajuste zerado → 400.
-                - A projeção de consumo dos regimes conta a partir da última movimentação do insumo (de qualquer tipo).
+                - **Compatibilidade:** \`tipo: Ajuste\` (app antigo com contagem na fila) é convertido, não recusado: positivo → Entrada, negativo → Saida com a quantidade em módulo, ambos com origem \`AjusteContagem\` e a observação original. Ajuste zerado → 400. Lançamento novo com \`origem: AjusteContagem\` (sem \`tipo: Ajuste\`) → 400.
+                - A projeção de consumo dos regimes conta a partir do último consumo lançado (saída \`ConsumoRebanho\`) ou contagem antiga (\`AjusteContagem\`). Compra, perda, devolução, "Outro" e manejo não mexem nesse marco.
                 - Recurso **imutável**: não há PATCH; a exclusão é soft-delete.
                 - Aceita \`id\` (UUID) opcional gerado pelo cliente offline.
 

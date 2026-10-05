@@ -18,16 +18,17 @@ export const ORIGENS_POR_TIPO = {
     Saida: ['ConsumoRebanho', 'Perda', 'Outro'],
 };
 
-/** Todas as origens que existem no ledger, inclusive as geradas pelo manejo. */
+/**
+ * Todas as origens que existem no ledger, inclusive as geradas pelo manejo e a
+ * `AjusteContagem` legada (contagem antiga convertida — só leitura, nunca
+ * lançada de novo por aqui).
+ */
 export const ORIGENS_DO_LEDGER = {
-    Entrada: ORIGENS_POR_TIPO.Entrada,
-    Saida: ['ManejoRebanho', 'ManejoPasto', ...ORIGENS_POR_TIPO.Saida],
+    Entrada: [...ORIGENS_POR_TIPO.Entrada, 'AjusteContagem'],
+    Saida: ['ManejoRebanho', 'ManejoPasto', ...ORIGENS_POR_TIPO.Saida, 'AjusteContagem'],
 };
 
 const ORIGENS_ACEITAS = [...new Set([...ORIGENS_POR_TIPO.Entrada, ...ORIGENS_POR_TIPO.Saida])];
-
-/** Observação gravada no ajuste legado convertido. */
-export const OBSERVACAO_AJUSTE_CONVERTIDO = 'Ajuste de contagem (convertido)';
 
 export const MovimentacaoInsumoCreateSchema = z.object({
     id:         z.string().uuid('O ID deve ser um UUID válido.').optional(),
@@ -73,16 +74,17 @@ export const MovimentacaoInsumoCreateSchema = z.object({
     })
     // Compatibilidade (issue #67): o app antigo ainda pode ter uma contagem na
     // fila offline. Recusar travaria a fila; a contagem vira entrada ou saída
-    // "Outro" pelo sinal, igual à conversão da migration `estoque_sem_contagem`.
+    // pelo sinal, com origem `AjusteContagem` — é uma conferência física de
+    // verdade e continua valendo como marco da projeção. Igual à conversão da
+    // migration `estoque_sem_contagem`. Lançamento NOVO com `AjusteContagem`
+    // (sem `tipo: Ajuste`) é recusado no `superRefine` acima.
     .transform((m) => {
         if (m.tipo !== 'Ajuste') return m;
-        const original = m.observacoes?.trim();
         return {
             ...m,
             tipo: m.quantidade > 0 ? 'Entrada' : 'Saida',
             quantidade: Math.abs(m.quantidade),
-            origem: 'Outro',
-            observacoes: original ? `${OBSERVACAO_AJUSTE_CONVERTIDO} — ${original}` : OBSERVACAO_AJUSTE_CONVERTIDO,
+            origem: 'AjusteContagem',
         };
     });
 

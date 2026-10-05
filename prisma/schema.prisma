@@ -398,7 +398,7 @@ model movimentacaoInsumo {
   tipo            String // enum aplicação: Entrada | Saida (sem Ajuste desde a issue #67)
   quantidade      Decimal // sempre positiva
   data            DateTime
-  origem          String // enum aplicação — Entrada: Compra | CadastroInicial | Devolucao | Outro; Saida: ManejoRebanho | ManejoPasto | ConsumoRebanho | Perda | Outro
+  origem          String // enum aplicação — Entrada: Compra | CadastroInicial | Devolucao | Outro; Saida: ManejoRebanho | ManejoPasto | ConsumoRebanho | Perda | Outro; AjusteContagem só legado (contagem convertida, qualquer tipo)
   manejoRebanhoId String?
   manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
   manejoPastoId   String?

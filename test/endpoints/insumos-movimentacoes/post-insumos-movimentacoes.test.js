@@ -47,13 +47,13 @@ describe('POST /v1/insumos/movimentacoes', () => {
         expect(r.body.data.tipo).toBe('Saida');
     });
 
-    it('MINS-POST-03 Ajuste legado negativo vira saída "Outro" (app antigo)', async () => {
+    it('MINS-POST-03 Ajuste legado negativo vira saída AjusteContagem (app antigo)', async () => {
         const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: -12, origem: 'AjusteContagem', observacoes: 'contei' }));
         expect(r.status).toBe(201);
         expect(r.body.data.tipo).toBe('Saida');
         expect(Number(r.body.data.quantidade)).toBe(12);
-        expect(r.body.data.origem).toBe('Outro');
-        expect(r.body.data.observacoes).toBe('Ajuste de contagem (convertido) — contei');
+        expect(r.body.data.origem).toBe('AjusteContagem');
+        expect(r.body.data.observacoes).toBe('contei');
     });
 
     it('MINS-POST-04 aceita id gerado pelo cliente (offline-first)', async () => {
@@ -270,20 +270,20 @@ describe('POST /v1/insumos/movimentacoes', () => {
         expect(ok.status).toBe(201);
     });
 
-    it('MINS-POST-31 Ajuste legado positivo vira entrada "Outro"; sem quantidade é recusado', async () => {
+    it('MINS-POST-31 Ajuste legado positivo vira entrada AjusteContagem; sem quantidade é recusado', async () => {
         const r = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: 7, origem: 'AjusteContagem' }));
         expect(r.status).toBe(201);
         expect(r.body.data.tipo).toBe('Entrada');
         expect(Number(r.body.data.quantidade)).toBe(7);
-        expect(r.body.data.origem).toBe('Outro');
-        expect(r.body.data.observacoes).toBe('Ajuste de contagem (convertido)');
+        expect(r.body.data.origem).toBe('AjusteContagem');
+        expect(r.body.data.observacoes).toBeNull();
 
         const zero = await post(a, corpoValido({ tipo: 'Ajuste', quantidade: 0, origem: 'AjusteContagem' }));
         expect(zero.status).toBe(400);
         expect(zero.body.errors[0].message).toBe('Ajuste sem quantidade não altera o estoque.');
     });
 
-    it('MINS-POST-32 AjusteContagem fora do tipo Ajuste é recusado', async () => {
+    it('MINS-POST-32 lançamento novo com AjusteContagem (fora do legado tipo Ajuste) é recusado', async () => {
         const r = await post(a, corpoValido({ tipo: 'Entrada', origem: 'AjusteContagem' }));
         expect(r.status).toBe(400);
         expect(r.body.errors[0].path).toBe('origem');

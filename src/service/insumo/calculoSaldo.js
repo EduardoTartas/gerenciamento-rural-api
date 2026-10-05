@@ -12,8 +12,8 @@ function diasEntre(de, ate) {
 
 /**
  * Saldo pelo ledger: entradas menos saídas. Desde a issue #67 não existe mais
- * ajuste assinado — a contagem que sobrescrevia o saldo virou entrada ou saída
- * "Outro" na migration `estoque_sem_contagem`.
+ * ajuste assinado — a contagem antiga virou entrada ou saída (pelo sinal) com
+ * origem `AjusteContagem` na migration `estoque_sem_contagem`.
  */
 export function calcularSaldoReal(movimentacoes = []) {
     return movimentacoes.reduce((total, m) => {
@@ -36,17 +36,28 @@ function consumoProjetadoDesde(regimes, marco, agora) {
 }
 
 /**
- * Consumo dos regimes ainda não lançado no ledger, desde a última movimentação
- * do insumo (de qualquer tipo) ou desde o início de cada regime, o que for mais
- * recente.
+ * Marca o fim da estimativa de consumo: a partir dela, o que os regimes
+ * consumiram ainda não está no ledger.
  *
- * O marco era a última contagem física (`AjusteContagem`), que zerava a
- * projeção. Sem contagem (issue #67), o último lançamento é o melhor indício de
- * que o produtor olhou o estoque: o que foi consumido antes dele já está
- * refletido no que ele lançou.
+ * - Saída `ConsumoRebanho`: o produtor lançou o consumo real, que encerra a
+ *   estimativa até ali — contar de novo o mesmo período dobraria o consumo.
+ * - `AjusteContagem` (contagem antiga, de qualquer tipo): era conferência
+ *   física do estoque, o saldo dali já incluía tudo que foi consumido.
+ *
+ * Compra, perda, devolução, "Outro" e manejo **não** são marco: uma compra não
+ * diz nada sobre quanto o rebanho já comeu (issue #67). Usar qualquer
+ * movimentação fazia uma compra apagar consumo ainda não lançado.
+ */
+export function ehMarcoDeConsumo(m) {
+    return (m.tipo === 'Saida' && m.origem === 'ConsumoRebanho') || m.origem === 'AjusteContagem';
+}
+
+/**
+ * Consumo dos regimes ainda não lançado no ledger, desde o último marco (ver
+ * `ehMarcoDeConsumo`) ou desde o início de cada regime, o que for mais recente.
  */
 export function calcularConsumoProjetadoNaoLancado(regimes = [], movimentacoes = [], agora = new Date()) {
-    const datas = movimentacoes.map((m) => m.data.getTime());
+    const datas = movimentacoes.filter(ehMarcoDeConsumo).map((m) => m.data.getTime());
     const marco = datas.length ? new Date(Math.max(...datas)) : null;
     return consumoProjetadoDesde(regimes, marco, agora);
 }
@@ -89,16 +100,16 @@ export function calcularSaldos({ movimentacoes = [], regimes = [], agora = new D
 
 /**
  * Mesma matemática de `calcularSaldos`, mas a partir do ledger já agregado no
- * banco: uma soma por tipo e a data da última movimentação. Evita trazer todas
- * as linhas de `movimentacoes_insumo` na listagem (issue #37).
+ * banco: uma soma por tipo e a data do último marco de consumo. Evita trazer
+ * todas as linhas de `movimentacoes_insumo` na listagem (issue #37).
  *
- * @param {{ entrada: number, saida: number, ultimaMovimentacao: Date|null }} resumo
+ * @param {{ entrada: number, saida: number, ultimoMarco: Date|null }} resumo
  */
 export function calcularSaldosComResumo({ resumo, regimes = [], agora = new Date() }) {
     const saldoReal = (resumo?.entrada ?? 0) - (resumo?.saida ?? 0);
     return montarPacote({
         saldoReal,
-        consumoProjetado: consumoProjetadoDesde(regimes, resumo?.ultimaMovimentacao ?? null, agora),
+        consumoProjetado: consumoProjetadoDesde(regimes, resumo?.ultimoMarco ?? null, agora),
         regimes,
         agora,
     });

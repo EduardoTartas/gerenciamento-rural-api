@@ -20,7 +20,7 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | :--- | :--- | :--- | :--- | :--- |
 | MINS-POST-01 | cria movimentação `Entrada` válida | insumo de A | 201 | envelope; `data.id`; `data.tipo` = "Entrada"; `data.ativo` = true |
 | MINS-POST-02 | cria movimentação `Saida` válida | — | 201 | `data.tipo` = "Saida" |
-| MINS-POST-03 | `Ajuste` legado negativo (app antigo) | `quantidade: -12`, `origem: AjusteContagem`, observação | 201 | gravado como `Saida`/`Outro`, `quantidade` 12, observação "Ajuste de contagem (convertido) — …" |
+| MINS-POST-03 | `Ajuste` legado negativo (app antigo) | `quantidade: -12`, `origem: AjusteContagem`, observação | 201 | gravado como `Saida`/`AjusteContagem`, `quantidade` 12, observação original |
 | MINS-POST-04 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao UUID enviado |
 | MINS-POST-05 | aceita `rebanhoId` da mesma propriedade do insumo | rebanho de A na propriedade do insumo | 201 | `data.rebanhoId` refletido |
 | MINS-POST-06 | aceita `pastoId` da mesma propriedade do insumo | pasto de A na propriedade do insumo | 201 | `data.pastoId` refletido |
@@ -48,8 +48,8 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | MINS-POST-28 | motivos aceitos por tipo | Entrada: Compra, CadastroInicial, Devolucao; Saída: ConsumoRebanho, Perda | 201 | `origem` gravada |
 | MINS-POST-29 | motivo de outro tipo | Entrada/Perda, Entrada/ConsumoRebanho, Saida/Compra, Saida/Devolucao | 400 | path `origem`; "Motivo inválido para …" |
 | MINS-POST-30 | `Outro` exige observação | sem observação ou só espaços | 400 / 201 | path `observacoes`; com observação, 201 |
-| MINS-POST-31 | `Ajuste` legado positivo; `Ajuste` zerado | — | 201 / 400 | positivo vira `Entrada`/`Outro`; zero → "Ajuste sem quantidade não altera o estoque." |
-| MINS-POST-32 | `AjusteContagem` em `Entrada`/`Saida` | — | 400 | path `origem` |
+| MINS-POST-31 | `Ajuste` legado positivo; `Ajuste` zerado | — | 201 / 400 | positivo vira `Entrada`/`AjusteContagem`, observação original; zero → "Ajuste sem quantidade não altera o estoque." |
+| MINS-POST-32 | lançamento novo com `AjusteContagem` (fora do legado `tipo: Ajuste`) | `Entrada`/`AjusteContagem` | 400 | path `origem` |
 
 ## Migration `estoque_sem_contagem`
 
@@ -58,7 +58,7 @@ nasce migrado: o teste grava linhas no formato antigo e roda o SQL da própria m
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| MINS-MIG-01 | converte contagens sem mudar o saldo | compra 100, ajustes +5/−12/0, `Saida`/`AjusteContagem` 3 | — | +5 → `Entrada`/`Outro`; −12 → `Saida` 12; 0 → inativo; saída só troca o motivo; compra intocada; saldo 90 antes e depois; nenhum `Ajuste`/`AjusteContagem` restante; `updatedAt` avança |
+| MINS-MIG-01 | converte contagens sem mudar o saldo | compra 100, ajustes +5/−12/0, `Saida`/`AjusteContagem` 3 | — | +5 → `Entrada`, −12 → `Saida` 12, ambos com origem `AjusteContagem` e observação original; 0 → inativo; a que já era `Saida` e a compra ficam intocadas; saldo 90 antes e depois; nenhum `tipo: Ajuste` restante; `updatedAt` avança só nas convertidas |
 
 ## GET /insumos/movimentacoes
 
