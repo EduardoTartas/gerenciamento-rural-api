@@ -133,6 +133,9 @@ Arquivo: `test/endpoints/sync/post-sync-despacho.test.js`
 | SYNC-POST-57b | `insumos:DELETE` com regimes de consumo | A; insumo com regime ativo, regime de outro insumo e movimentação | 200 (`aceito`) | regime do insumo `ativo = false` com `dataFim`; regime do outro insumo e a movimentação intactos |
 | SYNC-POST-57c | lote offline: `regimes_consumo_insumo:CREATE` + `insumos:DELETE` no mesmo envio | A; insumo e rebanho existentes | 200 (dois `aceito`) | o regime criado no lote já sai desativado, com `dataFim` |
 | SYNC-POST-58 | `movimentacoes_insumo:CREATE` | A; insumo existente | 200 (`aceito`) | movimentação de insumo no banco |
+| SYNC-POST-82 | `movimentacoes_insumo:CREATE` com `Ajuste` legado | quantidade −4, origem `AjusteContagem` | 200 (`aceito`) | gravado como `Saida`/`Outro`, quantidade 4, observação "Ajuste de contagem (convertido)" |
+| SYNC-POST-83 | `movimentacoes_insumo:CREATE` com `Ajuste` zerado | — | 200 (`recusado`) | `recuperavel: false`; "Ajuste sem quantidade não altera o estoque." |
+| SYNC-POST-84 | `movimentacoes_insumo:CREATE` com motivo de outro tipo | Entrada/Perda | 200 (`recusado`) | `erro.campo: origem` |
 | SYNC-POST-59 | `movimentacoes_insumo:DELETE` | A; movimentação de insumo existente | 200 (`aceito`) | removida/soft-delete conforme regra do domínio (ver `insumos-movimentacoes.md`) |
 | SYNC-POST-60 | `regimes_consumo_insumo:CREATE` | A; rebanho e insumo existentes | 200 (`aceito`) | regime no banco |
 | SYNC-POST-61 | `regimes_consumo_insumo:UPDATE` | A; regime existente | 200 (`aceito`) | campo atualizado |

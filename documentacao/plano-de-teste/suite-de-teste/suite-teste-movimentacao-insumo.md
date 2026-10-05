@@ -20,7 +20,7 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | :--- | :--- | :--- | :--- | :--- |
 | MINS-POST-01 | cria movimentação `Entrada` válida | insumo de A | 201 | envelope; `data.id`; `data.tipo` = "Entrada"; `data.ativo` = true |
 | MINS-POST-02 | cria movimentação `Saida` válida | — | 201 | `data.tipo` = "Saida" |
-| MINS-POST-03 | cria `Ajuste` com quantidade negativa (contagem para baixo) | — | 201 | `data.quantidade` negativa aceita |
+| MINS-POST-03 | `Ajuste` legado negativo (app antigo) | `quantidade: -12`, `origem: AjusteContagem`, observação | 201 | gravado como `Saida`/`Outro`, `quantidade` 12, observação "Ajuste de contagem (convertido) — …" |
 | MINS-POST-04 | aceita `id` gerado pelo cliente (offline-first) | — | 201 | `data.id` igual ao UUID enviado |
 | MINS-POST-05 | aceita `rebanhoId` da mesma propriedade do insumo | rebanho de A na propriedade do insumo | 201 | `data.rebanhoId` refletido |
 | MINS-POST-06 | aceita `pastoId` da mesma propriedade do insumo | pasto de A na propriedade do insumo | 201 | `data.pastoId` refletido |
@@ -30,13 +30,13 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | MINS-POST-10 | `insumoId` ausente | — | 400 | validationError; path `insumoId` |
 | MINS-POST-11 | `tipo` ausente ou fora do enum | — | 400 | validationError; path `tipo` |
 | MINS-POST-12 | `quantidade` ausente ou não numérica | — | 400 | validationError; path `quantidade` |
-| MINS-POST-13 | `quantidade` = 0 | — | 400 | `errors[0].message` = "A quantidade não pode ser zero."; path `quantidade` |
-| MINS-POST-14 | `quantidade` negativa em `Entrada` | — | 400 | `errors[0].message` = "Quantidade deve ser maior que zero para Entrada e Saída." |
+| MINS-POST-13 | `quantidade` = 0 | — | 400 | `errors[0].message` = "Quantidade deve ser maior que zero."; path `quantidade` |
+| MINS-POST-14 | `quantidade` negativa em `Entrada` | — | 400 | `errors[0].message` = "Quantidade deve ser maior que zero." |
 | MINS-POST-15 | `quantidade` negativa em `Saida` | — | 400 | mesma mensagem de MINS-POST-14 |
 | MINS-POST-16 | `data` no futuro (mais de 5 minutos) | — | 400 | `errors[0].message` = "A data não pode ser no futuro." |
 | MINS-POST-17 | `data` até 5 minutos no futuro (tolerância do relógio do app offline) | — | 201 | cria normalmente |
-| MINS-POST-18 | `origem` fora do enum (`Compra`, `CadastroInicial`, `ConsumoRebanho`, `AjusteContagem`, `Perda`) | — | 400 | validationError; path `origem` |
-| MINS-POST-19 | `origem` = `ManejoRebanho` ou `ManejoPasto` | — | 400 | recusada — essas origens só nascem pelo fluxo de manejo (`MovimentacaoInsumoSchema.js:7`) |
+| MINS-POST-18 | `origem` fora do enum | — | 400 | validationError; path `origem` |
+| MINS-POST-19 | `origem` = `ManejoRebanho` ou `ManejoPasto` | — | 400 | recusada — essas origens só nascem pelo fluxo de manejo (`ORIGENS_POR_TIPO` em `MovimentacaoInsumoSchema.js`) |
 | MINS-POST-20 | `rebanhoId` com formato inválido (não UUID) | — | 400 | validationError |
 | MINS-POST-21 | sem token | — | 401 | `tipo` = unauthorized |
 | MINS-POST-22 | `insumoId` de A, logado como B | B autenticado | 404 | mensagem "Insumo não encontrado ou não pertence ao usuário autenticado."; multi-tenancy — B não lança movimentação sob insumo de A |
@@ -45,6 +45,20 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | MINS-POST-25 | `rebanhoId` de propriedade diferente da do insumo | rebanho e insumo de A, propriedades diferentes | 400 | mensagem "O rebanho pertence a outra propriedade."; path `rebanhoId` |
 | MINS-POST-26 | `pastoId` de outro usuário (B) | — | 400 | mensagem "Pasto não encontrado ou não pertence ao usuário autenticado."; path `pastoId` |
 | MINS-POST-27 | `pastoId` de propriedade diferente da do insumo | — | 400 | mensagem "O pasto pertence a outra propriedade."; path `pastoId` |
+| MINS-POST-28 | motivos aceitos por tipo | Entrada: Compra, CadastroInicial, Devolucao; Saída: ConsumoRebanho, Perda | 201 | `origem` gravada |
+| MINS-POST-29 | motivo de outro tipo | Entrada/Perda, Entrada/ConsumoRebanho, Saida/Compra, Saida/Devolucao | 400 | path `origem`; "Motivo inválido para …" |
+| MINS-POST-30 | `Outro` exige observação | sem observação ou só espaços | 400 / 201 | path `observacoes`; com observação, 201 |
+| MINS-POST-31 | `Ajuste` legado positivo; `Ajuste` zerado | — | 201 / 400 | positivo vira `Entrada`/`Outro`; zero → "Ajuste sem quantidade não altera o estoque." |
+| MINS-POST-32 | `AjusteContagem` em `Entrada`/`Saida` | — | 400 | path `origem` |
+
+## Migration `estoque_sem_contagem`
+
+Arquivo: `test/endpoints/insumos-movimentacoes/migracao-estoque-sem-contagem.test.js`. O banco de teste já
+nasce migrado: o teste grava linhas no formato antigo e roda o SQL da própria migration sobre elas.
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MINS-MIG-01 | converte contagens sem mudar o saldo | compra 100, ajustes +5/−12/0, `Saida`/`AjusteContagem` 3 | — | +5 → `Entrada`/`Outro`; −12 → `Saida` 12; 0 → inativo; saída só troca o motivo; compra intocada; saldo 90 antes e depois; nenhum `Ajuste`/`AjusteContagem` restante; `updatedAt` avança |
 
 ## GET /insumos/movimentacoes
 

@@ -9,8 +9,8 @@ Pré-condições comuns: usuário A e usuário B autenticados via BetterAuth, ca
 
 Saldo: a leitura de um insumo (`GET /insumos/:id` e cada item de `GET /insumos`) devolve o pacote
 `saldo` calculado na hora a partir do ledger (`movimentacoesInsumo`) e dos `regimesConsumo`:
-`saldoReal = Σ(Entrada) − Σ(Saida) + Σ(Ajuste com sinal)`, `consumoProjetado` (consumo dos regimes
-ainda não lançado, contado desde a última `AjusteContagem` ou desde o início de cada regime),
+`saldoReal = Σ(Entrada) − Σ(Saida)`, `consumoProjetado` (consumo dos regimes
+ainda não lançado, contado desde a última movimentação do insumo ou desde o início de cada regime),
 `saldoProjetado = saldoReal − consumoProjetado`, `consumoDiaTotal` (soma de `quantidadeDia` dos
 regimes vigentes hoje), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e
 `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`). `GET /insumos/:id` calcula a
@@ -59,6 +59,7 @@ Arquivo: `test/endpoints/insumos/get-insumos.test.js`
 | INS-GET-07 | filtro `atualizadoDesde` | 1 insumo inativado após a marca | 200 | inclui o inativo (leitura por diferença) |
 | INS-GET-08 | `estoqueBaixo` = true | `estoqueMinimo` definido e `saldoProjetado <= estoqueMinimo` | 200 | `data.docs[].saldo.estoqueBaixo` = true |
 | INS-GET-09 | `estoqueBaixo` = false quando `estoqueMinimo` é `null` | — | 200 | `data.docs[].saldo.estoqueBaixo` = false |
+| INS-GET-10 | saldo da listagem usa a última movimentação como marco | regime 2/dia de 01/01 a 11/01; entrada 100 em 01/12; perda 10 em 05/01 | 200 | `saldoReal` 90; `consumoProjetado` 12 (6 dias), igual ao detalhe |
 | INS-GET-10 | sem query | — | 200 | `page` = 1, `limit` = 10 (default) |
 | INS-GET-11 | `limit` > 100 | — | 400 | validationError (Zod `max(100)`) |
 | INS-GET-12 | campo extra na query (`.strict()`) | — | 400 | validationError |
@@ -76,6 +77,7 @@ Arquivo: `test/endpoints/insumos/get-insumos-id.test.js`
 | INS-GET-ID-02 | saldo esgotado (`saldoProjetado <= 0`) | ledger baixo, regime consumindo | 200 | `data.saldo.esgotado` = true; `data.saldo.previsaoTermino` = null |
 | INS-GET-ID-03 | insumo sem regimes de consumo | — | 200 | `data.saldo.saldoProjetado` = `saldoReal`; `consumoDiaTotal` = 0; `diasRestantes` = null |
 | INS-GET-ID-04 | regime de consumo encerrado (`ativo:false`, `dataFim` passado) ainda soma no `consumoProjetado`, mas não no `consumoDiaTotal` | regime encerrado + regime aberto no mesmo insumo | 200 | `consumoProjetado` reflete os dias do regime encerrado; `consumoDiaTotal` conta só o regime aberto |
+| INS-GET-ID-04b | projeção conta a partir da última movimentação, não de uma contagem | regime 2/dia de 01/01 a 11/01; entrada 100 em 01/12; perda 10 em 05/01 | 200 | `saldoReal` 90; `consumoProjetado` 12; `saldoProjetado` 78 |
 | INS-GET-ID-05 | `id` não é UUID | — | 400 | validationError |
 | INS-GET-ID-06 | sem token | — | 401 | `tipo` = unauthorized |
 | INS-GET-ID-07 | `id` inexistente | UUID válido, sem registro | 404 | mensagem "Recurso não encontrado em Insumo." |

@@ -456,9 +456,9 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 
 **Modelo:**
 - **Insumo** pertence à **propriedade**, com `destino` (`Pasto` / `Rebanho` / `Ambos`). Estoque único por insumo.
-- **Estoque por ledger:** não há coluna de saldo. O saldo é a soma das `movimentacoesInsumo` — evento imutável. `saldoReal = Σ(Entrada) − Σ(Saida) + Σ(Ajuste com sinal)`.
-- **Saldo real vs. projetado:** a leitura de um insumo devolve o pacote `saldo` calculado na hora: `saldoReal` (soma do ledger), `consumoProjetado` (consumo dos regimes ainda não lançado, contado desde a última contagem física de origem `AjusteContagem` ou desde o início de cada regime), `saldoProjetado` (`saldoReal − consumoProjetado`), `consumoDiaTotal` (soma de `quantidadeDia` dos regimes vigentes), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`).
-- **Custo da leitura:** `GET /insumos/:id` traz o ledger inteiro do insumo e calcula o `saldo` a partir das linhas. `GET /insumos` (listagem) **não** traz o ledger: agrega no banco (soma por tipo + data da última contagem, via `groupBy`) e projeta em cima disso — o pacote `saldo` é idêntico.
+- **Estoque por ledger:** não há coluna de saldo. O saldo é a soma das `movimentacoesInsumo` — evento imutável. `saldoReal = Σ(Entrada) − Σ(Saida)`. Não há ajuste nem contagem (issue #67).
+- **Saldo real vs. projetado:** a leitura de um insumo devolve o pacote `saldo` calculado na hora: `saldoReal` (soma do ledger), `consumoProjetado` (consumo dos regimes ainda não lançado, contado desde a última movimentação do insumo, de qualquer tipo, ou desde o início de cada regime), `saldoProjetado` (`saldoReal − consumoProjetado`), `consumoDiaTotal` (soma de `quantidadeDia` dos regimes vigentes), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`).
+- **Custo da leitura:** `GET /insumos/:id` traz o ledger inteiro do insumo e calcula o `saldo` a partir das linhas. `GET /insumos` (listagem) **não** traz o ledger: agrega no banco (soma por tipo + data da última movimentação, via `groupBy`) e projeta em cima disso — o pacote `saldo` é idêntico.
 - **Regime de consumo:** consumo diário recorrente de um insumo por um rebanho. **Nunca escreve no ledger** — só alimenta a projeção. Criar um regime para um par (rebanho, insumo) que já tem regime em aberto **encerra o anterior** (`dataFim` = `dataInicio` do novo, `ativo: false`) na mesma transação. Um regime em aberto por par.
 - **Itens de insumo nos manejos:** o `POST` de `/pastagens/manejos` e `/rebanhos/manejos` aceita `itens: [{ id?, insumoId, quantidade, observacoes? }]`. Cada item vira uma movimentação de `Saida` (origem `ManejoPasto` / `ManejoRebanho`) criada na mesma transação do manejo. O `id` do item é opcional: quando presente, é o UUID que o app gerou localmente e vira o `id` da movimentação criada — assim o pull seguinte reconhece a linha em vez de duplicá-la (offline-first). **Saldo insuficiente avisa, não bloqueia** — o saldo pode ficar negativo; a resposta de criação traz `itens` e, quando aplicável, `avisos`.
 - **Exclusão do manejo estorna os itens:** ao excluir um manejo de pasto ou de rebanho (`DELETE`), as movimentações de insumo vinculadas a ele são desativadas (`ativo: false`) na mesma transação — deixam de debitar o saldo, acompanhando o manejo que some das leituras.
@@ -469,8 +469,8 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Enums (aplicação):**
 - `destino`: `Pasto` · `Rebanho` · `Ambos`
 - `unidadeMedida`: `kg` · `g` · `L` · `mL` · `dose` · `saco` · `unidade`
-- movimentação `tipo`: `Entrada` · `Saida` · `Ajuste`
-- movimentação `origem`: `Compra` · `CadastroInicial` · `ManejoRebanho` · `ManejoPasto` · `ConsumoRebanho` · `AjusteContagem` · `Perda` — o `POST /insumos/movimentacoes` avulso **recusa** `ManejoRebanho` e `ManejoPasto` (essas origens só nascem pelo fluxo de manejo).
+- movimentação `tipo`: `Entrada` · `Saida`
+- movimentação `origem` (motivo) — Entrada: `Compra` · `CadastroInicial` · `Devolucao` · `Outro`; Saída: `ManejoRebanho` · `ManejoPasto` · `ConsumoRebanho` · `Perda` · `Outro` — o `POST /insumos/movimentacoes` avulso **recusa** `ManejoRebanho` e `ManejoPasto` (essas origens só nascem pelo fluxo de manejo). As contagens antigas (`Ajuste`/`AjusteContagem`) foram convertidas pela migration `estoque_sem_contagem` em entrada ou saída `Outro`, pelo sinal, com a observação "Ajuste de contagem (convertido)"; ajuste zerado ficou inativo.
 
 ### 13.1 POST /insumos
 **Caso de Uso:** Cadastrar um insumo da propriedade.
@@ -504,14 +504,17 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 - **Soft-delete (`ativo: false`):** a linha permanece no banco para a leitura por diferença reportar a exclusão. O ledger de movimentações não é afetado.
 
 ### 13.6 POST /insumos/movimentacoes
-**Caso de Uso:** Lançar entrada (compra, cadastro inicial), saída (consumo, perda) ou ajuste (contagem física) de estoque.
+**Caso de Uso:** Lançar entrada (compra, cadastro inicial, devolução) ou saída (consumo, perda) de estoque, sempre com motivo.
 **Regras de Negócio:**
 - **Campos obrigatórios:** `insumoId`, `tipo`, `quantidade`, `data`, `origem`. **Opcionais:** `rebanhoId`, `pastoId`, `observacoes` (máx 500), `id`.
 - O insumo deve pertencer ao usuário logado.
-- `origem` **restrita** a: `Compra`, `CadastroInicial`, `ConsumoRebanho`, `AjusteContagem`, `Perda`. `ManejoRebanho` e `ManejoPasto` **não são aceitas** aqui.
-- `quantidade` > 0 para `Entrada`/`Saida`; em `Ajuste` aceita valor negativo (contagem para baixo); nunca zero.
+- `tipo`: `Entrada` ou `Saida` — não existe mais contagem/ajuste (issue #67).
+- **Motivo por tipo** (`origem`): Entrada: `Compra`, `CadastroInicial`, `Devolucao`, `Outro`. Saída: `ConsumoRebanho`, `Perda`, `Outro`. Motivo de outro tipo → 400. `ManejoRebanho` e `ManejoPasto` **não são aceitos** aqui.
+- `observacoes` **obrigatória** quando o motivo é `Outro`.
+- `quantidade` > 0.
 - `data` não pode ser no futuro.
-- Uma movimentação de origem `AjusteContagem` funciona como **marco de reconciliação**: a projeção de consumo dos regimes zera a partir dessa data.
+- **Compatibilidade com app antigo:** `tipo: Ajuste` ainda é aceito (REST e `/sync`) e **convertido** antes de gravar — positivo vira `Entrada`/`Outro`, negativo vira `Saida`/`Outro` com a quantidade em módulo, e a observação recebe "Ajuste de contagem (convertido)". Ajuste zerado → 400 ("Ajuste sem quantidade não altera o estoque."). Sem isso, uma contagem parada na fila offline seria recusada para sempre.
+- A projeção de consumo dos regimes conta a partir da **última movimentação** do insumo, de qualquer tipo (antes era a última contagem).
 - Recurso **imutável**: não há PATCH.
 
 ### 13.7 GET /insumos/movimentacoes
