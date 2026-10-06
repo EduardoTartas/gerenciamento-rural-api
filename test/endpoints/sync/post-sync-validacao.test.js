@@ -175,15 +175,15 @@ describe('POST /v1/sync — validação por entidade (schema do REST reaproveita
         expect(res.erro.mensagem).toBe('Combinação não suportada: historico_movimentacoes com ação UPDATE.');
     });
 
-    it('SYNC-POST-37 movimentacoes_insumo:UPDATE não é suportado', async () => {
+    it('SYNC-POST-37 saidas_rebanho:UPDATE não é suportado', async () => {
         const m = {
-            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: randomUUID(),
+            id: randomUUID(), entidade: 'saidas_rebanho', acao: 'UPDATE', entidadeId: randomUUID(),
             dados: {},
         };
         const r = await sync(a, [m]);
         const res = r.body.data.resultados[0];
         expect(res.situacao).toBe('recusado');
         expect(res.erro.tipo).toBe('validationError');
-        expect(res.erro.mensagem).toBe('Combinação não suportada: movimentacoes_insumo com ação UPDATE.');
+        expect(res.erro.mensagem).toBe('Combinação não suportada: saidas_rebanho com ação UPDATE.');
     });
 });

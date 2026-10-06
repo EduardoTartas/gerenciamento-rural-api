@@ -80,6 +80,9 @@ export const DESPACHO = {
 
     'movimentacoes_insumo:CREATE': ({ entidadeId, dados, req, tx }) =>
         movimentacaoInsumo.create({ ...dados, id: entidadeId }, req, tx),
+    'movimentacoes_insumo:UPDATE': ({ entidadeId, dados, req, tx }) =>
+        movimentacaoInsumo.update(entidadeId, dados, req, tx),
+    // Sempre recusa com `conflict` (issue #68): só aparelho antigo envia.
     'movimentacoes_insumo:DELETE': ({ entidadeId, req, tx }) =>
         movimentacaoInsumo.remove(entidadeId, req, tx),
 
