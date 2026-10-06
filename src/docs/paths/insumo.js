@@ -216,11 +216,12 @@ const insumoRoutes = {
                 - \`tipo\`: Entrada ou Saida. Não existe mais contagem/ajuste (issue #67).
                 - Motivo (\`origem\`) por tipo — Entrada: Compra, CadastroInicial, Devolucao, Outro; Saída: ConsumoRebanho, Perda, Outro. Motivo de outro tipo → 400. **ManejoRebanho** e **ManejoPasto** não são aceitos aqui — só nascem pelo fluxo de manejo.
                 - \`observacoes\` obrigatória quando o motivo é \`Outro\`.
+                - \`valorTotal\` (opcional, > 0): quanto foi pago pela entrada inteira, em R$ (issue #70). Só em Entrada (inclusive CadastroInicial); em Saida → 400.
                 - \`quantidade\` > 0.
                 - \`data\` não pode ser no futuro.
                 - **Compatibilidade:** \`tipo: Ajuste\` (app antigo com contagem na fila) é convertido, não recusado: positivo → Entrada, negativo → Saida com a quantidade em módulo, ambos com origem \`AjusteContagem\` e a observação original. Ajuste zerado → 400. Lançamento novo com \`origem: AjusteContagem\` (sem \`tipo: Ajuste\`) → 400.
                 - A projeção de consumo dos regimes conta a partir do último consumo lançado (saída \`ConsumoRebanho\`) ou contagem antiga (\`AjusteContagem\`). Compra, perda, devolução, "Outro" e manejo não mexem nesse marco.
-                - Recurso **imutável**: não há PATCH; a exclusão é soft-delete.
+                - Corrige-se pelo PATCH (issue #68); depois de sincronizado não se desfaz (DELETE → 409).
                 - Aceita \`id\` (UUID) opcional gerado pelo cliente offline.
 
             + Resultado Esperado:
@@ -259,7 +260,7 @@ const insumoRoutes = {
             tags: ["Insumos"],
             summary: "Edita uma movimentação de insumo",
             description: `
-            + Corrige \`quantidade\`, \`data\`, \`origem\` (motivo) e \`observacoes\`. Pelo menos um campo.
+            + Corrige \`quantidade\`, \`data\`, \`origem\` (motivo), \`observacoes\` e \`valorTotal\` (valor pago, #70; \`null\` limpa; só em entrada — saída → 400). Pelo menos um campo.
             + \`insumoId\` e \`tipo\` não mudam: trocar o insumo ou inverter entrada/saída é outro lançamento (400 pelo \`.strict()\`).
             + O motivo resultante tem que caber no \`tipo\` gravado, e "Outro" exige observação — mesma regra do POST.
             + Movimentação gerada por manejo (\`ManejoRebanho\`/\`ManejoPasto\`) → 400 "Lançamento gerado por manejo: edite pelo manejo."

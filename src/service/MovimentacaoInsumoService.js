@@ -1,6 +1,6 @@
 // src/service/MovimentacaoInsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
-import { problemasDoMotivo } from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
+import { problemasDoMotivo, problemasDoValor } from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
 import {
     movimentacaoInsumoRepository,
     insumoRepository,
@@ -110,7 +110,7 @@ class MovimentacaoInsumoService {
 
     /**
      * Corrige um lançamento já sincronizado (issue #68). Só quantidade, data,
-     * motivo e observações — `insumoId` e `tipo` o schema já recusou. A regra
+     * motivo, observações e valor pago (#70) — `insumoId` e `tipo` o schema já recusou. A regra
      * do motivo é conferida aqui, com o `tipo` gravado e o resultado do merge:
      * trocar só a observação de um "Outro" para vazio também é recusado.
      */
@@ -134,7 +134,11 @@ class MovimentacaoInsumoService {
             origem: parsedData.origem ?? atual.origem,
             observacoes: 'observacoes' in parsedData ? parsedData.observacoes : atual.observacoes,
         };
-        const [problema] = problemasDoMotivo(resultado);
+        const [problema] = [
+            ...problemasDoMotivo(resultado),
+            // Valor pago só em entrada (issue #70): confere contra o `tipo` gravado.
+            ...problemasDoValor({ tipo: atual.tipo, valorTotal: parsedData.valorTotal }),
+        ];
         if (problema) this.edicaoRecusada(problema.path[0], problema.message);
 
         return this.repository.update(id, parsedData, tx);

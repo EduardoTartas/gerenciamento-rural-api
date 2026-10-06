@@ -14,6 +14,7 @@ const MOV_SELECT = {
     manejoPastoId: true,
     rebanhoId: true,
     pastoId: true,
+    valorTotal: true,
     observacoes: true,
     ativo: true,
     createdAt: true,

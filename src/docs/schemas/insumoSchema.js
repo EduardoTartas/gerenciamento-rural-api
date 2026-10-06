@@ -99,7 +99,7 @@ const insumoSchemas = {
 
     MovimentacaoInsumo: {
         type: "object",
-        description: "Evento do ledger de estoque. Imutável — não há atualização.",
+        description: "Evento do ledger de estoque. Corrige-se pelo PATCH (issue #68); não se exclui depois de sincronizado.",
         properties: {
             id: { type: "string", format: "uuid", example: "e5f6a7b8-c9d0-1234-ef56-345678901234" },
             insumoId: { type: "string", format: "uuid", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
@@ -111,6 +111,7 @@ const insumoSchemas = {
             manejoPastoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Preenchido quando a movimentação foi gerada por um item de manejo de pasto." },
             rebanhoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Rebanho que consumiu o insumo, quando aplicável." },
             pastoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Pasto que consumiu o insumo, quando aplicável." },
+            valorTotal: { type: "string", nullable: true, example: "1250.5", description: "Quanto foi pago pela entrada inteira, em R$ (Decimal como texto). Só em `Entrada`; nulo quando não informado." },
             observacoes: { type: "string", nullable: true, maxLength: 500, example: "Nota fiscal 12345" },
             ativo: { type: "boolean", example: true, description: "`false` quando a movimentação foi excluída (soft-delete)." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-10T09:00:00.000Z" },
@@ -138,6 +139,7 @@ const insumoSchemas = {
             rebanhoId: { type: "string", format: "uuid", nullable: true, description: "Rebanho que consumiu o insumo (opcional).", example: null },
             pastoId: { type: "string", format: "uuid", nullable: true, description: "Pasto que consumiu o insumo (opcional).", example: null },
             observacoes: { type: "string", nullable: true, maxLength: 500, description: "Obrigatória quando `origem` = `Outro`.", example: "Nota fiscal 12345" },
+            valorTotal: { type: "number", minimum: 0, exclusiveMinimum: true, nullable: true, description: "Opcional: quanto foi pago pela entrada inteira, em R$ (issue #70). Só em `Entrada` (inclusive `CadastroInicial`); em `Saida` → 400.", example: 1250.5 },
         },
         required: ["insumoId", "tipo", "quantidade", "data", "origem"],
         description: "Esquema para criação de movimentação avulsa. Tipos: Entrada, Saida. Motivos por tipo — Entrada: Compra, CadastroInicial, Devolucao, Outro; Saída: ConsumoRebanho, Perda, Outro.",
@@ -148,6 +150,7 @@ const insumoSchemas = {
             data: "2026-08-10T00:00:00.000Z",
             origem: "Compra",
             observacoes: "Nota fiscal 12345",
+            valorTotal: 1250.5,
         },
     },
 
@@ -158,6 +161,7 @@ const insumoSchemas = {
             data: { type: "string", format: "date-time", description: "Data do evento. Não pode ser no futuro.", example: "2026-08-09T00:00:00.000Z" },
             origem: { type: "string", enum: origensMovimentacaoAvulsa, description: "Novo motivo. Tem que caber no `tipo` gravado — Entrada: `Compra`, `CadastroInicial`, `Devolucao`, `Outro`; Saída: `ConsumoRebanho`, `Perda`, `Outro`.", example: "Compra" },
             observacoes: { type: "string", nullable: true, maxLength: 500, description: "Obrigatória quando o motivo resultante for `Outro`.", example: "Nota fiscal 12346" },
+            valorTotal: { type: "number", minimum: 0, exclusiveMinimum: true, nullable: true, description: "Valor pago pela entrada, em R$. `null` limpa. Só em lançamento de `Entrada`; em saída → 400.", example: 980 },
         },
         description: "Edição parcial de uma movimentação. Pelo menos um campo. `insumoId`, `tipo` e qualquer outro campo são recusados (`.strict()`).",
         example: { quantidade: 80, observacoes: "Nota fiscal 12346" },
