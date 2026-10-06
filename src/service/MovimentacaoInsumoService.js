@@ -1,5 +1,6 @@
 // src/service/MovimentacaoInsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
+import { problemasDoMotivo } from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
 import {
     movimentacaoInsumoRepository,
     insumoRepository,
@@ -107,23 +108,83 @@ class MovimentacaoInsumoService {
         return registro;
     }
 
-    async remove(id, req, tx) {
+    /**
+     * Corrige um lançamento já sincronizado (issue #68). Só quantidade, data,
+     * motivo e observações — `insumoId` e `tipo` o schema já recusou. A regra
+     * do motivo é conferida aqui, com o `tipo` gravado e o resultado do merge:
+     * trocar só a observação de um "Outro" para vazio também é recusado.
+     */
+    async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
-        await this.ensureExists(id, usuarioId);
-        return this.repository.remove(id, tx);
+        const atual = await this.ensureExists(id, usuarioId);
+        if (!atual.ativo) this.naoEncontrada();
+
+        if (atual.manejoRebanhoId || atual.manejoPastoId
+            || atual.origem === 'ManejoRebanho' || atual.origem === 'ManejoPasto') {
+            this.edicaoRecusada('origem', 'Lançamento gerado por manejo: edite pelo manejo.');
+        }
+        // Contagem antiga convertida (#67) é marco da projeção de consumo e
+        // não tem motivo de entrada/saída: fica só leitura.
+        if (atual.origem === 'AjusteContagem') {
+            this.edicaoRecusada('origem', 'Contagem antiga não pode ser editada.');
+        }
+
+        const resultado = {
+            tipo: atual.tipo,
+            origem: parsedData.origem ?? atual.origem,
+            observacoes: 'observacoes' in parsedData ? parsedData.observacoes : atual.observacoes,
+        };
+        const [problema] = problemasDoMotivo(resultado);
+        if (problema) this.edicaoRecusada(problema.path[0], problema.message);
+
+        return this.repository.update(id, parsedData, tx);
+    }
+
+    /**
+     * Desfazer só existe enquanto o lançamento está na fila do aparelho —
+     * pendente, ele nunca chegou aqui (issue #68). O que chega é lançamento
+     * sincronizado: 409, e a correção é pela edição. A rota e a entrada do
+     * `/sync` continuam para que um aparelho antigo com `DELETE` na fila
+     * receba a recusa (`conflict`, não recuperável) em vez de travar a fila.
+     * A exclusão em cascata de manejo usa `desativarPorManejo`, não isto.
+     */
+    async remove(id, req) {
+        const usuarioId = req.user.id;
+        const atual = await this.ensureExists(id, usuarioId);
+        if (!atual.ativo) this.naoEncontrada();
+        const mensagem = 'Lançamento sincronizado não pode ser desfeito; edite para corrigir.';
+        throw new CustomError({
+            statusCode: HttpStatusCodes.CONFLICT.code,
+            errorType: 'conflict',
+            field: 'id',
+            details: [{ path: 'id', message: mensagem }],
+            customMessage: mensagem,
+        });
+    }
+
+    edicaoRecusada(campo, mensagem) {
+        throw new CustomError({
+            statusCode: HttpStatusCodes.BAD_REQUEST.code,
+            errorType: 'validationError',
+            field: campo,
+            details: [{ path: campo, message: mensagem }],
+            customMessage: mensagem,
+        });
+    }
+
+    naoEncontrada() {
+        throw new CustomError({
+            statusCode: HttpStatusCodes.NOT_FOUND.code,
+            errorType: 'resourceNotFound',
+            field: 'Movimentação de Insumo',
+            details: [],
+            customMessage: messages.error.resourceNotFound('Movimentação de Insumo'),
+        });
     }
 
     async ensureExists(id, usuarioId) {
         const mov = await this.repository.findById(id, usuarioId);
-        if (!mov) {
-            throw new CustomError({
-                statusCode: HttpStatusCodes.NOT_FOUND.code,
-                errorType: 'resourceNotFound',
-                field: 'Movimentação de Insumo',
-                details: [],
-                customMessage: messages.error.resourceNotFound('Movimentação de Insumo'),
-            });
-        }
+        if (!mov) this.naoEncontrada();
         return mov;
     }
 

@@ -63,8 +63,8 @@ class MovimentacaoInsumoRepository {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.create({ data, select: MOV_SELECT });
     }
 
-    async remove(id, tx) {
-        return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data: { ativo: false } });
+    async update(id, data, tx) {
+        return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data, select: MOV_SELECT });
     }
 
     /**

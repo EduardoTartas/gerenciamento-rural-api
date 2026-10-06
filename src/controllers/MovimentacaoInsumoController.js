@@ -1,6 +1,9 @@
 // src/controllers/MovimentacaoInsumoController.js
 import MovimentacaoInsumoService from '../service/MovimentacaoInsumoService.js';
-import { MovimentacaoInsumoCreateSchema } from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
+import {
+    MovimentacaoInsumoCreateSchema,
+    MovimentacaoInsumoUpdateSchema,
+} from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
 import {
     MovimentacaoInsumoQuerySchema,
     MovimentacaoInsumoIdSchema,
@@ -47,6 +50,15 @@ class MovimentacaoInsumoController {
         return CommonResponse.created(res, data, 'Movimentação registrada com sucesso.');
     }
 
+    async update(req, res) {
+        const { id } = req.params;
+        MovimentacaoInsumoIdSchema.parse(id);
+        const parsedData = MovimentacaoInsumoUpdateSchema.parse(req.body ?? {});
+        const data = await this.service.update(id, parsedData, req);
+        return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Movimentação atualizada com sucesso.');
+    }
+
+    // Sempre 409 desde a issue #68 (ver `MovimentacaoInsumoService.remove`).
     async remove(req, res) {
         const { id } = req.params;
         MovimentacaoInsumoIdSchema.parse(id);
