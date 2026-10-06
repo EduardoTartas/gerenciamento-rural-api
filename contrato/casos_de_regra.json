@@ -222,13 +222,13 @@
       "esperado": "aceita"
     },
     {
-      "descricao": "perda não é motivo de entrada",
+      "descricao": "entrada com motivo de saída (perda)",
       "existentes": [],
       "entrada": { "tipo": "Entrada", "origem": "Perda", "observacoes": null },
       "esperado": "recusa"
     },
     {
-      "descricao": "compra não é motivo de saída",
+      "descricao": "saída com motivo de entrada (compra)",
       "existentes": [],
       "entrada": { "tipo": "Saida", "origem": "Compra", "observacoes": null },
       "esperado": "recusa"
@@ -246,19 +246,19 @@
       "esperado": "aceita"
     },
     {
-      "descricao": "outro sem observação",
+      "descricao": "saída por outro motivo sem observação",
       "existentes": [],
       "entrada": { "tipo": "Saida", "origem": "Outro", "observacoes": null },
       "esperado": "recusa"
     },
     {
-      "descricao": "outro com observação",
+      "descricao": "saída por outro motivo com observação",
       "existentes": [],
-      "entrada": { "tipo": "Saida", "origem": "Outro", "observacoes": "Molhou na chuva" },
+      "entrada": { "tipo": "Saida", "origem": "Outro", "observacoes": "Saco rasgado no transporte" },
       "esperado": "aceita"
     },
     {
-      "descricao": "contagem não é mais lançamento",
+      "descricao": "ajuste de contagem não existe mais",
       "existentes": [],
       "entrada": { "tipo": "Ajuste", "origem": "AjusteContagem", "observacoes": null },
       "esperado": "recusa"
