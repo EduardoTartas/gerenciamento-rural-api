@@ -98,7 +98,7 @@ Arquivo: `test/endpoints/sync/post-sync-validacao.test.js`
 | SYNC-POST-34 | `DELETE` não exige `dados` e não passa por validação de schema | A; mutação `DELETE` de um pasto existente de A | 200 (`aceito`) | pasto marcado `ativo: false` no banco (soft-delete, igual ao REST) |
 | SYNC-POST-35 | combinação `entidade:acao` não suportada | A; mutação com `entidade: "coisas"`, `acao: "CREATE"` | 200 (`recusado`) | `erro.tipo: validationError`; mensagem "Combinação não suportada: coisas com ação CREATE." |
 | SYNC-POST-36 | `historico_movimentacoes:UPDATE` não é suportado (movimentação é evento imutável) | A; mutação `UPDATE` para `historico_movimentacoes` | 200 (`recusado`) | mesma recusa de combinação não suportada de SYNC-POST-35 |
-| SYNC-POST-37 | `movimentacoes_insumo:UPDATE` não é suportado | A; mutação `UPDATE` para `movimentacoes_insumo` | 200 (`recusado`) | mesma recusa de combinação não suportada |
+| SYNC-POST-37 | `saidas_rebanho:UPDATE` não é suportado | A; mutação `UPDATE` para `saidas_rebanho` | 200 (`recusado`) | mesma recusa de combinação não suportada |
 
 ### Despacho por entidade/ação — matriz de suporte
 
@@ -136,7 +136,12 @@ Arquivo: `test/endpoints/sync/post-sync-despacho.test.js`
 | SYNC-POST-82 | `movimentacoes_insumo:CREATE` com `Ajuste` legado | quantidade −4, origem `AjusteContagem` | 200 (`aceito`) | gravado como `Saida`/`AjusteContagem`, quantidade 4, observação original (nula) |
 | SYNC-POST-83 | `movimentacoes_insumo:CREATE` com `Ajuste` zerado | — | 200 (`recusado`) | `recuperavel: false`; "Ajuste sem quantidade não altera o estoque." |
 | SYNC-POST-84 | `movimentacoes_insumo:CREATE` com motivo de outro tipo | Entrada/Perda | 200 (`recusado`) | `erro.campo: origem` |
-| SYNC-POST-59 | `movimentacoes_insumo:DELETE` | A; movimentação de insumo existente | 200 (`aceito`) | removida/soft-delete conforme regra do domínio (ver `insumos-movimentacoes.md`) |
+| SYNC-POST-59 | `movimentacoes_insumo:DELETE` (app antigo) | A; movimentação de insumo existente | 200 (`recusado`) | `erro.tipo: conflict`, `recuperavel: false`, "Lançamento sincronizado não pode ser desfeito; edite para corrigir."; `ativo` segue true |
+| SYNC-POST-85 | `movimentacoes_insumo:UPDATE` | `Saida`/`Perda` 10 | 200 (`aceito`) | quantidade, data e motivo corrigidos; `tipo` intacto |
+| SYNC-POST-89 | `movimentacoes_insumo:UPDATE` com `observacoes: null` | `Compra` com observação; `Outro` com observação | 200 | `Compra`: `aceito`, observação limpa; `Outro`: `recusado`, `campo: observacoes` |
+| SYNC-POST-86 | `movimentacoes_insumo:UPDATE` reenviado | mutação já aceita, valor alterado depois | 200 | resultado arquivado; não reaplica |
+| SYNC-POST-87 | `movimentacoes_insumo:UPDATE` com `tipo` | — | 200 (`recusado`) | `validationError`, `campo: tipo` |
+| SYNC-POST-88 | `movimentacoes_insumo:UPDATE` de lançamento do manejo | `Saida`/`ManejoPasto` | 200 (`recusado`) | `recuperavel: false`; "Lançamento gerado por manejo: edite pelo manejo." |
 | SYNC-POST-60 | `regimes_consumo_insumo:CREATE` | A; rebanho e insumo existentes | 200 (`aceito`) | regime no banco |
 | SYNC-POST-61 | `regimes_consumo_insumo:UPDATE` | A; regime existente | 200 (`aceito`) | campo atualizado |
 | SYNC-POST-62 | `regimes_consumo_insumo:DELETE` | A; regime existente | 200 (`aceito`) | removido conforme regra do domínio |

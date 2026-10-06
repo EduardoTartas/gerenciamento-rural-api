@@ -151,6 +151,18 @@ const insumoSchemas = {
         },
     },
 
+    MovimentacaoInsumoUpdate: {
+        type: "object",
+        properties: {
+            quantidade: { type: "number", description: "Deve ser > 0.", example: 80 },
+            data: { type: "string", format: "date-time", description: "Data do evento. Não pode ser no futuro.", example: "2026-08-09T00:00:00.000Z" },
+            origem: { type: "string", enum: origensMovimentacaoAvulsa, description: "Novo motivo. Tem que caber no `tipo` gravado — Entrada: `Compra`, `CadastroInicial`, `Devolucao`, `Outro`; Saída: `ConsumoRebanho`, `Perda`, `Outro`.", example: "Compra" },
+            observacoes: { type: "string", nullable: true, maxLength: 500, description: "Obrigatória quando o motivo resultante for `Outro`.", example: "Nota fiscal 12346" },
+        },
+        description: "Edição parcial de uma movimentação. Pelo menos um campo. `insumoId`, `tipo` e qualquer outro campo são recusados (`.strict()`).",
+        example: { quantidade: 80, observacoes: "Nota fiscal 12346" },
+    },
+
     RegimeConsumoInsumo: {
         type: "object",
         description: "Consumo diário recorrente de um insumo por um rebanho. Nunca escreve no ledger; alimenta apenas a projeção de saldo.",

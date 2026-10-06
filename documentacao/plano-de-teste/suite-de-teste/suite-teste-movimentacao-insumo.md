@@ -100,11 +100,31 @@ Arquivo: `test/endpoints/insumos-movimentacoes/delete-insumos-movimentacoes-id.t
 
 | ID | Cenário | Pré-condição | Status | Verifica |
 | :--- | :--- | :--- | :--- | :--- |
-| MINS-DELETE-ID-01 | estorna (soft-delete) | movimentação `Entrada` ativa de A | 200 | mensagem "Movimentação excluída com sucesso."; banco: `ativo=false`; `GET /insumos/:id` do mesmo insumo não conta mais essa linha no `saldoReal` |
+| MINS-DELETE-ID-01 | lançamento sincronizado não se desfaz (issue #68) | movimentação `Entrada` ativa de A | 409 | `tipo` = conflict; mensagem "Lançamento sincronizado não pode ser desfeito; edite para corrigir."; banco: `ativo` segue true |
 | MINS-DELETE-ID-02 | `id` não é UUID | — | 400 | validationError |
 | MINS-DELETE-ID-03 | sem token | — | 401 | `tipo` = unauthorized |
 | MINS-DELETE-ID-04 | `id` inexistente | — | 404 | mensagem "Recurso não encontrado em Movimentação de Insumo." |
 | MINS-DELETE-ID-05 | multi-tenancy: B exclui `id` de movimentação de A | — | 404 | mesma mensagem de MINS-DELETE-ID-04 |
+
+## PATCH /insumos/movimentacoes/:id
+
+Edição de lançamento (issue #68). Arquivo: `patch-insumos-movimentacoes-id.test.js`.
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| MINS-PATCH-ID-01 | edita quantidade, data, motivo e observação | `Entrada`/`Compra` 100 de A | 200 | mensagem "Movimentação atualizada com sucesso."; campos refletidos; `tipo` e `insumoId` intactos; `saldoReal` do insumo recalculado |
+| MINS-PATCH-ID-02 | avança `updatedAt` | — | 200 | `updatedAt` posterior ao anterior |
+| MINS-PATCH-ID-03 | campo fora do schema (`tipo`, `insumoId`) | — | 400 | validationError; nada gravado |
+| MINS-PATCH-ID-04 | corpo vazio | — | 400 | validationError |
+| MINS-PATCH-ID-05 | motivo de outro tipo | `Entrada` → `origem: Perda` | 400 | path `origem`; "Motivo inválido para entrada…" |
+| MINS-PATCH-ID-06 | "Outro" sem observação | `origem: Outro` sem observação; ou apagar a observação de um "Outro" | 400 | path `observacoes` |
+| MINS-PATCH-ID-07 | `quantidade` ≤ 0 ou `data` no futuro | — | 400 | validationError |
+| MINS-PATCH-ID-08 | gerada por manejo | `Saida`/`ManejoRebanho` | 400 | "Lançamento gerado por manejo: edite pelo manejo." |
+| MINS-PATCH-ID-09 | contagem antiga | `Entrada`/`AjusteContagem` | 400 | "Contagem antiga não pode ser editada." |
+| MINS-PATCH-ID-10 | multi-tenancy: B edita movimentação de A | — | 404 | "Recurso não encontrado em Movimentação de Insumo."; nada gravado |
+| MINS-PATCH-ID-11 | movimentação inativa | `ativo=false` | 404 | mesma mensagem |
+| MINS-PATCH-ID-12 | sem token | — | 401 | `tipo` = unauthorized |
+| MINS-PATCH-ID-13 | `observacoes: null` limpa a observação | `Compra` com observação | 200 / 400 | gravada como `null`; com `origem: Outro` no mesmo envio → 400, path `observacoes` |
 
 ## Divergências
 

@@ -515,7 +515,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 - `data` não pode ser no futuro.
 - **Compatibilidade com app antigo:** `tipo: Ajuste` ainda é aceito (REST e `/sync`) e **convertido** antes de gravar — positivo vira `Entrada`, negativo vira `Saida` com a quantidade em módulo, ambos com origem `AjusteContagem` e a observação original (é uma contagem de verdade e vale como marco). Ajuste zerado → 400 ("Ajuste sem quantidade não altera o estoque."). Sem isso, uma contagem parada na fila offline seria recusada para sempre. Lançamento **novo** com `origem: AjusteContagem` (sem `tipo: Ajuste`) é recusado.
 - **Marco da projeção:** os regimes são projetados a partir do último consumo lançado (saída `ConsumoRebanho` — encerra a estimativa até ali) ou da última contagem antiga (`AjusteContagem` — era conferência física). Compra, perda, devolução, "Outro" e manejo **não** mexem no marco: uma compra não diz quanto o rebanho já comeu.
-- Recurso **imutável**: não há PATCH.
+- Corrigir um lançamento é pelo `PATCH` (13.9.1); o `DELETE` não desfaz mais.
 
 ### 13.7 GET /insumos/movimentacoes
 **Caso de Uso:** Consultar o extrato (ledger) de um insumo, ou sincronizar por diferença todas as movimentações da propriedade.
@@ -530,9 +530,21 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Caso de Uso:** Detalhar uma movimentação de estoque.
 
 ### 13.9 DELETE /insumos/movimentacoes/:id
-**Caso de Uso:** Estornar uma movimentação lançada por engano.
+**Caso de Uso:** Nenhum desde a issue #68 — a rota só recusa.
 **Regras de Negócio:**
-- **Soft-delete (`ativo: false`):** a movimentação deixa de contar no saldo, mas a linha permanece no banco para a leitura por diferença.
+- **Sempre 409** (`conflict`, "Lançamento sincronizado não pode ser desfeito; edite para corrigir."), sem alterar nada. Desfazer só existe no app, enquanto o lançamento está pendente na fila — e pendente nunca chegou ao servidor. O que chega aqui está sincronizado: corrige-se com o `PATCH` (13.9.1).
+- A rota (e `movimentacoes_insumo:DELETE` no `/sync`) continua existindo para que um aparelho antigo com desfazer na fila receba uma recusa **não recuperável** e descarte a mutação, em vez de travar a fila com "rota inexistente".
+- Inexistente ou de outro usuário segue 404. A exclusão de um manejo continua desativando as movimentações geradas por ele (cascata interna, não passa por aqui).
+
+### 13.9.1 PATCH /insumos/movimentacoes/:id
+**Caso de Uso:** Corrigir um lançamento de estoque já sincronizado (quantidade, data ou motivo errados).
+**Regras de Negócio:**
+- **Campos editáveis:** `quantidade`, `data`, `origem` (motivo), `observacoes`. Pelo menos um. `insumoId`, `tipo` ou qualquer outro campo → 400 (`.strict()`): trocar o insumo ou inverter entrada/saída é outro lançamento.
+- Mesmas validações do POST: `quantidade` > 0, `data` não futura, motivo do `tipo` **gravado** e "Outro" com observação — conferido no resultado do merge (apagar a observação de um "Outro" também é recusado). `observacoes: null` limpa o campo.
+- **Gerada por manejo** (`ManejoRebanho`/`ManejoPasto`) → 400 "Lançamento gerado por manejo: edite pelo manejo."
+- **Contagem antiga** (`AjusteContagem`) → 400 "Contagem antiga não pode ser editada." — é marco da projeção e não tem motivo de entrada/saída.
+- Inativa, inexistente ou de outro usuário → 404.
+- Avança `updatedAt`: a leitura por diferença leva a correção aos outros aparelhos. No `/sync`: `movimentacoes_insumo:UPDATE`, mesmo schema, idempotente pelo `id` da mutação.
 
 ### 13.10 POST /rebanhos/regimes-consumo
 **Caso de Uso:** Registrar que um rebanho consome uma quantidade fixa de um insumo por dia.
