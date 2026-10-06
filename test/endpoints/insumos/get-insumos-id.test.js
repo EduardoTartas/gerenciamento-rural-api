@@ -41,7 +41,10 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-02 saldo esgotado (saldoProjetado <= 0)', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 5 });
+        // Entrada antes do regime: o consumo desde janeiro é descontado inteiro.
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 5, data: new Date('2025-12-01T00:00:00Z'),
+        });
         const rebanho = await criarRebanhoDeA();
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, { quantidadeDia: 10, dataInicio: new Date('2026-01-01T00:00:00Z') });
 
@@ -64,7 +67,10 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-04 regime encerrado soma no consumoProjetado, mas não no consumoDiaTotal', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 500 });
+        // Entrada antes do regime: nenhum marco corta o regime encerrado.
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 500, data: new Date('2025-12-01T00:00:00Z'),
+        });
         const rebanho = await criarRebanhoDeA();
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
             quantidadeDia: 2, ativo: false,
@@ -84,6 +90,53 @@ describe('GET /v1/insumos/:id', () => {
         // o regime encerrado contribuiu com seus 10 dias * 2/dia = 20 para a projeção
         expect(r.body.data.saldo.consumoProjetado).toBeGreaterThanOrEqual(20);
         expect(r.body.data.saldo.consumoProjetado).toBeLessThan(26);
+    });
+
+    // Regime de 2/dia de 01/01 a 11/01 (10 dias = 20 se contado inteiro) e
+    // estoque inicial em dezembro. O que muda entre os três é o lançamento de
+    // 05/01: só consumo lançado e contagem antiga encerram a estimativa.
+    const prepararMarco = async (lancamento05) => {
+        const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
+        const rebanho = await criarRebanhoDeA();
+        await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 2, ativo: false,
+            dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
+        });
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Entrada', quantidade: 100, data: new Date('2025-12-01T00:00:00Z'),
+        });
+        await criarMovimentacaoInsumo(insumo.id, { ...lancamento05, data: new Date('2026-01-05T00:00:00Z') });
+        return insumo;
+    };
+
+    it('INS-GET-ID-04b compra depois do início do regime não reduz o consumo projetado', async () => {
+        const insumo = await prepararMarco({ tipo: 'Entrada', origem: 'Compra', quantidade: 50 });
+        const r = await get(a, insumo.id);
+        expect(r.body.data.saldo.saldoReal).toBe(150);
+        expect(r.body.data.saldo.consumoProjetado).toBe(20);
+    });
+
+    it('INS-GET-ID-04c saída ConsumoRebanho é marco: a estimativa recomeça dali', async () => {
+        const insumo = await prepararMarco({ tipo: 'Saida', origem: 'ConsumoRebanho', quantidade: 8 });
+        const r = await get(a, insumo.id);
+        expect(r.body.data.saldo.saldoReal).toBe(92);
+        // Só os 6 dias depois de 05/01.
+        expect(r.body.data.saldo.consumoProjetado).toBe(12);
+        expect(r.body.data.saldo.saldoProjetado).toBe(80);
+    });
+
+    it('INS-GET-ID-04d contagem antiga convertida (AjusteContagem) vale como marco', async () => {
+        const insumo = await prepararMarco({ tipo: 'Entrada', origem: 'AjusteContagem', quantidade: 5 });
+        const r = await get(a, insumo.id);
+        expect(r.body.data.saldo.saldoReal).toBe(105);
+        expect(r.body.data.saldo.consumoProjetado).toBe(12);
+    });
+
+    it('INS-GET-ID-04e perda não é marco', async () => {
+        const insumo = await prepararMarco({ tipo: 'Saida', origem: 'Perda', quantidade: 10 });
+        const r = await get(a, insumo.id);
+        expect(r.body.data.saldo.saldoReal).toBe(90);
+        expect(r.body.data.saldo.consumoProjetado).toBe(20);
     });
 
     it('INS-GET-ID-05 id não é UUID', async () => {

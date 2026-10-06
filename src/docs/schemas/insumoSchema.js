@@ -2,20 +2,22 @@
 
 const destinosInsumo = ["Pasto", "Rebanho", "Ambos"];
 const unidadesMedida = ["kg", "g", "L", "mL", "dose", "saco", "unidade"];
-const tiposMovimentacao = ["Entrada", "Saida", "Ajuste"];
-// Conjunto completo aceito pela coluna do ledger. O POST avulso de
-// /v1/insumos/movimentacoes só aceita as 5 origens que não vêm de manejo
-// (ManejoRebanho e ManejoPasto nascem apenas pelo fluxo de manejo).
-const origensMovimentacao = ["Compra", "CadastroInicial", "ManejoRebanho", "ManejoPasto", "ConsumoRebanho", "AjusteContagem", "Perda"];
-const origensMovimentacaoAvulsa = ["Compra", "CadastroInicial", "ConsumoRebanho", "AjusteContagem", "Perda"];
+// Sem `Ajuste` desde a issue #67: o estoque só muda por entrada ou saída.
+const tiposMovimentacao = ["Entrada", "Saida"];
+// Conjunto completo do ledger. O POST avulso de /v1/insumos/movimentacoes não
+// aceita ManejoRebanho/ManejoPasto (nascem apenas pelo fluxo de manejo), e
+// cada tipo só aceita os seus motivos (ver MovimentacaoInsumoCreate).
+// `AjusteContagem` é legado: contagem antiga convertida, só aparece na leitura.
+const origensMovimentacao = ["Compra", "CadastroInicial", "Devolucao", "ManejoRebanho", "ManejoPasto", "ConsumoRebanho", "Perda", "Outro", "AjusteContagem"];
+const origensMovimentacaoAvulsa = ["Compra", "CadastroInicial", "Devolucao", "ConsumoRebanho", "Perda", "Outro"];
 
 const insumoSchemas = {
     SaldoInsumo: {
         type: "object",
         description: "Pacote de saldo calculado na leitura do insumo a partir do ledger e dos regimes de consumo ativos. Nunca é materializado no banco.",
         properties: {
-            saldoReal: { type: "number", example: 120, description: "Soma do ledger: Σ(Entrada) − Σ(Saída) + Σ(Ajuste com sinal). Número de registro." },
-            consumoProjetado: { type: "number", example: 45, description: "Consumo dos regimes ainda não lançado no ledger, contado desde a última contagem física (movimentação de origem `AjusteContagem`) ou desde o início de cada regime, o que for mais recente." },
+            saldoReal: { type: "number", example: 120, description: "Soma do ledger: Σ(Entrada) − Σ(Saída). Número de registro." },
+            consumoProjetado: { type: "number", example: 45, description: "Consumo dos regimes ainda não lançado no ledger, contado desde o último consumo lançado (saída `ConsumoRebanho`) ou contagem antiga (`AjusteContagem`), ou desde o início de cada regime, o que for mais recente. Compra, perda, devolução, `Outro` e manejo não mexem no marco." },
             saldoProjetado: { type: "number", example: 75, description: "`saldoReal − consumoProjetado`. É o número que o app usa para alertar estoque baixo." },
             consumoDiaTotal: { type: "number", example: 5, description: "Soma de `quantidadeDia` dos regimes vigentes hoje para este insumo." },
             diasRestantes: { type: "number", nullable: true, example: 15, description: "`saldoProjetado / consumoDiaTotal`. `null` quando não há consumo diário." },
@@ -101,10 +103,10 @@ const insumoSchemas = {
         properties: {
             id: { type: "string", format: "uuid", example: "e5f6a7b8-c9d0-1234-ef56-345678901234" },
             insumoId: { type: "string", format: "uuid", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
-            tipo: { type: "string", enum: tiposMovimentacao, example: "Entrada", description: "`Entrada` soma, `Saida` subtrai, `Ajuste` entra com o sinal informado." },
-            quantidade: { type: "number", example: 100, description: "Positiva em `Entrada`/`Saida`; assinada (+/-) em `Ajuste`. Nunca zero." },
+            tipo: { type: "string", enum: tiposMovimentacao, example: "Entrada", description: "`Entrada` soma, `Saida` subtrai." },
+            quantidade: { type: "number", example: 100, description: "Sempre positiva." },
             data: { type: "string", format: "date-time", example: "2026-08-10T00:00:00.000Z", description: "Data do evento. Não pode ser no futuro." },
-            origem: { type: "string", enum: origensMovimentacao, example: "Compra", description: "Motivo do lançamento. `ManejoRebanho` e `ManejoPasto` só aparecem em movimentações geradas pelo fluxo de manejo." },
+            origem: { type: "string", enum: origensMovimentacao, example: "Compra", description: "Motivo do lançamento. `ManejoRebanho` e `ManejoPasto` só aparecem em movimentações geradas pelo fluxo de manejo. `AjusteContagem` é legado: contagem antiga convertida em entrada ou saída pelo sinal; vale como marco da projeção e não pode ser lançada de novo." },
             manejoRebanhoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Preenchido quando a movimentação foi gerada por um item de manejo de rebanho." },
             manejoPastoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Preenchido quando a movimentação foi gerada por um item de manejo de pasto." },
             rebanhoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Rebanho que consumiu o insumo, quando aplicável." },
@@ -129,16 +131,16 @@ const insumoSchemas = {
         properties: {
             id: { type: "string", format: "uuid", description: "UUID opcional gerado pelo cliente offline.", example: "e5f6a7b8-c9d0-1234-ef56-345678901234" },
             insumoId: { type: "string", format: "uuid", description: "UUID do insumo. Deve pertencer ao usuário autenticado.", example: "d4e5f6a7-b8c9-0123-def4-234567890123" },
-            tipo: { type: "string", enum: tiposMovimentacao, description: "Tipo do evento.", example: "Entrada" },
-            quantidade: { type: "number", description: "Deve ser > 0 para `Entrada`/`Saida`. Em `Ajuste` aceita valor negativo (contagem física para baixo). Nunca zero.", example: 100 },
+            tipo: { type: "string", enum: tiposMovimentacao, description: "Tipo do evento. `Ajuste` (app antigo) ainda é aceito e convertido: quantidade positiva vira `Entrada`, negativa vira `Saida` com a quantidade em módulo, ambas com origem `AjusteContagem` e a observação original; zero é recusado.", example: "Entrada" },
+            quantidade: { type: "number", description: "Deve ser > 0.", example: 100 },
             data: { type: "string", format: "date-time", description: "Data do evento. Não pode ser no futuro.", example: "2026-08-10T00:00:00.000Z" },
-            origem: { type: "string", enum: origensMovimentacaoAvulsa, description: "Origem do lançamento avulso. `ManejoRebanho` e `ManejoPasto` não são aceitas aqui — só nascem pelo fluxo de manejo.", example: "Compra" },
+            origem: { type: "string", enum: origensMovimentacaoAvulsa, description: "Motivo do lançamento. Entrada: `Compra`, `CadastroInicial`, `Devolucao`, `Outro`. Saída: `ConsumoRebanho`, `Perda`, `Outro`. `ManejoRebanho` e `ManejoPasto` não são aceitas aqui — só nascem pelo fluxo de manejo.", example: "Compra" },
             rebanhoId: { type: "string", format: "uuid", nullable: true, description: "Rebanho que consumiu o insumo (opcional).", example: null },
             pastoId: { type: "string", format: "uuid", nullable: true, description: "Pasto que consumiu o insumo (opcional).", example: null },
-            observacoes: { type: "string", nullable: true, maxLength: 500, example: "Nota fiscal 12345" },
+            observacoes: { type: "string", nullable: true, maxLength: 500, description: "Obrigatória quando `origem` = `Outro`.", example: "Nota fiscal 12345" },
         },
         required: ["insumoId", "tipo", "quantidade", "data", "origem"],
-        description: "Esquema para criação de movimentação avulsa. Enums: tipo (Entrada, Saida, Ajuste); origem (Compra, CadastroInicial, ConsumoRebanho, AjusteContagem, Perda).",
+        description: "Esquema para criação de movimentação avulsa. Tipos: Entrada, Saida. Motivos por tipo — Entrada: Compra, CadastroInicial, Devolucao, Outro; Saída: ConsumoRebanho, Perda, Outro.",
         example: {
             insumoId: "d4e5f6a7-b8c9-0123-def4-234567890123",
             tipo: "Entrada",

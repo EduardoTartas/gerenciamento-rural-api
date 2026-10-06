@@ -409,6 +409,51 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(salvo.dataFim).not.toBeNull();
     });
 
+    it('SYNC-POST-82 movimentacoes_insumo:CREATE com Ajuste legado é convertido, não recusado', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const entidadeId = randomUUID();
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'CREATE', entidadeId,
+            dados: {
+                insumoId: insumo.id, tipo: 'Ajuste', quantidade: -4,
+                data: '2026-01-01T00:00:00.000Z', origem: 'AjusteContagem',
+            },
+        });
+        expect(res.situacao).toBe('aceito');
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: entidadeId } });
+        expect(salvo.tipo).toBe('Saida');
+        expect(Number(salvo.quantidade)).toBe(4);
+        expect(salvo.origem).toBe('AjusteContagem');
+        expect(salvo.observacoes).toBeNull();
+    });
+
+    it('SYNC-POST-83 movimentacoes_insumo:CREATE com Ajuste legado zerado é recusado sem retry', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: {
+                insumoId: insumo.id, tipo: 'Ajuste', quantidade: 0,
+                data: '2026-01-01T00:00:00.000Z', origem: 'AjusteContagem',
+            },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.recuperavel).toBe(false);
+        expect(res.erro.mensagem).toBe('Ajuste sem quantidade não altera o estoque.');
+    });
+
+    it('SYNC-POST-84 movimentacoes_insumo:CREATE com motivo de outro tipo é recusado', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: {
+                insumoId: insumo.id, tipo: 'Entrada', quantidade: 3,
+                data: '2026-01-01T00:00:00.000Z', origem: 'Perda',
+            },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.campo).toBe('origem');
+    });
+
     it('SYNC-POST-58 movimentacoes_insumo:CREATE', async () => {
         const insumo = await criarInsumo(propriedade.id);
         const entidadeId = randomUUID();
