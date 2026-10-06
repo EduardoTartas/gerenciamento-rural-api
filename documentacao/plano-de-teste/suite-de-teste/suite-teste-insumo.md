@@ -9,8 +9,9 @@ Pré-condições comuns: usuário A e usuário B autenticados via BetterAuth, ca
 
 Saldo: a leitura de um insumo (`GET /insumos/:id` e cada item de `GET /insumos`) devolve o pacote
 `saldo` calculado na hora a partir do ledger (`movimentacoesInsumo`) e dos `regimesConsumo`:
-`saldoReal = Σ(Entrada) − Σ(Saida) + Σ(Ajuste com sinal)`, `consumoProjetado` (consumo dos regimes
-ainda não lançado, contado desde a última `AjusteContagem` ou desde o início de cada regime),
+`saldoReal = Σ(Entrada) − Σ(Saida)`, `consumoProjetado` (consumo dos regimes
+ainda não lançado, contado desde o último consumo lançado — saída `ConsumoRebanho` — ou contagem antiga
+`AjusteContagem`, ou desde o início de cada regime; compra, perda e outros lançamentos não mexem no marco),
 `saldoProjetado = saldoReal − consumoProjetado`, `consumoDiaTotal` (soma de `quantidadeDia` dos
 regimes vigentes hoje), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e
 `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`). `GET /insumos/:id` calcula a
@@ -65,6 +66,7 @@ Arquivo: `test/endpoints/insumos/get-insumos.test.js`
 | INS-GET-13 | sem token | — | 401 | `tipo` = unauthorized |
 | INS-GET-14 | multi-tenancy: B lista insumos | insumos cadastrados por A | 200 | `data.docs` não contém nenhum insumo de A |
 | INS-GET-15 | lista vazia | nenhum insumo cadastrado | 200 | mensagem "Nenhum insumo cadastrado."; `data.docs` = [] |
+| INS-GET-16 | saldo da listagem usa o mesmo marco do detalhe | regime 2/dia de 01/01 a 11/01; entrada 100 em 01/12; em 05/01 uma compra num insumo e um consumo lançado no outro | 200 | com compra: `consumoProjetado` 20; com consumo: `saldoReal` 92 e `consumoProjetado` 12 |
 
 ## GET /insumos/:id
 
@@ -76,6 +78,10 @@ Arquivo: `test/endpoints/insumos/get-insumos-id.test.js`
 | INS-GET-ID-02 | saldo esgotado (`saldoProjetado <= 0`) | ledger baixo, regime consumindo | 200 | `data.saldo.esgotado` = true; `data.saldo.previsaoTermino` = null |
 | INS-GET-ID-03 | insumo sem regimes de consumo | — | 200 | `data.saldo.saldoProjetado` = `saldoReal`; `consumoDiaTotal` = 0; `diasRestantes` = null |
 | INS-GET-ID-04 | regime de consumo encerrado (`ativo:false`, `dataFim` passado) ainda soma no `consumoProjetado`, mas não no `consumoDiaTotal` | regime encerrado + regime aberto no mesmo insumo | 200 | `consumoProjetado` reflete os dias do regime encerrado; `consumoDiaTotal` conta só o regime aberto |
+| INS-GET-ID-04b | compra depois do início do regime não é marco | regime 2/dia de 01/01 a 11/01; entrada 100 em 01/12; compra 50 em 05/01 | 200 | `saldoReal` 150; `consumoProjetado` 20 |
+| INS-GET-ID-04c | saída `ConsumoRebanho` é marco | idem, consumo lançado de 8 em 05/01 | 200 | `saldoReal` 92; `consumoProjetado` 12 (6 dias); `saldoProjetado` 80 |
+| INS-GET-ID-04d | contagem antiga convertida (`AjusteContagem`) é marco | idem, entrada `AjusteContagem` de 5 em 05/01 | 200 | `saldoReal` 105; `consumoProjetado` 12 |
+| INS-GET-ID-04e | perda não é marco | idem, perda de 10 em 05/01 | 200 | `saldoReal` 90; `consumoProjetado` 20 |
 | INS-GET-ID-05 | `id` não é UUID | — | 400 | validationError |
 | INS-GET-ID-06 | sem token | — | 401 | `tipo` = unauthorized |
 | INS-GET-ID-07 | `id` inexistente | UUID válido, sem registro | 404 | mensagem "Recurso não encontrado em Insumo." |

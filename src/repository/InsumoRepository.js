@@ -74,15 +74,16 @@ class InsumoRepository {
 
     /**
      * Anexa `_resumoLedger` a cada insumo da página: a soma do ledger por tipo e
-     * a data da última contagem física. Dois `groupBy` sobre `movimentacoes_insumo`
-     * em vez de trazer o ledger inteiro por linha (issue #37). O service usa esse
-     * resumo em `calcularSaldosComResumo`.
+     * a data do último marco de consumo (saída `ConsumoRebanho` ou contagem
+     * antiga — mesmo filtro de `ehMarcoDeConsumo`). Dois `groupBy` sobre
+     * `movimentacoes_insumo` em vez de trazer o ledger inteiro por linha (issue
+     * #37). O service usa esse resumo em `calcularSaldosComResumo`.
      */
     async anexarResumoLedger(docs) {
         if (docs.length === 0) return docs;
         const ids = docs.map((d) => d.id);
 
-        const [somas, contagens] = await Promise.all([
+        const [somas, marcos] = await Promise.all([
             this.prisma.movimentacaoInsumo.groupBy({
                 by: ['insumoId', 'tipo'],
                 where: { insumoId: { in: ids }, ativo: true },
@@ -90,23 +91,26 @@ class InsumoRepository {
             }),
             this.prisma.movimentacaoInsumo.groupBy({
                 by: ['insumoId'],
-                where: { insumoId: { in: ids }, ativo: true, origem: 'AjusteContagem' },
+                where: {
+                    insumoId: { in: ids },
+                    ativo: true,
+                    OR: [{ tipo: 'Saida', origem: 'ConsumoRebanho' }, { origem: 'AjusteContagem' }],
+                },
                 _max: { data: true },
             }),
         ]);
 
         const resumoPorInsumo = new Map(
-            ids.map((id) => [id, { entrada: 0, saida: 0, ajuste: 0, ultimaContagem: null }]),
+            ids.map((id) => [id, { entrada: 0, saida: 0, ultimoMarco: null }]),
         );
         for (const linha of somas) {
             const resumo = resumoPorInsumo.get(linha.insumoId);
             const valor = Number(linha._sum.quantidade ?? 0);
             if (linha.tipo === 'Entrada') resumo.entrada += valor;
             else if (linha.tipo === 'Saida') resumo.saida += valor;
-            else resumo.ajuste += valor; // Ajuste
         }
-        for (const linha of contagens) {
-            resumoPorInsumo.get(linha.insumoId).ultimaContagem = linha._max.data ?? null;
+        for (const linha of marcos) {
+            resumoPorInsumo.get(linha.insumoId).ultimoMarco = linha._max.data ?? null;
         }
 
         return docs.map((d) => ({ ...d, _resumoLedger: resumoPorInsumo.get(d.id) }));

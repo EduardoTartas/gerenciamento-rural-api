@@ -389,16 +389,16 @@ model manejoPasto {
 
 /// Ledger de estoque de insumo. Evento com exclusão lógica (`ativo`): a linha
 /// precisa persistir para a leitura por diferença reportar a exclusão, igual a
-/// `historicoMovimentacao`. Saldo = soma (Entrada + / Saida - / Ajuste com sinal).
+/// `historicoMovimentacao`. Saldo = entradas - saídas (sem ajuste desde a issue #67).
 /// Cada item de insumo de um manejo é uma linha `Saida` com `manejoXId` preenchido.
 model movimentacaoInsumo {
   id              String         @id @default(uuid())
   insumoId        String
   insumo          insumo         @relation(fields: [insumoId], references: [id], onDelete: Cascade)
-  tipo            String // enum aplicação: Entrada | Saida | Ajuste
-  quantidade      Decimal // positiva em Entrada/Saida; assinada em Ajuste
+  tipo            String // enum aplicação: Entrada | Saida (sem Ajuste desde a issue #67)
+  quantidade      Decimal // sempre positiva
   data            DateTime
-  origem          String // enum aplicação: Compra | CadastroInicial | ManejoRebanho | ManejoPasto | ConsumoRebanho | AjusteContagem | Perda
+  origem          String // enum aplicação — Entrada: Compra | CadastroInicial | Devolucao | Outro; Saida: ManejoRebanho | ManejoPasto | ConsumoRebanho | Perda | Outro; AjusteContagem só legado (contagem convertida, qualquer tipo)
   manejoRebanhoId String?
   manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
   manejoPastoId   String?
