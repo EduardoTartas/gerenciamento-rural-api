@@ -15,6 +15,7 @@ router
     .get('/insumos/movimentacoes', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.list.bind(movimentacaoInsumoController)))
     .get('/insumos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.list.bind(movimentacaoInsumoController)))
     .post('/insumos/movimentacoes', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.create.bind(movimentacaoInsumoController)))
+    .patch('/insumos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.update.bind(movimentacaoInsumoController)))
     .delete('/insumos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.remove.bind(movimentacaoInsumoController)));
 
 router

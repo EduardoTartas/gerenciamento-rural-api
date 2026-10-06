@@ -469,15 +469,95 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(salvo).not.toBeNull();
     });
 
-    it('SYNC-POST-59 movimentacoes_insumo:DELETE', async () => {
+    it('SYNC-POST-59 movimentacoes_insumo:DELETE é recusado sem retry (app antigo)', async () => {
         const insumo = await criarInsumo(propriedade.id);
         const mov = await criarMovimentacaoInsumo(insumo.id);
         const { res } = await enviarUma({
             id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'DELETE', entidadeId: mov.id,
         });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.tipo).toBe('conflict');
+        expect(res.erro.recuperavel).toBe(false);
+        expect(res.erro.mensagem).toBe('Lançamento sincronizado não pode ser desfeito; edite para corrigir.');
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: mov.id } });
+        expect(salvo.ativo).toBe(true);
+    });
+
+    it('SYNC-POST-85 movimentacoes_insumo:UPDATE corrige o lançamento', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const mov = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Saida', origem: 'Perda', quantidade: 10 });
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: mov.id,
+            dados: { quantidade: 6, data: '2026-01-02T00:00:00.000Z', origem: 'ConsumoRebanho' },
+        });
         expect(res.situacao).toBe('aceito');
         const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: mov.id } });
-        expect(salvo.ativo).toBe(false);
+        expect(Number(salvo.quantidade)).toBe(6);
+        expect(salvo.origem).toBe('ConsumoRebanho');
+        expect(salvo.data.toISOString()).toBe('2026-01-02T00:00:00.000Z');
+        expect(salvo.tipo).toBe('Saida');
+    });
+
+    it('SYNC-POST-89 movimentacoes_insumo:UPDATE com observacoes null limpa o campo', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const compra = await criarMovimentacaoInsumo(insumo.id, { origem: 'Compra', observacoes: 'nota 7' });
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: compra.id,
+            dados: { observacoes: null },
+        });
+        expect(res.situacao).toBe('aceito');
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: compra.id } });
+        expect(salvo.observacoes).toBeNull();
+
+        const outro = await criarMovimentacaoInsumo(insumo.id, { origem: 'Outro', observacoes: 'doação' });
+        const recusa = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: outro.id,
+            dados: { observacoes: null },
+        });
+        expect(recusa.res.situacao).toBe('recusado');
+        expect(recusa.res.erro.campo).toBe('observacoes');
+    });
+
+    it('SYNC-POST-86 movimentacoes_insumo:UPDATE reenviado não reaplica', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const mov = await criarMovimentacaoInsumo(insumo.id, { quantidade: 10 });
+        const mutacao = {
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: mov.id,
+            dados: { quantidade: 8 },
+        };
+        const primeira = await enviarUma(mutacao);
+        expect(primeira.res.situacao).toBe('aceito');
+
+        // Outra correção chega depois; o reenvio da primeira não pode desfazê-la.
+        await DbConnect.prisma.movimentacaoInsumo.update({ where: { id: mov.id }, data: { quantidade: 9 } });
+        const segunda = await enviarUma(mutacao);
+        expect(segunda.res).toEqual(primeira.res);
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: mov.id } });
+        expect(Number(salvo.quantidade)).toBe(9);
+    });
+
+    it('SYNC-POST-87 movimentacoes_insumo:UPDATE com tipo é recusado', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const mov = await criarMovimentacaoInsumo(insumo.id);
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: mov.id,
+            dados: { tipo: 'Saida' },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.tipo).toBe('validationError');
+        expect(res.erro.campo).toBe('tipo');
+    });
+
+    it('SYNC-POST-88 movimentacoes_insumo:UPDATE de lançamento do manejo é recusado', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const mov = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Saida', origem: 'ManejoPasto' });
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: mov.id,
+            dados: { quantidade: 1 },
+        });
+        expect(res.situacao).toBe('recusado');
+        expect(res.erro.recuperavel).toBe(false);
+        expect(res.erro.mensagem).toBe('Lançamento gerado por manejo: edite pelo manejo.');
     });
 
     it('SYNC-POST-60 regimes_consumo_insumo:CREATE', async () => {

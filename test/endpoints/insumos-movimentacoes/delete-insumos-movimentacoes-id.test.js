@@ -21,18 +21,19 @@ describe('DELETE /v1/insumos/movimentacoes/:id', () => {
     const del = (usuario, id) =>
         api().delete(`/v1/insumos/movimentacoes/${id}`).set('Authorization', usuario.bearer);
 
-    it('MINS-DELETE-ID-01 estorna (soft-delete)', async () => {
+    it('MINS-DELETE-ID-01 lançamento sincronizado não se desfaz (409)', async () => {
         const mov = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', quantidade: 100 });
 
         const r = await del(a, mov.id);
-        expect(r.status).toBe(200);
-        expect(r.body.message).toBe('Movimentação excluída com sucesso.');
+        expect(r.status).toBe(409);
+        expect(r.body.tipo).toBe('conflict');
+        expect(r.body.message).toBe('Lançamento sincronizado não pode ser desfeito; edite para corrigir.');
 
         const salva = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: mov.id } });
-        expect(salva.ativo).toBe(false);
+        expect(salva.ativo).toBe(true);
 
         const insumoAtualizado = await api().get(`/v1/insumos/${insumo.id}`).set('Authorization', a.bearer);
-        expect(insumoAtualizado.body.data.saldo.saldoReal).toBe(0);
+        expect(insumoAtualizado.body.data.saldo.saldoReal).toBe(100);
     });
 
     it('MINS-DELETE-ID-02 id não é UUID', async () => {

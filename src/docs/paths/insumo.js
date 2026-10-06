@@ -255,17 +255,43 @@ const insumoRoutes = {
                 500: commonResponses[500](),
             },
         },
-        delete: {
+        patch: {
             tags: ["Insumos"],
-            summary: "Exclui (inativa) uma movimentação de insumo",
-            description: "Soft-delete: marca `ativo: false`. A movimentação deixa de contar no saldo, mas a linha permanece no banco para a leitura por diferença.",
+            summary: "Edita uma movimentação de insumo",
+            description: `
+            + Corrige \`quantidade\`, \`data\`, \`origem\` (motivo) e \`observacoes\`. Pelo menos um campo.
+            + \`insumoId\` e \`tipo\` não mudam: trocar o insumo ou inverter entrada/saída é outro lançamento (400 pelo \`.strict()\`).
+            + O motivo resultante tem que caber no \`tipo\` gravado, e "Outro" exige observação — mesma regra do POST.
+            + Movimentação gerada por manejo (\`ManejoRebanho\`/\`ManejoPasto\`) → 400 "Lançamento gerado por manejo: edite pelo manejo."
+            + Contagem antiga convertida (\`AjusteContagem\`) é só leitura → 400 "Contagem antiga não pode ser editada."
+            + Movimentação inativa ou de outro usuário → 404.
+            + Avança \`updatedAt\` (a leitura por diferença leva a correção). Também disponível no \`/sync\` como \`movimentacoes_insumo:UPDATE\`.
+            `,
             security: [{ bearerAuth: [] }],
             parameters: [idParam("a Movimentação de Insumo")],
+            requestBody: {
+                required: true,
+                content: { "application/json": { schema: { $ref: "#/components/schemas/MovimentacaoInsumoUpdate" } } },
+            },
             responses: {
-                200: commonResponses[200](),
+                200: commonResponses[200]("#/components/schemas/MovimentacaoInsumo"),
                 400: commonResponses[400](),
                 401: commonResponses[401](),
                 404: commonResponses[404](),
+                500: commonResponses[500](),
+            },
+        },
+        delete: {
+            tags: ["Insumos"],
+            summary: "Desfazer movimentação sincronizada (sempre recusado)",
+            description: "Desde a issue #68 o desfazer só existe no aparelho, enquanto o lançamento está pendente na fila — e lançamento pendente nunca chegou ao servidor. Lançamento sincronizado não se desfaz, se corrige com o PATCH. A rota responde **409** (`conflict`, \"Lançamento sincronizado não pode ser desfeito; edite para corrigir.\") e não altera nada; existe para que um aparelho antigo com `DELETE` na fila receba recusa não recuperável em vez de travar. Inexistente ou de outro usuário segue 404.",
+            security: [{ bearerAuth: [] }],
+            parameters: [idParam("a Movimentação de Insumo")],
+            responses: {
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                404: commonResponses[404](),
+                409: commonResponses[409](),
                 500: commonResponses[500](),
             },
         },
