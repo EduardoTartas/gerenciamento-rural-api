@@ -174,6 +174,7 @@ Gerenciamento dos lotes de gado da propriedade.
 **Regras de Negócio:**
 - **Campos obrigatórios:** `propriedadeId`, `nomeRebanho`, `pastoAtualId`.
 - **Campos opcionais:** `quantidadeCabecas`, `pesoMedioAtual`, `dataEntradaPastoAtual`, `racaId`, `sistemaProducaoId`, `regimeAlimentarId`, e `id` (UUID gerado pelo cliente offline).
+- **Compra do lote (issue #71):** `valorCompra` (R$ pago pelo lote inteiro), `pesoCompraKg`, `precoArrobaCompra`, `dataCompra` e `cabecasCompra` (cabeças na compra, base do custo por cabeça), todos opcionais e independentes. Números > 0 (`cabecasCompra` inteiro), `dataCompra` não futura (tolera 5 min). As leituras devolvem os Decimal como texto. O cálculo de custo e resultado por lote é feito no app.
 - **Propriedade Ativa:** Bloqueia a criação em propriedade inativa.
 - **Nome Único:** O `nomeRebanho` deve ser exclusivo entre os rebanhos *ativos* da mesma propriedade.
 - **Pasto Válido:** O pasto informado deve existir, estar ativo e pertencer à **mesma propriedade** do rebanho.
@@ -195,6 +196,7 @@ Gerenciamento dos lotes de gado da propriedade.
 **Regras de Negócio:**
 - **Troca de Pasto Proibida:** Qualquer tentativa de alterar `pastoAtualId` em um rebanho já ativo retorna erro 400. A mudança de pasto só é permitida pela rota de movimentação, para preservar o histórico.
 - Enviar `ativo: false` redireciona internamente para a inativação descrita em 5.5.
+- **Compra do lote:** os campos de 5.1 podem ser informados ou corrigidos depois (lote antigo recebe o valor pela edição); `null` limpa o campo.
 - **Reativação exige pasto:** enviar `ativo: true` em um rebanho inativo exige `pastoAtualId` no corpo (pasto ativo, da mesma propriedade). Sem isso, retorna 400 — evita reativar um lote sem pasto vinculado, estado que a criação já proíbe. A reativação roda em transação atômica e marca o pasto como `Ocupado`.
 
 ### 5.5 DELETE /rebanhos/:id

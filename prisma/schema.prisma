@@ -278,6 +278,14 @@ model rebanho {
   quantidadeCabecas     Int?
   pesoMedioAtual        Decimal?
   dataEntradaPastoAtual DateTime?
+  // Compra do lote (issue #71), toda opcional: quanto foi pago pelo lote
+  // inteiro, peso e arroba da compra, data e cabeças na compra (base do custo
+  // por cabeça no relatório do app). Lote antigo fica sem custo de compra.
+  valorCompra           Decimal?
+  pesoCompraKg          Decimal?
+  precoArrobaCompra     Decimal?
+  dataCompra            DateTime?
+  cabecasCompra         Int?
   ativo                 Boolean          @default(true)
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
