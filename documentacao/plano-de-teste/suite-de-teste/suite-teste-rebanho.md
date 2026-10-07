@@ -124,3 +124,20 @@ Arquivo: `test/endpoints/rebanhos/delete-rebanhos-id.test.js`
 - `RebanhoRepository.findByNome` (`:83-91`) só considera rebanhos ativos — nome duplicado com
   um rebanho inativo é permitido (REB-POST-18). Coerente com o comportamento de "reciclagem de
   nome" já documentado para pastos (rotas_pastolivre.md §3.1), mas não estava explícito em §5.
+
+## Compra do lote (issue #71)
+
+Arquivo: `test/endpoints/rebanhos/compra-rebanho.test.js`. Campos `valorCompra`, `pesoCompraKg`, `precoArrobaCompra`, `dataCompra` e `cabecasCompra`, todos opcionais e independentes, em `POST` e `PATCH /rebanhos`.
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| REB-COMPRA-01 | cria com a compra completa | — | 201 | campos devolvidos (Decimal como texto, `cabecasCompra` inteiro, `dataCompra` ISO) e gravados |
+| REB-COMPRA-02 | cria sem compra | — | 201 | campos de compra `null` |
+| REB-COMPRA-03 | só `valorCompra` | — | 201 | demais campos de compra `null` (independentes) |
+| REB-COMPRA-04 | valor ≤ 0 ou `cabecasCompra` não inteiro | — | 400 | `errors[].path` contém o campo |
+| REB-COMPRA-05 | `dataCompra` no futuro | — | 400 | `errors[].path` contém `dataCompra` |
+| REB-COMPRA-06 | `PATCH` informa a compra de lote já cadastrado | rebanho sem compra | 200 | campos gravados |
+| REB-COMPRA-07 | `PATCH` com `null` | rebanho com compra | 200 | campo limpo; os demais ficam |
+| REB-COMPRA-08 | `PATCH` com valor inválido | — | 400 | `errors[].path` contém o campo |
+| REB-COMPRA-09 | `GET /rebanhos/:id` e `GET /rebanhos` | rebanho com compra | 200 | compra presente no item |
+

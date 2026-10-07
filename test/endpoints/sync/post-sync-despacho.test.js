@@ -571,6 +571,54 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(recusa.res.erro.campo).toBe('valorTotal');
     });
 
+    it('SYNC-POST-92 rebanhos:CREATE com a compra do lote (issue #71)', async () => {
+        const pasto = await criarPasto(propriedade.id);
+        const entidadeId = randomUUID();
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'rebanhos', acao: 'CREATE', entidadeId,
+            dados: {
+                propriedadeId: propriedade.id, pastoAtualId: pasto.id, nomeRebanho: 'Lote Comprado',
+                quantidadeCabecas: 30, valorCompra: 90000, pesoCompraKg: 9000, precoArrobaCompra: 300,
+                dataCompra: '2026-01-15T00:00:00.000Z', cabecasCompra: 30,
+            },
+        });
+        expect(res.situacao).toBe('aceito');
+        const salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: entidadeId } });
+        expect(Number(salvo.valorCompra)).toBe(90000);
+        expect(salvo.cabecasCompra).toBe(30);
+
+        const invalido = await enviarUma({
+            id: randomUUID(), entidade: 'rebanhos', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: {
+                propriedadeId: propriedade.id, pastoAtualId: (await criarPasto(propriedade.id)).id,
+                nomeRebanho: 'Lote Inválido', valorCompra: 0,
+            },
+        });
+        expect(invalido.res.situacao).toBe('recusado');
+        expect(invalido.res.erro.campo).toBe('valorCompra');
+    });
+
+    it('SYNC-POST-93 rebanhos:UPDATE informa e limpa a compra do lote', async () => {
+        const pasto = await criarPasto(propriedade.id);
+        const rebanho = await criarRebanho(propriedade.id, pasto.id);
+        const informa = await enviarUma({
+            id: randomUUID(), entidade: 'rebanhos', acao: 'UPDATE', entidadeId: rebanho.id,
+            dados: { valorCompra: 45000.75, cabecasCompra: 15 },
+        });
+        expect(informa.res.situacao).toBe('aceito');
+        let salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(Number(salvo.valorCompra)).toBe(45000.75);
+
+        const limpa = await enviarUma({
+            id: randomUUID(), entidade: 'rebanhos', acao: 'UPDATE', entidadeId: rebanho.id,
+            dados: { valorCompra: null },
+        });
+        expect(limpa.res.situacao).toBe('aceito');
+        salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: rebanho.id } });
+        expect(salvo.valorCompra).toBeNull();
+        expect(salvo.cabecasCompra).toBe(15);
+    });
+
     it('SYNC-POST-86 movimentacoes_insumo:UPDATE reenviado não reaplica', async () => {
         const insumo = await criarInsumo(propriedade.id);
         const mov = await criarMovimentacaoInsumo(insumo.id, { quantidade: 10 });
