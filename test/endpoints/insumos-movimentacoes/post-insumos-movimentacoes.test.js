@@ -288,4 +288,36 @@ describe('POST /v1/insumos/movimentacoes', () => {
         expect(r.status).toBe(400);
         expect(r.body.errors[0].path).toBe('origem');
     });
+
+    it('MINS-POST-33 entrada com valor pago grava valorTotal (issue #70)', async () => {
+        const r = await post(a, corpoValido({ valorTotal: 1250.5 }));
+        expect(r.status).toBe(201);
+        expect(r.body.data.valorTotal).toBe('1250.5');
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: r.body.data.id } });
+        expect(Number(salvo.valorTotal)).toBe(1250.5);
+    });
+
+    it('MINS-POST-34 valor é opcional: sem ele ou nulo, fica nulo', async () => {
+        const sem = await post(a, corpoValido());
+        expect(sem.status).toBe(201);
+        expect(sem.body.data.valorTotal).toBeNull();
+        const nulo = await post(a, corpoValido({ origem: 'CadastroInicial', valorTotal: null }));
+        expect(nulo.status).toBe(201);
+        expect(nulo.body.data.valorTotal).toBeNull();
+    });
+
+    it('MINS-POST-35 saída com valor pago é recusada', async () => {
+        const r = await post(a, corpoValido({ tipo: 'Saida', origem: 'Perda', valorTotal: 50 }));
+        expect(r.status).toBe(400);
+        expect(r.body.errors[0].path).toBe('valorTotal');
+        expect(r.body.errors[0].message).toBe('O valor pago só pode ser informado em entrada de estoque.');
+    });
+
+    it('MINS-POST-36 valor zero, negativo ou texto é recusado', async () => {
+        for (const valorTotal of [0, -10, '100']) {
+            const r = await post(a, corpoValido({ valorTotal }));
+            expect(r.status).toBe(400);
+            expect(r.body.errors[0].path).toBe('valorTotal');
+        }
+    });
 });

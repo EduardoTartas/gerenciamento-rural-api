@@ -518,6 +518,59 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(recusa.res.erro.campo).toBe('observacoes');
     });
 
+    it('SYNC-POST-90 movimentacoes_insumo:CREATE de entrada com valor pago (issue #70)', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const entidadeId = randomUUID();
+        const { res } = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'CREATE', entidadeId,
+            dados: {
+                insumoId: insumo.id, tipo: 'Entrada', quantidade: 25,
+                data: '2026-01-01T00:00:00.000Z', origem: 'CadastroInicial', valorTotal: 310.4,
+            },
+        });
+        expect(res.situacao).toBe('aceito');
+        const salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: entidadeId } });
+        expect(Number(salvo.valorTotal)).toBe(310.4);
+
+        const saida = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'CREATE', entidadeId: randomUUID(),
+            dados: {
+                insumoId: insumo.id, tipo: 'Saida', quantidade: 2,
+                data: '2026-01-02T00:00:00.000Z', origem: 'Perda', valorTotal: 20,
+            },
+        });
+        expect(saida.res.situacao).toBe('recusado');
+        expect(saida.res.erro.campo).toBe('valorTotal');
+    });
+
+    it('SYNC-POST-91 movimentacoes_insumo:UPDATE edita e limpa o valor pago', async () => {
+        const insumo = await criarInsumo(propriedade.id);
+        const compra = await criarMovimentacaoInsumo(insumo.id, { origem: 'Compra' });
+        const edita = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: compra.id,
+            dados: { valorTotal: 99.9 },
+        });
+        expect(edita.res.situacao).toBe('aceito');
+        let salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: compra.id } });
+        expect(Number(salvo.valorTotal)).toBe(99.9);
+
+        const limpa = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: compra.id,
+            dados: { valorTotal: null },
+        });
+        expect(limpa.res.situacao).toBe('aceito');
+        salvo = await DbConnect.prisma.movimentacaoInsumo.findUnique({ where: { id: compra.id } });
+        expect(salvo.valorTotal).toBeNull();
+
+        const perda = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Saida', origem: 'Perda', quantidade: 1 });
+        const recusa = await enviarUma({
+            id: randomUUID(), entidade: 'movimentacoes_insumo', acao: 'UPDATE', entidadeId: perda.id,
+            dados: { valorTotal: 10 },
+        });
+        expect(recusa.res.situacao).toBe('recusado');
+        expect(recusa.res.erro.campo).toBe('valorTotal');
+    });
+
     it('SYNC-POST-86 movimentacoes_insumo:UPDATE reenviado não reaplica', async () => {
         const insumo = await criarInsumo(propriedade.id);
         const mov = await criarMovimentacaoInsumo(insumo.id, { quantidade: 10 });

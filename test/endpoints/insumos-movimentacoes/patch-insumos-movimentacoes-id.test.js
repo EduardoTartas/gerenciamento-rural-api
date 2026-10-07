@@ -158,6 +158,32 @@ describe('PATCH /v1/insumos/movimentacoes/:id', () => {
         expect(r2.body.errors[0].path).toBe('observacoes');
     });
 
+    it('MINS-PATCH-ID-14 edita e limpa o valor pago da entrada (issue #70)', async () => {
+        const mov = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Entrada', origem: 'Compra' });
+        const r = await patch(a, mov.id, { valorTotal: 480 });
+        expect(r.status).toBe(200);
+        expect(r.body.data.valorTotal).toBe('480');
+        expect(Number((await salva(mov.id)).valorTotal)).toBe(480);
+
+        const limpa = await patch(a, mov.id, { valorTotal: null });
+        expect(limpa.status).toBe(200);
+        expect(limpa.body.data.valorTotal).toBeNull();
+        expect((await salva(mov.id)).valorTotal).toBeNull();
+    });
+
+    it('MINS-PATCH-ID-15 valor pago em saída ou inválido é recusado', async () => {
+        const saida = await criarMovimentacaoInsumo(insumo.id, { tipo: 'Saida', origem: 'Perda', quantidade: 5 });
+        const r = await patch(a, saida.id, { valorTotal: 30 });
+        expect(r.status).toBe(400);
+        expect(r.body.errors[0].path).toBe('valorTotal');
+        expect((await salva(saida.id)).valorTotal).toBeNull();
+
+        const entrada = await criarMovimentacaoInsumo(insumo.id);
+        const zero = await patch(a, entrada.id, { valorTotal: 0 });
+        expect(zero.status).toBe(400);
+        expect(zero.body.errors[0].path).toBe('valorTotal');
+    });
+
     it('MINS-PATCH-ID-12 sem token', async () => {
         const mov = await criarMovimentacaoInsumo(insumo.id);
         const r = await api().patch(`/v1/insumos/movimentacoes/${mov.id}`).send({ quantidade: 1 });

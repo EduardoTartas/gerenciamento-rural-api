@@ -506,11 +506,12 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 ### 13.6 POST /insumos/movimentacoes
 **Caso de Uso:** Lançar entrada (compra, cadastro inicial, devolução) ou saída (consumo, perda) de estoque, sempre com motivo.
 **Regras de Negócio:**
-- **Campos obrigatórios:** `insumoId`, `tipo`, `quantidade`, `data`, `origem`. **Opcionais:** `rebanhoId`, `pastoId`, `observacoes` (máx 500), `id`.
+- **Campos obrigatórios:** `insumoId`, `tipo`, `quantidade`, `data`, `origem`. **Opcionais:** `rebanhoId`, `pastoId`, `observacoes` (máx 500), `valorTotal`, `id`.
 - O insumo deve pertencer ao usuário logado.
 - `tipo`: `Entrada` ou `Saida` — não existe mais contagem/ajuste (issue #67).
 - **Motivo por tipo** (`origem`): Entrada: `Compra`, `CadastroInicial`, `Devolucao`, `Outro`. Saída: `ConsumoRebanho`, `Perda`, `Outro`. Motivo de outro tipo → 400. `ManejoRebanho` e `ManejoPasto` **não são aceitos** aqui.
 - `observacoes` **obrigatória** quando o motivo é `Outro`.
+- **Valor pago** (`valorTotal`, opcional, > 0, issue #70): quanto foi pago pela entrada inteira, em R$. Só em `Entrada` (inclusive `CadastroInicial`, o estoque inicial do cadastro do insumo); em `Saida` → 400. Alimenta o custo médio do insumo no relatório do app; sem valor, aquele insumo só fica sem custo. As leituras devolvem `valorTotal` como texto (Decimal), ou `null`.
 - `quantidade` > 0.
 - `data` não pode ser no futuro.
 - **Compatibilidade com app antigo:** `tipo: Ajuste` ainda é aceito (REST e `/sync`) e **convertido** antes de gravar — positivo vira `Entrada`, negativo vira `Saida` com a quantidade em módulo, ambos com origem `AjusteContagem` e a observação original (é uma contagem de verdade e vale como marco). Ajuste zerado → 400 ("Ajuste sem quantidade não altera o estoque."). Sem isso, uma contagem parada na fila offline seria recusada para sempre. Lançamento **novo** com `origem: AjusteContagem` (sem `tipo: Ajuste`) é recusado.
@@ -539,7 +540,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 ### 13.9.1 PATCH /insumos/movimentacoes/:id
 **Caso de Uso:** Corrigir um lançamento de estoque já sincronizado (quantidade, data ou motivo errados).
 **Regras de Negócio:**
-- **Campos editáveis:** `quantidade`, `data`, `origem` (motivo), `observacoes`. Pelo menos um. `insumoId`, `tipo` ou qualquer outro campo → 400 (`.strict()`): trocar o insumo ou inverter entrada/saída é outro lançamento.
+- **Campos editáveis:** `quantidade`, `data`, `origem` (motivo), `observacoes`, `valorTotal` (valor pago, só em lançamento de `Entrada`; `null` limpa; em saída → 400). Pelo menos um. `insumoId`, `tipo` ou qualquer outro campo → 400 (`.strict()`): trocar o insumo ou inverter entrada/saída é outro lançamento.
 - Mesmas validações do POST: `quantidade` > 0, `data` não futura, motivo do `tipo` **gravado** e "Outro" com observação — conferido no resultado do merge (apagar a observação de um "Outro" também é recusado). `observacoes: null` limpa o campo.
 - **Gerada por manejo** (`ManejoRebanho`/`ManejoPasto`) → 400 "Lançamento gerado por manejo: edite pelo manejo."
 - **Contagem antiga** (`AjusteContagem`) → 400 "Contagem antiga não pode ser editada." — é marco da projeção e não tem motivo de entrada/saída.
