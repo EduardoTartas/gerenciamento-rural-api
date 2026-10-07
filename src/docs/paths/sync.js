@@ -20,7 +20,7 @@ const syncRoutes = {
                 - O lote aceita de **1 a 100** mutações por requisição.
                 - \`historico_movimentacoes\` não aceita \`UPDATE\` — é evento imutável, corrige-se desfazendo ou lançando outra movimentação.
                 - \`saidas_rebanho\` aceita só \`CREATE\` — a saída de animais também é evento imutável.
-                - \`movimentacoes_insumo\` aceita \`CREATE\` e \`UPDATE\` (edição de quantidade, data, motivo e observações). \`DELETE\` é sempre recusado com \`conflict\` não recuperável: lançamento sincronizado não se desfaz, se edita.
+                - \`movimentacoes_insumo\` aceita \`CREATE\` e \`UPDATE\` (edição de quantidade, data, motivo, observações e valor pago da entrada). \`DELETE\` é sempre recusado com \`conflict\` não recuperável: lançamento sincronizado não se desfaz, se edita.
                 - O identificador da entidade vem sempre em \`entidadeId\`; \`dados\` nunca pode conter a chave \`id\`.
                 - \`dados\` é obrigatório em \`CREATE\`/\`UPDATE\` e ausente em \`DELETE\`.
                 - **\`dados\` passa pelo mesmo schema da rota REST equivalente**, incluindo a recusa de campos fora do schema. Um \`pastos:UPDATE\` com \`propriedadeId\`, por exemplo, é recusado aqui como seria com 400 no \`PATCH /pastagens/:id\` — mudar o vínculo de propriedade não é edição de pasto. A recusa é do item, com \`erro.tipo = validationError\`, e não derruba o lote.

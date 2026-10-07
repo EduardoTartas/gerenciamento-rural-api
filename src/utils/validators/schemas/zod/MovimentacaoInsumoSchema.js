@@ -53,6 +53,24 @@ export function problemasDoMotivo({ tipo, origem, observacoes }) {
     return problemas;
 }
 
+/**
+ * Valor pago (issue #70) só existe em entrada: é o que alimenta o custo médio
+ * do insumo no relatório do app. Compartilhado entre POST e PATCH — na edição o
+ * `tipo` vem da movimentação gravada.
+ *
+ * @returns {{path: string[], message: string}[]}
+ */
+export function problemasDoValor({ tipo, valorTotal }) {
+    if (valorTotal == null || tipo === 'Entrada') return [];
+    return [{ path: ['valorTotal'], message: 'O valor pago só pode ser informado em entrada de estoque.' }];
+}
+
+const valorDaEntrada = z.number({ error: 'O valor total deve ser um número.' })
+    .finite('Valor total inválido.')
+    .positive('O valor total deve ser maior que zero.')
+    .optional()
+    .nullable();
+
 const dataNaoFutura = z.coerce.date({ error: 'A data deve ser uma data válida.' })
     // Tolera +5 min: o app offline grava com o relógio do celular,
     // que pode estar alguns segundos à frente do servidor.
@@ -70,12 +88,18 @@ export const MovimentacaoInsumoCreateSchema = z.object({
     rebanhoId:  z.string().uuid('O ID do rebanho deve ser um UUID válido.').optional().nullable(),
     pastoId:    z.string().uuid('O ID do pasto deve ser um UUID válido.').optional().nullable(),
     observacoes: z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
+    valorTotal: valorDaEntrada,
 })
     .strict()
     .superRefine((m, ctx) => {
         if (m.tipo === 'Ajuste') {
             if (m.quantidade === 0) {
                 ctx.addIssue({ code: 'custom', path: ['quantidade'], message: 'Ajuste sem quantidade não altera o estoque.' });
+            }
+            // A contagem negativa vira saída no `transform`: valor ali não cabe.
+            const tipoConvertido = m.quantidade > 0 ? 'Entrada' : 'Saida';
+            for (const problema of problemasDoValor({ tipo: tipoConvertido, valorTotal: m.valorTotal })) {
+                ctx.addIssue({ code: 'custom', ...problema });
             }
             return;
         }
@@ -84,7 +108,7 @@ export const MovimentacaoInsumoCreateSchema = z.object({
             ctx.addIssue({ code: 'custom', path: ['quantidade'], message: 'Quantidade deve ser maior que zero.' });
         }
 
-        for (const problema of problemasDoMotivo(m)) {
+        for (const problema of [...problemasDoMotivo(m), ...problemasDoValor(m)]) {
             ctx.addIssue({ code: 'custom', ...problema });
         }
     })
@@ -106,7 +130,7 @@ export const MovimentacaoInsumoCreateSchema = z.object({
 
 /**
  * Edição de um lançamento (issue #68). Só o que o produtor corrige:
- * quantidade, data, motivo e observações. `insumoId` e `tipo` não mudam —
+ * quantidade, data, motivo, observações e o valor pago (issue #70). `insumoId` e `tipo` não mudam —
  * trocar o insumo ou inverter entrada/saída é outro lançamento — e o
  * `.strict()` recusa com 400. A regra do motivo depende do `tipo` gravado, por
  * isso é conferida no service com `problemasDoMotivo`, depois do merge.
@@ -119,6 +143,8 @@ export const MovimentacaoInsumoUpdateSchema = z.object({
     data:       dataNaoFutura.optional(),
     origem:     z.enum(ORIGENS_ACEITAS, { message: `origem deve ser uma de: ${ORIGENS_ACEITAS.join(', ')}.` }).optional(),
     observacoes: z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
+    // `null` limpa o valor; o `tipo` gravado é conferido no service (`problemasDoValor`).
+    valorTotal: valorDaEntrada,
 })
     .strict()
     .refine((m) => Object.keys(m).length > 0, { message: 'Informe ao menos um campo para editar.' });

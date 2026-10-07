@@ -407,6 +407,9 @@ model movimentacaoInsumo {
   rebanho         rebanho?       @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
   pastoId         String?
   pasto           pasto?         @relation(fields: [pastoId], references: [id], onDelete: SetNull)
+  // Quanto foi pago pela entrada inteira, em R$ (issue #70). Opcional e só em
+  // `Entrada`: alimenta o custo do consumo no relatório do app.
+  valorTotal      Decimal?
   observacoes     String?
   ativo           Boolean        @default(true)
   createdAt       DateTime       @default(now())

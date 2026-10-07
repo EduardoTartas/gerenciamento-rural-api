@@ -50,6 +50,10 @@ Arquivo: `test/endpoints/insumos-movimentacoes/post-insumos-movimentacoes.test.j
 | MINS-POST-30 | `Outro` exige observação | sem observação ou só espaços | 400 / 201 | path `observacoes`; com observação, 201 |
 | MINS-POST-31 | `Ajuste` legado positivo; `Ajuste` zerado | — | 201 / 400 | positivo vira `Entrada`/`AjusteContagem`, observação original; zero → "Ajuste sem quantidade não altera o estoque." |
 | MINS-POST-32 | lançamento novo com `AjusteContagem` (fora do legado `tipo: Ajuste`) | `Entrada`/`AjusteContagem` | 400 | path `origem` |
+| MINS-POST-33 | entrada com valor pago (issue #70) | `Entrada`/`Compra`, `valorTotal: 1250.5` | 201 | `data.valorTotal` = "1250.5"; banco grava o valor |
+| MINS-POST-34 | valor é opcional | sem `valorTotal`; `CadastroInicial` com `valorTotal: null` | 201 | `valorTotal` nulo |
+| MINS-POST-35 | saída com valor pago | `Saida`/`Perda`, `valorTotal: 50` | 400 | path `valorTotal`; "O valor pago só pode ser informado em entrada de estoque." |
+| MINS-POST-36 | valor zero, negativo ou texto | `valorTotal` 0, -10, "100" | 400 | path `valorTotal` |
 
 ## Migration `estoque_sem_contagem`
 
@@ -81,6 +85,7 @@ Arquivo: `test/endpoints/insumos-movimentacoes/get-insumos-movimentacoes.test.js
 | MINS-GET-13 | multi-tenancy: `insumoId` de A, logado como B | — | 404 | mensagem "Insumo não encontrado ou não pertence ao usuário autenticado." |
 | MINS-GET-14 | multi-tenancy: `propriedadeId` de A + `atualizadoDesde`, logado como B | — | 200 | `data.docs` = [] — nunca vaza dado de outro tenant (o `where` permanece escopado a `insumo.propriedade.usuarioId` do requisitante) |
 | MINS-GET-15 | lista vazia | — | 200 | mensagem "Nenhuma movimentação encontrada." |
+| MINS-GET-16 | devolve `valorTotal` (issue #70) | entrada com valor e entrada sem valor | 200 | lista e leitura por diferença trazem `valorTotal` ("375.25") ou `null` |
 
 ## GET /insumos/movimentacoes/:id
 
@@ -125,6 +130,8 @@ Edição de lançamento (issue #68). Arquivo: `patch-insumos-movimentacoes-id.te
 | MINS-PATCH-ID-11 | movimentação inativa | `ativo=false` | 404 | mesma mensagem |
 | MINS-PATCH-ID-12 | sem token | — | 401 | `tipo` = unauthorized |
 | MINS-PATCH-ID-13 | `observacoes: null` limpa a observação | `Compra` com observação | 200 / 400 | gravada como `null`; com `origem: Outro` no mesmo envio → 400, path `observacoes` |
+| MINS-PATCH-ID-14 | edita e limpa o valor pago (issue #70) | `Entrada`/`Compra` | 200 | `valorTotal: 480` gravado; `valorTotal: null` limpa |
+| MINS-PATCH-ID-15 | valor pago em saída ou inválido | `Saida`/`Perda`; entrada com `valorTotal: 0` | 400 | path `valorTotal`; nada gravado |
 
 ## Divergências
 

@@ -156,4 +156,19 @@ describe('GET /v1/insumos/movimentacoes', () => {
         expect(r.body.message).toBe('Nenhuma movimentação encontrada.');
         expect(r.body.data.docs).toEqual([]);
     });
+
+    it('MINS-GET-16 devolve valorTotal na lista e na leitura por diferença (issue #70)', async () => {
+        const comValor = await criarMovimentacaoInsumo(insumo.id, { valorTotal: 375.25 });
+        const semValor = await criarMovimentacaoInsumo(insumo.id, { data: new Date('2026-01-01T00:00:00Z') });
+
+        const lista = await get(a, `?insumoId=${insumo.id}`);
+        expect(lista.status).toBe(200);
+        const porId = Object.fromEntries(lista.body.data.docs.map((d) => [d.id, d]));
+        expect(porId[comValor.id].valorTotal).toBe('375.25');
+        expect(porId[semValor.id].valorTotal).toBeNull();
+
+        const delta = await get(a, `?propriedadeId=${propriedade.id}&atualizadoDesde=${new Date(0).toISOString()}`);
+        expect(delta.status).toBe(200);
+        expect(delta.body.data.docs.find((d) => d.id === comValor.id).valorTotal).toBe('375.25');
+    });
 });
