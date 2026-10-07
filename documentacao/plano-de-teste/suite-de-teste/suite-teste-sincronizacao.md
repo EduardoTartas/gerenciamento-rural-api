@@ -144,6 +144,8 @@ Arquivo: `test/endpoints/sync/post-sync-despacho.test.js`
 | SYNC-POST-88 | `movimentacoes_insumo:UPDATE` de lançamento do manejo | `Saida`/`ManejoPasto` | 200 (`recusado`) | `recuperavel: false`; "Lançamento gerado por manejo: edite pelo manejo." |
 | SYNC-POST-90 | `movimentacoes_insumo:CREATE` com valor pago (issue #70) | `Entrada`/`CadastroInicial` com `valorTotal`; `Saida` com `valorTotal` | 200 | entrada `aceito`, valor gravado; saída `recusado`, `campo: valorTotal` |
 | SYNC-POST-91 | `movimentacoes_insumo:UPDATE` do valor pago | `Compra`; `Perda` | 200 | `valorTotal: 99.9` aceito; `null` limpa; em saída `recusado`, `campo: valorTotal` |
+| SYNC-POST-92 | `rebanhos:CREATE` com a compra do lote (issue #71) | pasto livre | 200 | `aceito`, `valorCompra`/`cabecasCompra` gravados; `valorCompra: 0` → `recusado`, `campo: valorCompra` |
+| SYNC-POST-93 | `rebanhos:UPDATE` da compra do lote | rebanho sem compra | 200 | informa `valorCompra`/`cabecasCompra`; `valorCompra: null` limpa e mantém `cabecasCompra` |
 | SYNC-POST-60 | `regimes_consumo_insumo:CREATE` | A; rebanho e insumo existentes | 200 (`aceito`) | regime no banco |
 | SYNC-POST-61 | `regimes_consumo_insumo:UPDATE` | A; regime existente | 200 (`aceito`) | campo atualizado |
 | SYNC-POST-62 | `regimes_consumo_insumo:DELETE` | A; regime existente | 200 (`aceito`) | removido conforme regra do domínio |
