@@ -4,6 +4,32 @@ import { z } from 'zod/v4';
 
 const uuidOpcional = z.string().uuid().optional().nullable();
 
+const positivoOpcional = (rotulo) => z.number({ error: `${rotulo} deve ser um número.` })
+    .finite(`${rotulo} inválido.`)
+    .positive(`${rotulo} deve ser maior que zero.`)
+    .optional()
+    .nullable();
+
+/**
+ * Compra do lote (issue #71): tudo opcional e independente — o produtor pode
+ * informar só o valor, ou valor, peso e arroba. `null` limpa na edição. A data
+ * tolera +5 min como as demais: o app offline usa o relógio do celular.
+ */
+const camposDeCompra = {
+    valorCompra:       positivoOpcional('O valor da compra'),
+    pesoCompraKg:      positivoOpcional('O peso da compra'),
+    precoArrobaCompra: positivoOpcional('O preço da arroba da compra'),
+    cabecasCompra:     z.number({ error: 'As cabeças na compra devem ser um número.' })
+                         .int('As cabeças na compra devem ser um número inteiro.')
+                         .positive('As cabeças na compra devem ser maior que zero.')
+                         .optional()
+                         .nullable(),
+    dataCompra:        z.coerce.date({ error: 'A data da compra deve ser uma data válida.' })
+                         .refine((d) => d.getTime() <= Date.now() + 5 * 60 * 1000, { message: 'A data da compra não pode ser no futuro.' })
+                         .optional()
+                         .nullable(),
+};
+
 /**
  * Schema para criar um novo rebanho.
  */
@@ -21,6 +47,7 @@ export const RebanhoCreateSchema = z.object({
     // Mesma regra da movimentação: o pasto inicial precisa estar livre, salvo
     // consentimento explícito. Não é coluna — o service remove antes do Prisma.
     permitirLotacaoConjunta: z.boolean().optional().default(false),
+    ...camposDeCompra,
 }).strict();
 
 /**
@@ -36,6 +63,7 @@ export const RebanhoUpdateSchema = z.object({
     sistemaProducaoId:    uuidOpcional,
     regimeAlimentarId:    uuidOpcional,
     ativo:                z.boolean().optional(),
+    ...camposDeCompra,
 }).strict();
 
 export default RebanhoCreateSchema;
