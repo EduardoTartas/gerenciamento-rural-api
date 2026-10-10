@@ -150,6 +150,8 @@ Arquivo: `test/endpoints/sync/post-sync-despacho.test.js`
 | SYNC-POST-61 | `regimes_consumo_insumo:UPDATE` | A; regime existente | 200 (`aceito`) | campo atualizado |
 | SYNC-POST-62 | `regimes_consumo_insumo:DELETE` | A; regime existente | 200 (`aceito`) | removido conforme regra do domínio |
 
+`notificacoes:UPDATE` (só `{ lida }`) está em [suite-teste-notificacoes.md](./suite-teste-notificacoes.md), IDs `NOTIF-SYNC-01` a `NOTIF-SYNC-03`.
+
 ### Contrato de erro tipado (`tipo`/`recuperavel` por mutação)
 
 Arquivo: `test/endpoints/sync/post-sync-erros.test.js` (cobre também a sub-seção "Transação" abaixo)

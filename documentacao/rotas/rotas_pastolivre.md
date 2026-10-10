@@ -428,7 +428,7 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
 - **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
 - **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
-- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`.
+- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`, `notificacoes`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`. `notificacoes` aceita só `UPDATE` com `{ lida }` (a notificação nasce no servidor; ver [Notificações](#notificações)).
 - **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
 - **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
 - **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
@@ -576,3 +576,69 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Caso de Uso:** Encerrar um regime de consumo.
 **Regras de Negócio:**
 - **Exclusão lógica:** marca `ativo: false` e preenche `dataFim` com o momento atual. A partir daí o regime deixa de contar no `consumoDiaTotal` e na projeção.
+
+---
+
+## 14. Notificações
+
+Avisos da fazenda (issue #62). O servidor avalia periodicamente as fazendas de cada usuário, guarda as situações que pedem atenção na **caixa de notificações** e envia o push pelo **NPaaS** (serviço de notificações do FSLab, que fala com o Firebase). O app lê a caixa pela API e só recebe o push para avisar com o app fechado.
+
+**Situações avaliadas** (mesmas regras que o app já mostra na Home e nas fichas):
+
+| Tipo | Quando | Entidade | `rota` no app | Push |
+| :--- | :--- | :--- | :--- | :--- |
+| `PASTO_PRONTO` | pasto em `Descanso` há pelo menos os dias de descanso dele (ajuste do pasto, senão da forrageira, senão 30) contados de `dataUltimaSaida` | pasto | `/pastos/{id}` | sim |
+| `PASTO_PRONTO_AMANHA` | pasto em `Descanso` a no máximo 1 dia de concluir o descanso (véspera; encerra quando nasce o `PASTO_PRONTO`) | pasto | `/pastos/{id}` | sim |
+| `OCUPACAO_LONGA` | lote há **mais de 7 dias** no mesmo piquete (`dataEntradaPastoAtual`) | rebanho | `/rebanhos/{id}` | sim |
+| `LOTACAO_ALTA` | UA da fazenda ÷ hectares dos pastos ativos **> 2,0 UA/ha**. UA = cabeças × peso médio ÷ 450; sem peso, estimado pelo sistema de produção (cria 400, recria 300, engorda/terminação 450, ciclo completo 350, leite 450, demais 450) | propriedade | `/pastos` | sim |
+| `LOTE_SEM_PASTO` | lote ativo sem pasto vinculado | rebanho | `/rebanhos/{id}` | sim |
+| `LOTE_SEM_PESAGEM` | lote ativo sem pesagem há **mais de 60 dias** (ou nunca pesado e criado há mais de 60 dias). Pesagem = manejo de rebanho ativo com `pesoRegistrado`, de qualquer tipo — o catálogo de tipos é livre, o peso é o que identifica a pesagem | rebanho | `/rebanhos/{id}` | sim |
+| `INSUMO_ESGOTADO` | saldo projetado ≤ 0 | insumo | `/insumos/{id}` | sim |
+| `INSUMO_ABAIXO_MINIMO` | saldo projetado ≤ `estoqueMinimo` | insumo | `/insumos/{id}` | sim |
+| `INSUMO_ACABANDO` | com consumo diário, o estoque dura **até 7 dias** | insumo | `/insumos/{id}` | sim |
+| `RESUMO_MES` | **dia 1** do mês (fuso da fazenda): por fazenda, cabeças vendidas e receita (saídas `Venda`, soma de `valorTotal`) do mês anterior, mais as outras saídas. Mês sem nenhuma saída não gera resumo | propriedade | `/home/relatorio` | sim |
+| `PASTO_SEM_AREA` | pasto ativo sem `extensaoHa` (fica fora da lotação) | pasto | `/pastos/{id}` | **só caixa** |
+| `LOTE_SEM_VALOR_COMPRA` | lote com venda ou finalizado (inclusive inativo) sem `valorCompra` (resultado do lote sem custo) | rebanho | `/rebanhos/{id}` | **só caixa** |
+| `INSUMO_SEM_PRECO` | insumo com consumo no mês (saída de consumo — `ConsumoRebanho`, `ManejoRebanho`, `ManejoPasto` — desde o dia 1, ou regime vigente) e nenhuma entrada com `valorTotal` (custo "sem preço") | insumo | `/insumos/{id}` | **só caixa** |
+
+- Insumo tem **um** aviso por vez, o mais grave (esgotado > abaixo do mínimo > acabando). Insumo sem nenhuma entrada não gera aviso.
+- **Sem duplicar:** uma notificação aberta por usuário, tipo e entidade (`chaveAtiva` única no banco). Enquanto a situação persistir, a verificação não cria outra nem manda outro push.
+- **Resolução e reaparecimento:** quando a situação deixa de valer, a notificação continua na caixa (histórico) e a chave é liberada; o push que ainda não saiu é descartado. Se a situação voltar, nasce uma notificação nova.
+- **Dados faltando** (`PASTO_SEM_AREA`, `LOTE_SEM_VALOR_COMPRA`, `INSUMO_SEM_PRECO`): avisam **uma vez por item** e **só na caixa** (`pushStatus: somenteCaixa`) — não é urgência, e um push por cadastro incompleto incomodaria. Resolvido (dado preenchido), se encerra e **não reabre**.
+- **Resumo do mês:** a chave leva o mês de referência (`<usuario>:RESUMO_MES:<AAAA-MM>:<propriedadeId>`, ex.: `RESUMO_MES:2026-09:...` no dia 1º de outubro), por isso nunca duplica e não se "resolve" no dia seguinte. Os limites do mês são no fuso da fazenda (UTC−4, Cuiabá sem horário de verão).
+- **Horário de silêncio:** push só entre **6h e 21h** no fuso `America/Cuiaba`. Fora disso a notificação já entra na caixa e o push sai na primeira verificação dentro do horário.
+- **Rajada:** mais de 3 pushes pendentes para o mesmo usuário viram **um** push de resumo ("N avisos da fazenda", `tipo: RESUMO`, `rota: /notificacoes`).
+- **Push:** `dados` (todos string) = `notificacaoId`, `tipo`, `rota`, `propriedadeId`, `entidadeId`. Falha do NPaaS volta o push para a fila; após 3 tentativas, `falhou`. Push preso em envio (processo caiu) volta para a fila depois de 15 min.
+- **NPaaS ausente** (`NPAAS_URL`/`NPAAS_API_KEY` não configurados): a caixa funciona normalmente, nenhum push é tentado (`pushStatus: desligado`). Falha do NPaaS **nunca** derruba uma requisição nem a verificação.
+- **Agendamento:** `setInterval` no processo da API, a cada `NOTIFICACOES_INTERVALO_MIN` minutos (padrão 60; `0` desliga), primeira execução 1 min depois de subir. Não roda em teste (`NODE_ENV=test`). **Limitação:** cada réplica teria o seu agendador. Não duplica notificação (chave única) nem push (reserva atômica `pendente` → `enviando`), mas repete o trabalho de leitura; o deploy atual usa 1 réplica.
+
+### 14.1 GET /notificacoes
+**Caso de Uso:** Ler a caixa de notificações.
+**Regras de Negócio:**
+- Só as do usuário logado, da mais nova para a mais antiga, paginada (`page`, `limit` ≤ 100).
+- Filtros: `lida` (`true`/`false`), `propriedadeId`, `ativo`, `atualizadoDesde` (leitura por diferença: tudo o que mudou depois do instante, inclusive as lidas).
+- Item: `id`, `tipo`, `titulo`, `mensagem`, `lida`, `lidaEm`, `entidade`, `entidadeId`, `propriedadeId`, `rota`, `ativo`, `createdAt`, `updatedAt`. A resposta traz `naoLidas` (ativas não lidas do usuário, independente dos filtros) para o badge.
+
+### 14.2 GET /notificacoes/:id
+**Caso de Uso:** Detalhar uma notificação. De outro usuário ou inexistente → 404.
+
+### 14.3 PATCH /notificacoes/:id
+**Caso de Uso:** Marcar como lida (ou não lida).
+**Regras de Negócio:**
+- Corpo `{ "lida": true }`. Qualquer outro campo → 400 (`.strict()`). De outro usuário → 404.
+- Grava `lidaEm` e avança `updatedAt`. No `/sync`: `notificacoes:UPDATE` com o mesmo schema.
+
+### 14.4 PATCH /notificacoes/lidas
+**Caso de Uso:** Marcar todas como lidas. `{ "propriedadeId": "..." }` opcional restringe a uma fazenda. Responde `{ marcadas }`.
+
+### 14.5 POST /notificacoes/verificar
+**Caso de Uso:** Rodar a verificação na hora, só para o usuário autenticado (testes e demonstração). Ignora o horário de silêncio. Responde `{ abertas, resolvidas, enviadas, foraDoHorario }`. Idempotente.
+
+### 14.6 POST /dispositivos/registrar
+**Caso de Uso:** Registrar o aparelho para o push (após login e quando o token FCM muda).
+**Regras de Negócio:**
+- Corpo: `tokenFcm` (obrigatório), `plataforma` (`android` padrão, ou `ios`), `versaoApp` (opcional).
+- Repassa ao NPaaS (`POST /dispositivos`) com o usuário `<usuarioId>_mobile`. Falha ou ausência do NPaaS responde 200 com `registrado: false` — o app segue funcionando com a caixa.
+
+### 14.7 POST /dispositivos/desativar-token
+**Caso de Uso:** Parar o push no aparelho (logout). Corpo `{ tokenFcm }`. Responde `{ desativado }`, 200 mesmo com o NPaaS fora.
