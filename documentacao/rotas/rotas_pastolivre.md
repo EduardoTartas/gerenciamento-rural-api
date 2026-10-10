@@ -589,10 +589,8 @@ Avisos da fazenda (issue #62). O servidor avalia periodicamente as fazendas de c
 | :--- | :--- | :--- | :--- | :--- |
 | `PASTO_PRONTO` | pasto em `Descanso` há pelo menos os dias de descanso dele (ajuste do pasto, senão da forrageira, senão 30) contados de `dataUltimaSaida` | pasto | `/pastos/{id}` | sim |
 | `PASTO_PRONTO_AMANHA` | pasto em `Descanso` a no máximo 1 dia de concluir o descanso (véspera; encerra quando nasce o `PASTO_PRONTO`) | pasto | `/pastos/{id}` | sim |
-| `OCUPACAO_LONGA` | lote há **mais de 7 dias** no mesmo piquete (`dataEntradaPastoAtual`) | rebanho | `/rebanhos/{id}` | sim |
 | `LOTACAO_ALTA` | UA da fazenda ÷ hectares dos pastos ativos **> 2,0 UA/ha**. UA = cabeças × peso médio ÷ 450; sem peso, estimado pelo sistema de produção (cria 400, recria 300, engorda/terminação 450, ciclo completo 350, leite 450, demais 450) | propriedade | `/pastos` | sim |
 | `LOTE_SEM_PASTO` | lote ativo sem pasto vinculado | rebanho | `/rebanhos/{id}` | sim |
-| `LOTE_SEM_PESAGEM` | lote ativo sem pesagem há **mais de 60 dias** (ou nunca pesado e criado há mais de 60 dias). Pesagem = manejo de rebanho ativo com `pesoRegistrado`, de qualquer tipo — o catálogo de tipos é livre, o peso é o que identifica a pesagem | rebanho | `/rebanhos/{id}` | sim |
 | `INSUMO_ESGOTADO` | saldo projetado ≤ 0 | insumo | `/insumos/{id}` | sim |
 | `INSUMO_ABAIXO_MINIMO` | saldo projetado ≤ `estoqueMinimo` | insumo | `/insumos/{id}` | sim |
 | `INSUMO_ACABANDO` | com consumo diário, o estoque dura **até 7 dias** | insumo | `/insumos/{id}` | sim |

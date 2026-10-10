@@ -10,11 +10,9 @@ export const TIPOS = Object.freeze({
     INSUMO_ACABANDO: 'INSUMO_ACABANDO',
     INSUMO_ABAIXO_MINIMO: 'INSUMO_ABAIXO_MINIMO',
     INSUMO_ESGOTADO: 'INSUMO_ESGOTADO',
-    OCUPACAO_LONGA: 'OCUPACAO_LONGA',
     LOTACAO_ALTA: 'LOTACAO_ALTA',
     PASTO_PRONTO_AMANHA: 'PASTO_PRONTO_AMANHA',
     LOTE_SEM_PASTO: 'LOTE_SEM_PASTO',
-    LOTE_SEM_PESAGEM: 'LOTE_SEM_PESAGEM',
     RESUMO_MES: 'RESUMO_MES',
     // Dados faltando: avisam uma vez por item e só na caixa.
     PASTO_SEM_AREA: 'PASTO_SEM_AREA',
@@ -45,14 +43,10 @@ const MS_POR_DIA = 24 * 60 * 60 * 1000;
 export const DIAS_DESCANSO_PADRAO = 30;
 /** Insumo "acabando": previsão de término em até tantos dias. */
 export const DIAS_ALERTA_INSUMO = 7;
-/** Ocupação recomendada do piquete (app: `Lotacao.diasOcupacaoReferencia`). */
-export const DIAS_OCUPACAO_REFERENCIA = 7;
 /** Lotação de referência da fazenda, em UA/ha (app: `Lotacao.tetoDeReferencia`). */
 export const TETO_LOTACAO_UA_HA = 2.0;
 /** Uma unidade animal = 450 kg de peso vivo. */
 export const KG_POR_UA = 450;
-/** Lote sem pesagem há mais que isso: peso médio e lotação ficam suspeitos. */
-export const DIAS_SEM_PESAGEM = 60;
 
 const numero = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
 const umaCasa = new Intl.NumberFormat('pt-BR', { minimumFractionDigits: 1, maximumFractionDigits: 1 });
@@ -117,8 +111,6 @@ export function avaliarSituacoes({
         });
 
     for (const fazenda of fazendas) {
-        const nomesDosPastos = new Map(fazenda.pastos.map((p) => [p.id, p.nome]));
-
         // Descanso do pasto acabou: em descanso há pelo menos os dias dele (ajuste
         // do pasto, senão da forrageira, senão a referência) — `descansoConcluido`
         // do app. Sem data de saída não dá para afirmar há quanto tempo descansa.
@@ -147,35 +139,13 @@ export function avaliarSituacoes({
                 'Sem a área, o pasto fica fora do cálculo de lotação. Informe os hectares.');
         }
 
-        // Lote sem pasto e lote sem pesagem recente (pesagem = manejo com
-        // `pesoRegistrado`; nunca pesado conta da criação do lote).
+        // Lote sem pasto.
         for (const lote of fazenda.rebanhos) {
             if (!lote.pastoAtualId) {
                 nova(TIPOS.LOTE_SEM_PASTO, 'rebanho', lote.id, fazenda.id, `/rebanhos/${lote.id}`,
                     `${lote.nomeRebanho} está sem pasto`,
                     'Vincule o lote a um pasto para acompanhar a ocupação e a lotação.');
             }
-
-            const base = lote.ultimaPesagem ?? lote.createdAt;
-            const semPesar = base ? Math.floor((agora.getTime() - base.getTime()) / MS_POR_DIA) : 0;
-            if (semPesar > DIAS_SEM_PESAGEM) {
-                nova(TIPOS.LOTE_SEM_PESAGEM, 'rebanho', lote.id, fazenda.id, `/rebanhos/${lote.id}`,
-                    lote.ultimaPesagem
-                        ? `${lote.nomeRebanho} sem pesagem há ${dias(semPesar)}`
-                        : `${lote.nomeRebanho} nunca foi pesado`,
-                    'O peso médio e a lotação podem estar desatualizados. Registre uma pesagem.');
-            }
-        }
-
-        // Lote há muito tempo no mesmo piquete.
-        for (const lote of fazenda.rebanhos) {
-            if (!lote.pastoAtualId || !lote.dataEntradaPastoAtual) continue;
-            const noPiquete = Math.floor((agora.getTime() - lote.dataEntradaPastoAtual.getTime()) / MS_POR_DIA);
-            if (noPiquete <= DIAS_OCUPACAO_REFERENCIA) continue;
-            const pasto = nomesDosPastos.get(lote.pastoAtualId) ?? 'mesmo piquete';
-            nova(TIPOS.OCUPACAO_LONGA, 'rebanho', lote.id, fazenda.id, `/rebanhos/${lote.id}`,
-                `${lote.nomeRebanho} há ${dias(noPiquete)} no ${pasto}`,
-                `O lote passou dos ${DIAS_OCUPACAO_REFERENCIA} dias no mesmo piquete. Avalie mudar de pasto para o capim descansar.`);
         }
 
         // Lotação da fazenda: UA de todos os lotes ativos ÷ área dos pastos com área.

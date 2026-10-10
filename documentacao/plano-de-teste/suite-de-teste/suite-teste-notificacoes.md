@@ -80,7 +80,7 @@ Arquivo: `test/endpoints/notificacoes/verificacao.test.js`
 | :--- | :--- | :--- | :--- |
 | VERIF-01 | `PASTO_PRONTO` | pasto em descanso há 40 dias | aviso com rota `/pastos/{id}`; push com `notificacaoId`, `tipo`, `rota`, `propriedadeId`, `entidadeId` |
 | VERIF-02 | descanso do pasto e exclusões | 45 dias de ajuste, ocupado, sem data, inativo | só o pasto pronto |
-| VERIF-03 | `OCUPACAO_LONGA` | lotes há 10 e 7 dias | só o de 10; rota `/rebanhos/{id}` |
+| VERIF-03 | lote há muito tempo no piquete | lote há 30 dias no mesmo piquete | nenhum aviso (retirado a pedido do produtor; o alerta continua só local na Home) |
 | VERIF-04 | `LOTACAO_ALTA` com peso estimado | Recria em 1 ha: 3 e depois 4 cabeças | 2,0 UA/ha não avisa; 2,7 avisa; rota `/pastos` |
 | VERIF-05 | `INSUMO_ABAIXO_MINIMO` | 10 com mínimo 20 | rota `/insumos/{id}` |
 | VERIF-06 | `INSUMO_ACABANDO` | 100 com consumo 20/dia | "5 dias" |
@@ -107,7 +107,7 @@ Arquivo: `test/endpoints/notificacoes/verificacao-novos-avisos.test.js`
 | NOVO-01 | `PASTO_PRONTO_AMANHA` | descanso a meio dia do fim; depois concluído | véspera com push; ao concluir, encerra e nasce `PASTO_PRONTO` |
 | NOVO-02 | véspera cedo demais | faltam 2 dias | nada |
 | NOVO-03 | `LOTE_SEM_PASTO` | lote ativo sem pasto, com pasto, inativo | só o ativo sem pasto, com push |
-| NOVO-04 | `LOTE_SEM_PESAGEM` | nunca pesado (70 dias), pesado há 65, pesado há 10, novo; manejo sem peso | só os dois primeiros; títulos "nunca foi pesado" / "sem pesagem há 65 dias" |
+| NOVO-04 | lote sem pesagem | lote criado há 200 dias, nunca pesado | nenhum aviso (retirado a pedido do produtor) |
 | NOVO-05 | `PASTO_SEM_AREA` | pasto sem área; depois preenche; depois apaga | `somenteCaixa`, sem push; resolvido não reabre |
 | NOVO-06 | `LOTE_SEM_VALOR_COMPRA` | vendido, finalizado (inativo), com valor, só morte | só vendido e finalizado; preencher resolve |
 | NOVO-07 | `INSUMO_SEM_PRECO` | consumo sem entrada com valor; com valor; só perda | só o primeiro, `somenteCaixa` |

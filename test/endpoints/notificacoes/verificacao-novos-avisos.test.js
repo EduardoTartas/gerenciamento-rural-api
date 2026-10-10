@@ -5,8 +5,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarInsumo, criarPasto, criarPropriedade, criarRebanho, criarTipoManejoRebanho } from '../../apoio/fabricas.js';
-import { criarManejoRebanho, criarMovimentacaoInsumo } from '../sync/apoio-local.js';
+import { criarInsumo, criarPasto, criarPropriedade, criarRebanho } from '../../apoio/fabricas.js';
+import { criarMovimentacaoInsumo } from '../sync/apoio-local.js';
 import VerificacaoNotificacoesService from '../../../src/service/VerificacaoNotificacoesService.js';
 import { diasAtras, reiniciarNpaasFalso } from './apoio-local.js';
 
@@ -77,26 +77,12 @@ describe('Verificação — avisos adicionais', () => {
         });
     });
 
-    it('NOVO-04 LOTE_SEM_PESAGEM: nunca pesado e criado há mais de 60 dias, ou última pesagem há mais de 60 dias', async () => {
-        const tipo = await criarTipoManejoRebanho({ nome: 'Pesagem' });
-        const nunca = await criarRebanho(fazenda.id, pasto.id, { nomeRebanho: 'Novilhas', createdAt: diasAtras(70) });
-        const antiga = await criarRebanho(fazenda.id, pasto.id, { nomeRebanho: 'Garrotes', createdAt: diasAtras(200) });
-        await criarManejoRebanho(antiga.id, tipo.id, { pesoRegistrado: 380, dataAtividade: diasAtras(65) });
-        const recente = await criarRebanho(fazenda.id, pasto.id, { createdAt: diasAtras(200) });
-        await criarManejoRebanho(recente.id, tipo.id, { pesoRegistrado: 400, dataAtividade: diasAtras(10) });
-        // Manejo sem peso (vacina) não conta como pesagem.
-        await criarManejoRebanho(nunca.id, tipo.id, { dataAtividade: diasAtras(5) });
-        await criarRebanho(fazenda.id, pasto.id, { createdAt: diasAtras(30) });
+    it('NOVO-04 lote sem pesagem não gera aviso (retirado a pedido do produtor)', async () => {
+        await criarRebanho(fazenda.id, pasto.id, { nomeRebanho: 'Novilhas', createdAt: diasAtras(200) });
 
         await verificar();
 
-        const lista = await doTipo('LOTE_SEM_PESAGEM');
-        expect(lista.map((n) => n.entidadeId).sort()).toEqual([nunca.id, antiga.id].sort());
-        const porId = Object.fromEntries(lista.map((n) => [n.entidadeId, n]));
-        expect(porId[nunca.id].titulo).toBe('Novilhas nunca foi pesado');
-        expect(porId[antiga.id].titulo).toBe('Garrotes sem pesagem há 65 dias');
-        expect(porId[antiga.id].mensagem).toContain('peso médio e a lotação podem estar desatualizados');
-        expect(porId[antiga.id].rota).toBe(`/rebanhos/${antiga.id}`);
+        expect(await doTipo('LOTE_SEM_PESAGEM')).toHaveLength(0);
     });
 
     describe('Dados faltando (só caixa, uma vez por item)', () => {

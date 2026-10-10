@@ -490,7 +490,7 @@ model notificacao {
   usuarioId      String
   usuario        user      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
   propriedadeId  String?
-  // PASTO_PRONTO | PASTO_PRONTO_AMANHA | OCUPACAO_LONGA | LOTACAO_ALTA | LOTE_SEM_PASTO | LOTE_SEM_PESAGEM |
+  // PASTO_PRONTO | PASTO_PRONTO_AMANHA | LOTACAO_ALTA | LOTE_SEM_PASTO |
   // INSUMO_ACABANDO | INSUMO_ABAIXO_MINIMO | INSUMO_ESGOTADO | RESUMO_MES |
   // PASTO_SEM_AREA | LOTE_SEM_VALOR_COMPRA | INSUMO_SEM_PRECO (dados faltando)
   tipo           String

@@ -111,13 +111,6 @@ class NotificacaoRepository {
                         id: true, nomeRebanho: true, quantidadeCabecas: true, pesoMedioAtual: true,
                         pastoAtualId: true, dataEntradaPastoAtual: true, createdAt: true,
                         sistemaProducao: { select: { nome: true } },
-                        // Última pesagem: manejo com peso registrado, qualquer tipo.
-                        manejos: {
-                            where: { ativo: true, pesoRegistrado: { not: null } },
-                            orderBy: { dataAtividade: 'desc' },
-                            take: 1,
-                            select: { dataAtividade: true },
-                        },
                     },
                 },
             },

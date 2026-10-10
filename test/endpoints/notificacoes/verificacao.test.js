@@ -75,19 +75,13 @@ describe('Verificação dos avisos da fazenda — POST /v1/notificacoes/verifica
             expect(lista.map((n) => n.entidadeId)).toEqual([pronto.id]);
         });
 
-        it('VERIF-03 OCUPACAO_LONGA: lote há mais de 7 dias no piquete; 7 dias ainda não', async () => {
+        it('VERIF-03 lote há mais de 7 dias no piquete não gera aviso (retirado a pedido do produtor)', async () => {
             const pasto = await criarPasto(fazenda.id, { nome: 'Piquete 1', status: 'Ocupado', extensaoHa: 100 });
-            const longo = await criarRebanho(fazenda.id, pasto.id, { nomeRebanho: 'Garrotes', dataEntradaPastoAtual: diasAtras(10) });
-            await criarRebanho(fazenda.id, pasto.id, { dataEntradaPastoAtual: diasAtras(7) });
+            await criarRebanho(fazenda.id, pasto.id, { nomeRebanho: 'Garrotes', dataEntradaPastoAtual: diasAtras(30) });
 
             await verificar();
 
-            const lista = await notificacoes();
-            expect(lista).toHaveLength(1);
-            expect(lista[0]).toMatchObject({
-                tipo: 'OCUPACAO_LONGA', entidade: 'rebanho', entidadeId: longo.id,
-                rota: `/rebanhos/${longo.id}`, titulo: 'Garrotes há 10 dias no Piquete 1',
-            });
+            expect(await notificacoes()).toHaveLength(0);
         });
 
         it('VERIF-04 LOTACAO_ALTA: mais de 2 UA/ha na fazenda, com peso estimado pelo sistema de produção', async () => {

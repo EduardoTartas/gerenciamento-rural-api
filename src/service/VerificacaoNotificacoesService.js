@@ -167,11 +167,10 @@ class VerificacaoNotificacoesService {
             fazendas: fazendas.map((f) => ({
                 ...f,
                 pastos: f.pastos.map((p) => ({ ...p, extensaoHa: p.extensaoHa == null ? null : Number(p.extensaoHa) })),
-                rebanhos: f.rebanhos.map(({ manejos, ...r }) => ({
+                rebanhos: f.rebanhos.map((r) => ({
                     ...r,
                     pesoMedioAtual: r.pesoMedioAtual == null ? null : Number(r.pesoMedioAtual),
                     sistemaProducao: r.sistemaProducao?.nome ?? null,
-                    ultimaPesagem: manejos[0]?.dataAtividade ?? null,
                 })),
             })),
             insumos: insumos.map((i) => {
