@@ -23,6 +23,7 @@ import insumoRoutes from './insumoRoutes.js';
 import regimeConsumoRoutes from './regimeConsumoRoutes.js';
 import syncRoutes from './syncRoutes.js';
 import uploadRoutes from './uploadRoutes.js';
+import notificacaoRoutes from './notificacaoRoutes.js';
 
 dotenv.config();
 
@@ -97,6 +98,7 @@ const routes = (app) => {
         rebanhoRoutes,
         syncRoutes,
         uploadRoutes,
+        notificacaoRoutes,
     );
 };
 

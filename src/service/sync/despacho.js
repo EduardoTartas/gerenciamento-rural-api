@@ -5,6 +5,7 @@ import ManejoPastoService from '../ManejoPastoService.js';
 import ManejoRebanhoService from '../ManejoRebanhoService.js';
 import MovimentacaoService from '../MovimentacaoService.js';
 import MovimentacaoInsumoService from '../MovimentacaoInsumoService.js';
+import NotificacaoService from '../NotificacaoService.js';
 import PastoService from '../PastoService.js';
 import PropriedadeService from '../PropriedadeService.js';
 import RebanhoService from '../RebanhoService.js';
@@ -21,6 +22,7 @@ const insumo = new InsumoService();
 const movimentacaoInsumo = new MovimentacaoInsumoService();
 const regimeConsumoInsumo = new RegimeConsumoInsumoService();
 const saidaRebanho = new SaidaRebanhoService();
+const notificacao = new NotificacaoService();
 
 /**
  * Liga `(entidade, ação)` ao método do service de domínio.
@@ -92,4 +94,8 @@ export const DESPACHO = {
         regimeConsumoInsumo.update(entidadeId, dados, req, tx),
     'regimes_consumo_insumo:DELETE': ({ entidadeId, req, tx }) =>
         regimeConsumoInsumo.remove(entidadeId, req, tx),
+
+    // Só marcar como lida (issue #62): a notificação nasce no servidor.
+    'notificacoes:UPDATE': ({ entidadeId, dados, req, tx }) =>
+        notificacao.update(entidadeId, dados, req, tx),
 };

@@ -3,6 +3,7 @@
 import "dotenv/config";
 import app from "./src/app.js";
 import DbConnect from "./src/config/dbConnect.js";
+import { iniciarAgendadorDeNotificacoes } from "./src/service/notificacao/agendador.js";
 
 const port = process.env.APP_PORT || process.env.API_PORT || 6060;
 
@@ -16,8 +17,13 @@ const server = app.listen(port, (error) => {
     }
 });
 
+// Avisos da fazenda (issue #62). Ligado só aqui, e não no `app.js`: os testes
+// importam o app e não podem ligar o agendador.
+const pararAgendador = iniciarAgendadorDeNotificacoes();
+
 const gracefulShutdown = async (signal) => {
     console.log(`\nRecebido ${signal}. Encerrando aplicação com segurança...`);
+    pararAgendador?.();
     server.close(async () => {
         try {
             await DbConnect.disconnect();

@@ -22,6 +22,7 @@ model user {
   sessions     session[]
   accounts     account[]
   propriedades propriedade[]
+  notificacoes notificacao[]
 
   @@map("users")
 }
@@ -477,4 +478,43 @@ model mutacaoAplicada {
   @@id([id, usuarioId])
   @@index([usuarioId, aplicadaEm])
   @@map("mutacoes_aplicadas")
+}
+
+// Caixa de notificações do produtor (issue #62). Geradas pela verificação
+// periódica (descanso do pasto acabou, insumo acabando...) e enviadas por push
+// via NPaaS. Uma notificação por situação: `chaveAtiva` fica preenchida
+// enquanto a situação persiste (única por usuário), e vira nula quando ela se
+// resolve — se voltar, nasce outra notificação.
+model notificacao {
+  id             String    @id @default(uuid())
+  usuarioId      String
+  usuario        user      @relation(fields: [usuarioId], references: [id], onDelete: Cascade)
+  propriedadeId  String?
+  // PASTO_PRONTO | PASTO_PRONTO_AMANHA | OCUPACAO_LONGA | LOTACAO_ALTA | LOTE_SEM_PASTO | LOTE_SEM_PESAGEM |
+  // INSUMO_ACABANDO | INSUMO_ABAIXO_MINIMO | INSUMO_ESGOTADO | RESUMO_MES |
+  // PASTO_SEM_AREA | LOTE_SEM_VALOR_COMPRA | INSUMO_SEM_PRECO (dados faltando)
+  tipo           String
+  titulo         String
+  mensagem       String
+  entidade       String? // pasto | insumo | rebanho | propriedade
+  entidadeId     String?
+  rota           String? // tela do app que a notificação abre
+  // `<usuarioId>:<tipo>:<entidadeId>` enquanto a situação persiste; nula depois.
+  // RESUMO_MES leva o mês (`<usuarioId>:RESUMO_MES:<AAAA-MM>:<propriedadeId>`) e não se resolve.
+  chaveAtiva     String?   @unique
+  resolvidaEm    DateTime?
+  lida           Boolean   @default(false)
+  lidaEm         DateTime?
+  // pendente | enviando | enviado | falhou | descartado | desligado (sem NPaaS) | somenteCaixa (aviso sem push)
+  pushStatus     String    @default("pendente")
+  pushTentativas Int       @default(0)
+  pushEnviadoEm  DateTime?
+  ativo          Boolean   @default(true)
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  @@index([usuarioId, updatedAt])
+  @@index([usuarioId, lida])
+  @@index([pushStatus])
+  @@map("notificacoes")
 }
