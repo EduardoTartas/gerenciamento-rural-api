@@ -72,6 +72,7 @@ gerenciamento-rural-api/
 | Movimentações | `GET · POST /rebanhos/movimentacoes` (imutáveis: sem PATCH/DELETE) |
 | Manejos de rebanho | `GET · POST · PATCH · DELETE /rebanhos/manejos` |
 | Catálogos globais | `GET · POST · PATCH · DELETE /catalogos/:entidade` |
+| Notificações | `GET · PATCH /notificacoes` · `PATCH /notificacoes/lidas` · `POST /notificacoes/verificar` · `POST /dispositivos/registrar` · `POST /dispositivos/desativar-token` |
 | Operacional | `GET /health` · `GET /docs` |
 
 As regras de negócio de cada endpoint estão detalhadas em
@@ -139,6 +140,14 @@ cp .env.example .env
 O arquivo `.env.example` traz as credenciais padrão de conexão com o contêiner do
 PostgreSQL. As variáveis relevantes incluem `DATABASE_URL`, `APP_PORT`, `CORS_ORIGIN`,
 `BETTER_AUTH_URL` e as credenciais SMTP usadas no envio do código de redefinição de senha.
+
+Push dos avisos da fazenda (opcionais — sem elas, os avisos ficam só na caixa de notificações do app):
+
+| Variável | Uso |
+| :--- | :--- |
+| `NPAAS_URL` | URL base da API do NPaaS (ex.: `https://npaas.fslab.dev/api/v1`) |
+| `NPAAS_API_KEY` | chave do projeto no NPaaS (segredo; nunca versionar) |
+| `NOTIFICACOES_INTERVALO_MIN` | intervalo da verificação periódica em minutos (padrão `60`; `0` desliga) |
 
 ### 2. Subindo o ambiente
 

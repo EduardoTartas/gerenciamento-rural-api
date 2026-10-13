@@ -12,7 +12,7 @@ const syncRoutes = {
 
             + Função de Negócio:
                 1. Reordena as mutações por dependência (\`dependeDe\`), respeitando a ordem em que precisam ser aplicadas dentro do próprio lote.
-                2. Aplica cada mutação em sua **própria transação**, delegando ao service de domínio correspondente (propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes, saidas_rebanho, insumos, movimentacoes_insumo, regimes_consumo_insumo).
+                2. Aplica cada mutação em sua **própria transação**, delegando ao service de domínio correspondente (propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes, saidas_rebanho, insumos, movimentacoes_insumo, regimes_consumo_insumo, notificacoes).
                 3. **Idempotência:** reenviar uma mutação com o mesmo \`id\` já aplicada anteriormente devolve o resultado registrado da primeira vez, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
                 4. **Cascata de bloqueio:** se uma mutação é recusada, toda mutação do lote que dependia dela (direta ou indiretamente, via \`dependeDe\`) sai como \`bloqueado\` em vez de ser tentada.
 

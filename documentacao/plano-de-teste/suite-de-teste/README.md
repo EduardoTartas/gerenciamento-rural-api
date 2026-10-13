@@ -181,6 +181,7 @@ não para corrigir o código.
 | `/usuarios` | [suite-teste-usuario.md](./suite-teste-usuario.md) | USR |
 | `/uploads` | [suite-teste-upload.md](./suite-teste-upload.md) | UPL |
 | `/sync` | [suite-teste-sincronizacao.md](./suite-teste-sincronizacao.md) | SYNC |
+| `/notificacoes`, `/dispositivos` | [suite-teste-notificacoes.md](./suite-teste-notificacoes.md) | NOTIF, DISP, NPAAS, VERIF, NOVO |
 | Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [suite-teste-transversal.md](./suite-teste-transversal.md) | APP |
 
 ## Sigla por rota
@@ -201,4 +202,8 @@ não para corrigir o código.
 | USR | `/usuarios` |
 | UPL | `/uploads` |
 | SYNC | `/sync` |
+| NOTIF | `/notificacoes` (caixa e `notificacoes:UPDATE` no `/sync`) |
+| DISP | `/dispositivos` |
+| NPAAS | cliente do NPaaS |
+| VERIF, NOVO | verificação dos avisos da fazenda |
 | APP | transversal (`/health`, 404, JSON inválido, ordem de rotas, 401 genérico) |
