@@ -48,6 +48,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const uploadPaths = (await import(new URL("../paths/upload.js",
         import.meta.url).href + t)).default;
+    const notificacaoPaths = (await import(new URL("../paths/notificacao.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -75,6 +77,8 @@ const getSwaggerOptions = async () => {
     const syncSchemas = (await import(new URL("../schemas/syncSchema.js",
         import.meta.url).href + t)).default;
     const uploadSchemas = (await import(new URL("../schemas/uploadSchema.js",
+        import.meta.url).href + t)).default;
+    const notificacaoSchemas = (await import(new URL("../schemas/notificacaoSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -194,6 +198,10 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 {
                     name: "Uploads",
                     description: "Upload genérico de imagens para o armazenamento (Garage)"
+                },
+                {
+                    name: "Notificações",
+                    description: "Avisos da fazenda (caixa de notificações e push via NPaaS)"
                 }
             ],
             paths: {
@@ -210,6 +218,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...insumoPaths,
                 ...syncPaths,
                 ...uploadPaths,
+                ...notificacaoPaths,
             },
             components: {
                 securitySchemes: {
@@ -233,6 +242,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     ...insumoSchemas,
                     ...syncSchemas,
                     ...uploadSchemas,
+                    ...notificacaoSchemas,
                 }
             },
             security: [{

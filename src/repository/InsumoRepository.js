@@ -116,6 +116,19 @@ class InsumoRepository {
         return docs.map((d) => ({ ...d, _resumoLedger: resumoPorInsumo.get(d.id) }));
     }
 
+    /**
+     * Todos os insumos ativos do usuário com o resumo do ledger — para a
+     * verificação de notificações (issue #62), que precisa do saldo de cada um.
+     */
+    async listarAtivosComResumo(usuarioId) {
+        const docs = await this.prisma.insumo.findMany({
+            where: { ativo: true, propriedade: { usuarioId, ativo: true } },
+            orderBy: { nome: 'asc' },
+            select: INSUMO_SELECT_BASE,
+        });
+        return this.anexarResumoLedger(docs);
+    }
+
     async findById(id, usuarioId) {
         return this.prisma.insumo.findFirst({
             where: { id, propriedade: { usuarioId } },
