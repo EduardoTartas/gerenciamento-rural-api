@@ -459,7 +459,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 **Modelo:**
 - **Insumo** pertence à **propriedade**, com `destino` (`Pasto` / `Rebanho` / `Ambos`). Estoque único por insumo.
 - **Estoque por ledger:** não há coluna de saldo. O saldo é a soma das `movimentacoesInsumo` — evento imutável. `saldoReal = Σ(Entrada) − Σ(Saida)`. Não há ajuste nem contagem (issue #67).
-- **Saldo real vs. projetado:** a leitura de um insumo devolve o pacote `saldo` calculado na hora: `saldoReal` (soma do ledger), `consumoProjetado` (consumo dos regimes ainda não lançado, contado desde o último consumo lançado (saída `ConsumoRebanho`) ou contagem antiga (`AjusteContagem`), ou desde o início de cada regime — compra, perda, devolução, "Outro" e manejo não mexem nesse marco), `saldoProjetado` (`saldoReal − consumoProjetado`), `consumoDiaTotal` (soma de `quantidadeDia` dos regimes vigentes), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`).
+- **Saldo real vs. projetado:** a leitura de um insumo devolve o pacote `saldo` calculado na hora: `saldoReal` (soma do ledger), `consumoProjetado` (consumo dos regimes ainda não lançado, contado desde o último consumo lançado **do mesmo rebanho** (saída `ConsumoRebanho`) ou contagem antiga (`AjusteContagem`), ou desde o início de cada regime — compra, perda, devolução, "Outro" e manejo não mexem nesse marco; saída de consumo sem rebanho e contagem antiga valem para todos os regimes do insumo, issue #72), `saldoProjetado` (`saldoReal − consumoProjetado`), `consumoDiaTotal` (soma de `quantidadeDia` dos regimes vigentes), `diasRestantes`, `previsaoTermino`, `esgotado` (`saldoProjetado <= 0`) e `estoqueBaixo` (há `estoqueMinimo` e `saldoProjetado <= estoqueMinimo`).
 - **Custo da leitura:** `GET /insumos/:id` traz o ledger inteiro do insumo e calcula o `saldo` a partir das linhas. `GET /insumos` (listagem) **não** traz o ledger: agrega no banco (soma por tipo + data do último marco de consumo, via `groupBy`) e projeta em cima disso — o pacote `saldo` é idêntico.
 - **Regime de consumo:** consumo diário recorrente de um insumo por um rebanho. **Nunca escreve no ledger** — só alimenta a projeção. Criar um regime para um par (rebanho, insumo) que já tem regime em aberto **encerra o anterior** (`dataFim` = `dataInicio` do novo, `ativo: false`) na mesma transação. Um regime em aberto por par.
 - **Itens de insumo nos manejos:** o `POST` de `/pastagens/manejos` e `/rebanhos/manejos` aceita `itens: [{ id?, insumoId, quantidade, observacoes? }]`. Cada item vira uma movimentação de `Saida` (origem `ManejoPasto` / `ManejoRebanho`) criada na mesma transação do manejo. O `id` do item é opcional: quando presente, é o UUID que o app gerou localmente e vira o `id` da movimentação criada — assim o pull seguinte reconhece a linha em vez de duplicá-la (offline-first). **Saldo insuficiente avisa, não bloqueia** — o saldo pode ficar negativo; a resposta de criação traz `itens` e, quando aplicável, `avisos`.
@@ -552,11 +552,12 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 ### 13.10 POST /rebanhos/regimes-consumo
 **Caso de Uso:** Registrar que um rebanho consome uma quantidade fixa de um insumo por dia.
 **Regras de Negócio:**
-- **Campos obrigatórios:** `rebanhoId`, `insumoId`, `quantidadeDia`, `dataInicio`. **Opcionais:** `dataFim`, `id`.
+- **Campos obrigatórios:** `rebanhoId`, `insumoId`, `quantidadeDia`, `dataInicio`. **Opcionais:** `dataFim`, `id`, `lancamentoAutomatico` (padrão `false`).
 - O rebanho deve existir e pertencer ao usuário. O insumo deve ser da **mesma propriedade** do rebanho e ter `destino` `Rebanho` ou `Ambos`.
 - `quantidadeDia` > 0. `dataInicio <= dataFim` quando `dataFim` for informada.
 - **Um regime em aberto por par (rebanho, insumo):** criar um novo para um par que já tem regime em aberto **encerra o anterior** (`dataFim` = `dataInicio` do novo, `ativo: false`) na mesma transação.
-- O regime **nunca escreve no ledger** — só alimenta `saldoProjetado` e `previsaoTermino` na leitura do insumo.
+- **Manual** (`lancamentoAutomatico: false`): o regime não escreve no ledger — só alimenta `saldoProjetado` e `previsaoTermino` na leitura do insumo; o produtor lança o consumo real como saída `ConsumoRebanho`.
+- **Automático** (`lancamentoAutomatico: true`, issue #72): a verificação periódica (e o `POST /notificacoes/verificar`) lança uma saída `ConsumoRebanho` com `rebanhoId` e `regimeConsumoId` a cada 24 h completas desde o último consumo lançado daquele rebanho (ou o início do regime), até agora e até o `dataFim` — a mesma conta da projeção, que continua de onde o lançamento parou. Nunca passa do saldo real: com estoque insuficiente lança o que resta e para. Índice único `(regimeConsumoId, data)`: rodar de novo não duplica. Ligar o automático num regime antigo lança o pendente (até 400 dias por execução).
 
 ### 13.11 GET /rebanhos/regimes-consumo
 **Caso de Uso:** Ver o consumo diário recorrente de insumos por rebanho.
@@ -570,7 +571,7 @@ Controle de estoque de insumos da propriedade (ração, sal mineral, vacina, med
 ### 13.13 PATCH /rebanhos/regimes-consumo/:id
 **Caso de Uso:** Ajustar a `quantidadeDia` ou encerrar o regime via `dataFim`.
 **Regras de Negócio:**
-- Aceita `quantidadeDia` (> 0) e `dataFim`. Enviar `dataFim` encerra o regime (`ativo: false`).
+- Aceita `quantidadeDia` (> 0), `dataFim` e `lancamentoAutomatico`. Enviar `dataFim` encerra o regime (`ativo: false`).
 
 ### 13.14 DELETE /rebanhos/regimes-consumo/:id
 **Caso de Uso:** Encerrar um regime de consumo.
@@ -630,7 +631,7 @@ Avisos da fazenda (issue #62). O servidor avalia periodicamente as fazendas de c
 **Caso de Uso:** Marcar todas como lidas. `{ "propriedadeId": "..." }` opcional restringe a uma fazenda. Responde `{ marcadas }`.
 
 ### 14.5 POST /notificacoes/verificar
-**Caso de Uso:** Rodar a verificação na hora, só para o usuário autenticado (testes e demonstração). Ignora o horário de silêncio. Responde `{ abertas, resolvidas, enviadas, foraDoHorario }`. Idempotente.
+**Caso de Uso:** Rodar a verificação na hora, só para o usuário autenticado (testes e demonstração). Ignora o horário de silêncio. Antes dos avisos, lança o consumo diário automático pendente do usuário (issue #72). Responde `{ abertas, resolvidas, enviadas, foraDoHorario, lancamentos }`. Idempotente.
 
 ### 14.6 POST /dispositivos/registrar
 **Caso de Uso:** Registrar o aparelho para o push (após login e quando o token FCM muda).

@@ -16,6 +16,7 @@ class InsumoService {
     /** Converte Decimal -> Number e anexa o pacote de saldo a um insumo lido. */
     comSaldo(insumo) {
         const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
+            rebanhoId: r.rebanhoId,
             quantidadeDia: Number(r.quantidadeDia),
             dataInicio: r.dataInicio,
             dataFim: r.dataFim,
@@ -33,6 +34,7 @@ class InsumoService {
                     quantidade: Number(m.quantidade),
                     origem: m.origem,
                     data: m.data,
+                    rebanhoId: m.rebanhoId,
                 })),
                 regimes,
                 agora,

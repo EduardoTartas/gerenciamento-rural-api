@@ -2,6 +2,7 @@
 
 import { notificacaoRepository, insumoRepository } from '../repository/index.js';
 import InsumoService from './InsumoService.js';
+import LancamentoAutomaticoService from './LancamentoAutomaticoService.js';
 import { avaliarSituacoes, TIPOS_DADOS_FALTANDO, TIPOS_SEM_RESOLUCAO } from './notificacao/regras.js';
 import npaas, { npaasAtivo } from '../utils/npaas.js';
 import logger from '../utils/logger.js';
@@ -76,6 +77,7 @@ class VerificacaoNotificacoesService {
         this.repository = notificacaoRepository;
         this.insumoRepository = insumoRepository;
         this.insumoService = new InsumoService();
+        this.lancamentoAutomatico = new LancamentoAutomaticoService();
     }
 
     /** Roda para todos os usuários com propriedade ativa. Falha de um não para os outros. */
@@ -102,6 +104,14 @@ class VerificacaoNotificacoesService {
      * a verificação na hora quer ver o push na hora.
      */
     async verificarUsuario(usuarioId, { agora = new Date(), ignorarSilencio = false } = {}) {
+        // Consumo diário automático antes dos avisos (issue #72): o estoque que
+        // os avisos de insumo leem já desconta o que foi lançado agora.
+        let lancamentos = 0;
+        try {
+            ({ lancamentos } = await this.lancamentoAutomatico.lancarPendentes({ usuarioId, agora }));
+        } catch (erro) {
+            logger.error(`[Consumo automático] Falha para o usuário ${usuarioId}: ${erro.message}`);
+        }
         const situacoes = await this.avaliar(usuarioId, agora);
         const abertas = await this.repository.listarAbertas(usuarioId);
         const chavesAbertas = new Map(abertas.map((n) => [n.chaveAtiva, n.id]));
@@ -141,7 +151,7 @@ class VerificacaoNotificacoesService {
         const podeEnviar = ignorarSilencio || dentroDoHorarioDePush(agora);
         const enviadas = podeEnviar ? await this.enviarPendentes(usuarioId) : 0;
 
-        return { abertas: novas, resolvidas, enviadas, foraDoHorario: !podeEnviar };
+        return { abertas: novas, resolvidas, enviadas, foraDoHorario: !podeEnviar, lancamentos };
     }
 
     /** Lê a fazenda e os insumos do usuário e devolve as situações que pedem aviso. */

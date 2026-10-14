@@ -119,11 +119,11 @@ class ManejoRebanhoService {
                 movimentacoes.push(mov);
 
                 const movs = (insumo.movimentacoes ?? []).map((m) => ({
-                    tipo: m.tipo, quantidade: Number(m.quantidade), origem: m.origem, data: m.data,
+                    tipo: m.tipo, quantidade: Number(m.quantidade), origem: m.origem, data: m.data, rebanhoId: m.rebanhoId,
                 }));
                 movs.push({ tipo: 'Saida', quantidade: item.quantidade, origem: 'ManejoRebanho', data: dadosManejo.dataAtividade });
                 const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
-                    quantidadeDia: Number(r.quantidadeDia), dataInicio: r.dataInicio, dataFim: r.dataFim, ativo: r.ativo,
+                    rebanhoId: r.rebanhoId, quantidadeDia: Number(r.quantidadeDia), dataInicio: r.dataInicio, dataFim: r.dataFim, ativo: r.ativo,
                 }));
                 if (calcularSaldos({ movimentacoes: movs, regimes, agora: new Date() }).saldoProjetado < 0) {
                     avisos.push(`Estoque insuficiente de "${insumo.nome}" — saldo ficará negativo.`);

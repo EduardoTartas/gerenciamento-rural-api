@@ -15,6 +15,7 @@ const MOV_SELECT = {
     rebanhoId: true,
     pastoId: true,
     valorTotal: true,
+    regimeConsumoId: true,
     observacoes: true,
     ativo: true,
     createdAt: true,
@@ -62,6 +63,29 @@ class MovimentacaoInsumoRepository {
 
     async create(data, tx) {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.create({ data, select: MOV_SELECT });
+    }
+
+    /** Ledger ativo do insumo no formato do cálculo de saldo (Decimal → Number). */
+    async ledgerDoInsumo(insumoId, tx) {
+        const linhas = await ondeEscrever(tx, this.prisma).movimentacaoInsumo.findMany({
+            where: { insumoId, ativo: true },
+            select: { tipo: true, quantidade: true, origem: true, data: true, rebanhoId: true },
+        });
+        return linhas.map((m) => ({ ...m, quantidade: Number(m.quantidade) }));
+    }
+
+    /**
+     * Grava os lançamentos automáticos do consumo diário (issue #72). O índice
+     * único `(regimeConsumoId, data)` descarta o dia já lançado — duas execuções
+     * ao mesmo tempo não duplicam.
+     */
+    async criarLancamentosAutomaticos(lancamentos, tx) {
+        if (lancamentos.length === 0) return 0;
+        const { count } = await ondeEscrever(tx, this.prisma).movimentacaoInsumo.createMany({
+            data: lancamentos,
+            skipDuplicates: true,
+        });
+        return count;
     }
 
     async update(id, data, tx) {
