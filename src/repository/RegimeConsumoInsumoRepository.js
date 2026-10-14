@@ -10,6 +10,7 @@ const REGIME_SELECT = {
     quantidadeDia: true,
     dataInicio: true,
     dataFim: true,
+    lancamentoAutomatico: true,
     ativo: true,
     createdAt: true,
     updatedAt: true,
@@ -59,6 +60,20 @@ class RegimeConsumoInsumoRepository {
             where: { rebanhoId, insumoId, ativo: true, dataFim: null },
             select: { id: true },
         });
+    }
+
+    /**
+     * Regimes com lançamento automático (issue #72), de insumo e propriedade
+     * ativos. Inclui os encerrados: o consumo até o `dataFim` ainda pode faltar
+     * lançar. Sem `usuarioId`, de todos os produtores.
+     */
+    async listarAutomaticos(usuarioId = null) {
+        const propriedade = { ativo: true, ...(usuarioId ? { usuarioId } : {}) };
+        const regimes = await this.prisma.regimeConsumoInsumo.findMany({
+            where: { lancamentoAutomatico: true, insumo: { ativo: true, propriedade } },
+            select: { id: true, insumoId: true, rebanhoId: true, quantidadeDia: true, dataInicio: true, dataFim: true },
+        });
+        return regimes.map((r) => ({ ...r, quantidadeDia: Number(r.quantidadeDia) }));
     }
 
     async create(data, tx) {
