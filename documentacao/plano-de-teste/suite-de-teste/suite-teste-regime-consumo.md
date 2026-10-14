@@ -103,6 +103,24 @@ Arquivo: `test/endpoints/rebanhos-regimes-consumo/delete-rebanhos-regimes-consum
 | REG-DELETE-ID-05 | `id` inexistente | — | 404 | mensagem "Recurso não encontrado em Regime de Consumo." |
 | REG-DELETE-ID-06 | multi-tenancy: B exclui `id` de regime de A | — | 404 | mesma mensagem de REG-DELETE-ID-05 |
 
+## Lançamento automático do consumo diário (issue #72)
+
+Arquivo: `test/endpoints/rebanhos-regimes-consumo/lancamento-automatico.test.js`
+
+Pré-condição comum: A com propriedade, pasto, rebanho e insumo (`destino` `Ambos`) com entrada de 100 há 30 dias; NPaaS simulado. A verificação é disparada por `POST /v1/notificacoes/verificar`.
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| CONSAUTO-01 | regime aceita `lancamentoAutomatico` no cadastro e na edição; sem o campo é manual | — | 201 / 200 / 400 | POST sem o campo → `lancamentoAutomatico` = false; PATCH `true` → true; valor não booleano → 400 |
+| CONSAUTO-02 | lança uma saída de consumo do rebanho a cada 24 h desde o início | regime automático de 5/dia iniciado há 3,5 dias | 200 | `data.lancamentos` = 3; três saídas `ConsumoRebanho` de 5 com `rebanhoId`, `regimeConsumoId` e `data` = início + k × 24 h; insumo com `saldoReal` 85 e `consumoProjetado` 0 |
+| CONSAUTO-03 | rodar de novo não duplica nenhum dia | regime automático há 2,5 dias | 200 | segunda verificação: `lancamentos` = 0; continuam 2 saídas |
+| CONSAUTO-04 | continua do último consumo lançado daquele rebanho | saída `ConsumoRebanho` do rebanho há 1,5 dia; regime automático há 10 dias | 200 | 1 saída automática, não as dos 10 dias |
+| CONSAUTO-05 | nunca lança mais do que o estoque | regime automático de 40/dia há 5,5 dias, estoque 100 | 200 | saídas 40, 40 e 20; `saldoReal` 0 |
+| CONSAUTO-06 | regime manual e regime de outro produtor não são lançados | regime manual de A; regime automático de B | 200 | nenhuma saída nos dois |
+| CONSAUTO-07 | respeita o fim do regime | regime automático encerrado: início há 6,5 dias, fim há 4 | 200 | 2 saídas |
+| CONSAUTO-08 | consumo lançado de um lote não apaga a estimativa do consumo manual de outro | lote 1 automático (5/dia), lote 2 manual (2/dia), ambos há 4,5 dias | 200 | `GET /insumos/:id` e `GET /insumos`: `saldoReal` 80 e `consumoProjetado` 8 (marco por rebanho) |
+| CONSAUTO-09 | `/sync` cria regime automático e a saída lançada traz o regime | `regimes_consumo_insumo:CREATE` com `lancamentoAutomatico: true` | 200 | mutação aceita; `GET /insumos/movimentacoes` devolve a saída com `regimeConsumoId` |
+
 ## Divergências
 
 - Não há `AdminMiddleware` nas rotas `/rebanhos/regimes-consumo*` — a categoria "403 admin" não se aplica a este arquivo.

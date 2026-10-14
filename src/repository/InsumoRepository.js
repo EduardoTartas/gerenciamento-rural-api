@@ -22,7 +22,7 @@ const INSUMO_SELECT_BASE = {
     // consumo real antes do `dataFim` que a projeção precisa contar. O filtro
     // de vigência diária fica em `calcularConsumoDiaTotal` (respeita `ativo`).
     regimesConsumo: {
-        select: { quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true },
+        select: { rebanhoId: true, quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true },
     },
 };
 
@@ -32,7 +32,7 @@ const INSUMO_SELECT = {
     ...INSUMO_SELECT_BASE,
     movimentacoes: {
         where: { ativo: true },
-        select: { tipo: true, quantidade: true, data: true, origem: true },
+        select: { tipo: true, quantidade: true, data: true, origem: true, rebanhoId: true },
     },
 };
 
@@ -74,8 +74,8 @@ class InsumoRepository {
 
     /**
      * Anexa `_resumoLedger` a cada insumo da página: a soma do ledger por tipo e
-     * a data do último marco de consumo (saída `ConsumoRebanho` ou contagem
-     * antiga — mesmo filtro de `ehMarcoDeConsumo`). Dois `groupBy` sobre
+     * os marcos de consumo, geral e por rebanho (saída `ConsumoRebanho` ou
+     * contagem antiga — mesmo filtro de `ehMarcoDeConsumo`). Dois `groupBy` sobre
      * `movimentacoes_insumo` em vez de trazer o ledger inteiro por linha (issue
      * #37). O service usa esse resumo em `calcularSaldosComResumo`.
      */
@@ -89,8 +89,10 @@ class InsumoRepository {
                 where: { insumoId: { in: ids }, ativo: true },
                 _sum: { quantidade: true },
             }),
+            // Por rebanho e origem: o consumo lançado encerra a estimativa só do
+            // rebanho dele (issue #72 da API, ver `marcoDoRegime`).
             this.prisma.movimentacaoInsumo.groupBy({
-                by: ['insumoId'],
+                by: ['insumoId', 'rebanhoId', 'origem'],
                 where: {
                     insumoId: { in: ids },
                     ativo: true,
@@ -101,7 +103,7 @@ class InsumoRepository {
         ]);
 
         const resumoPorInsumo = new Map(
-            ids.map((id) => [id, { entrada: 0, saida: 0, ultimoMarco: null }]),
+            ids.map((id) => [id, { entrada: 0, saida: 0, marcos: [] }]),
         );
         for (const linha of somas) {
             const resumo = resumoPorInsumo.get(linha.insumoId);
@@ -110,7 +112,14 @@ class InsumoRepository {
             else if (linha.tipo === 'Saida') resumo.saida += valor;
         }
         for (const linha of marcos) {
-            resumoPorInsumo.get(linha.insumoId).ultimoMarco = linha._max.data ?? null;
+            if (!linha._max.data) continue;
+            // O último marco de cada (rebanho, origem); quem decide qual vale
+            // para cada regime é o cálculo (`marcoDoRegime`).
+            resumoPorInsumo.get(linha.insumoId).marcos.push({
+                origem: linha.origem,
+                rebanhoId: linha.rebanhoId,
+                data: linha._max.data,
+            });
         }
 
         return docs.map((d) => ({ ...d, _resumoLedger: resumoPorInsumo.get(d.id) }));

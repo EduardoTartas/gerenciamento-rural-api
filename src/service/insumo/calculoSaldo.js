@@ -24,11 +24,14 @@ export function calcularSaldoReal(movimentacoes = []) {
 }
 
 /**
- * Consumo dos regimes desde `marco` (ou desde o início de cada regime, o que for
- * mais recente) até `agora`, respeitando o `dataFim` de cada regime.
+ * Consumo dos regimes desde o marco de cada um (ou desde o início do regime, o
+ * que for mais recente) até `agora`, respeitando o `dataFim` de cada regime.
+ *
+ * @param {(regime) => Date|null} marcoDe marco de consumo que vale para o regime
  */
-function consumoProjetadoDesde(regimes, marco, agora) {
+function consumoProjetadoDesde(regimes, marcoDe, agora) {
     return regimes.reduce((total, regime) => {
+        const marco = marcoDe(regime);
         const inicioBase = marco && marco > regime.dataInicio ? marco : regime.dataInicio;
         const fim = regime.dataFim && regime.dataFim < agora ? regime.dataFim : agora;
         return total + regime.quantidadeDia * diasEntre(inicioBase, fim);
@@ -53,13 +56,59 @@ export function ehMarcoDeConsumo(m) {
 }
 
 /**
- * Consumo dos regimes ainda não lançado no ledger, desde o último marco (ver
- * `ehMarcoDeConsumo`) ou desde o início de cada regime, o que for mais recente.
+ * O marco vale para todos os regimes do insumo, e não só para o do mesmo rebanho?
+ *
+ * Desde a issue #72 o consumo lançado encerra a estimativa **só do rebanho dele**:
+ * com o lançamento automático, o consumo de um lote é lançado sozinho enquanto o
+ * de outro lote continua manual, e um marco do insumo inteiro apagaria o consumo
+ * ainda não lançado do lote manual. A contagem antiga (`AjusteContagem`) e a
+ * saída de consumo sem rebanho (anterior à issue #63) continuam valendo para
+ * todos: eram conferência ou lançamento do insumo como um todo.
+ */
+function marcoGeral(m) {
+    return m.origem === 'AjusteContagem' || !m.rebanhoId;
+}
+
+/**
+ * Marco de consumo que vale para cada regime, a partir dos marcos agregados:
+ * o mais recente entre o geral e o do rebanho do regime. Regime sem `rebanhoId`
+ * (chamada antiga) aceita qualquer marco.
+ *
+ * @param {{ geral: Date|null, porRebanho: Map<string, Date> }} marcos
+ */
+export function marcoDoRegime(regime, marcos) {
+    const geral = marcos?.geral ?? null;
+    if (!regime.rebanhoId) return marcos?.maisRecente ?? geral;
+    const doRebanho = marcos?.porRebanho?.get(regime.rebanhoId) ?? null;
+    if (!geral) return doRebanho;
+    if (!doRebanho) return geral;
+    return doRebanho > geral ? doRebanho : geral;
+}
+
+/** Agrega os marcos de consumo de uma lista de movimentações (ver `marcoDoRegime`). */
+export function marcosDeConsumo(movimentacoes = []) {
+    const marcos = { geral: null, porRebanho: new Map(), maisRecente: null };
+    for (const m of movimentacoes) {
+        if (!ehMarcoDeConsumo(m)) continue;
+        if (!marcos.maisRecente || m.data > marcos.maisRecente) marcos.maisRecente = m.data;
+        if (marcoGeral(m)) {
+            if (!marcos.geral || m.data > marcos.geral) marcos.geral = m.data;
+        } else {
+            const atual = marcos.porRebanho.get(m.rebanhoId);
+            if (!atual || m.data > atual) marcos.porRebanho.set(m.rebanhoId, m.data);
+        }
+    }
+    return marcos;
+}
+
+/**
+ * Consumo dos regimes ainda não lançado no ledger, desde o marco de cada regime
+ * (ver `ehMarcoDeConsumo` e `marcoDoRegime`) ou desde o início dele, o que for
+ * mais recente.
  */
 export function calcularConsumoProjetadoNaoLancado(regimes = [], movimentacoes = [], agora = new Date()) {
-    const datas = movimentacoes.filter(ehMarcoDeConsumo).map((m) => m.data.getTime());
-    const marco = datas.length ? new Date(Math.max(...datas)) : null;
-    return consumoProjetadoDesde(regimes, marco, agora);
+    const marcos = marcosDeConsumo(movimentacoes);
+    return consumoProjetadoDesde(regimes, (r) => marcoDoRegime(r, marcos), agora);
 }
 
 /** Soma de `quantidadeDia` dos regimes vigentes hoje. */
@@ -100,16 +149,20 @@ export function calcularSaldos({ movimentacoes = [], regimes = [], agora = new D
 
 /**
  * Mesma matemática de `calcularSaldos`, mas a partir do ledger já agregado no
- * banco: uma soma por tipo e a data do último marco de consumo. Evita trazer
- * todas as linhas de `movimentacoes_insumo` na listagem (issue #37).
+ * banco: uma soma por tipo e os marcos de consumo (geral e por rebanho). Evita
+ * trazer todas as linhas de `movimentacoes_insumo` na listagem (issue #37).
  *
- * @param {{ entrada: number, saida: number, ultimoMarco: Date|null }} resumo
+ * @param {{ entrada: number, saida: number, marcos: Array<{ origem: string, rebanhoId: string|null, data: Date }> }} resumo
+ *   `marcos`: o último marco de cada (rebanho, origem), já filtrado como marco
  */
 export function calcularSaldosComResumo({ resumo, regimes = [], agora = new Date() }) {
     const saldoReal = (resumo?.entrada ?? 0) - (resumo?.saida ?? 0);
+    // As linhas já são marcos; `tipo: 'Saida'` só para o filtro reconhecer o
+    // consumo do rebanho (a contagem antiga vale por qualquer tipo).
+    const marcos = marcosDeConsumo((resumo?.marcos ?? []).map((m) => ({ ...m, tipo: 'Saida' })));
     return montarPacote({
         saldoReal,
-        consumoProjetado: consumoProjetadoDesde(regimes, resumo?.ultimoMarco ?? null, agora),
+        consumoProjetado: consumoProjetadoDesde(regimes, (r) => marcoDoRegime(r, marcos), agora),
         regimes,
         agora,
     });

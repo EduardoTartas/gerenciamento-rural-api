@@ -60,6 +60,7 @@ const notificacaoSchemas = {
             resolvidas: { type: "integer", example: 1, description: "Situações que deixaram de valer" },
             enviadas: { type: "integer", example: 2, description: "Pushes enviados" },
             foraDoHorario: { type: "boolean", example: false },
+            lancamentos: { type: "integer", example: 3, description: "Consumos diários lançados automaticamente nesta verificação (issue #72)" },
         },
     },
     DispositivoRegistrar: {

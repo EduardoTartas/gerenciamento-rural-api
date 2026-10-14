@@ -112,6 +112,7 @@ const insumoSchemas = {
             rebanhoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Rebanho que consumiu o insumo, quando aplicável." },
             pastoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Pasto que consumiu o insumo, quando aplicável." },
             valorTotal: { type: "string", nullable: true, example: "1250.5", description: "Quanto foi pago pela entrada inteira, em R$ (Decimal como texto). Só em `Entrada`; nulo quando não informado." },
+            regimeConsumoId: { type: "string", format: "uuid", nullable: true, example: null, description: "Preenchido no lançamento automático do consumo diário: o regime que gerou a saída (issue #72)." },
             observacoes: { type: "string", nullable: true, maxLength: 500, example: "Nota fiscal 12345" },
             ativo: { type: "boolean", example: true, description: "`false` quando a movimentação foi excluída (soft-delete)." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-10T09:00:00.000Z" },
@@ -169,7 +170,7 @@ const insumoSchemas = {
 
     RegimeConsumoInsumo: {
         type: "object",
-        description: "Consumo diário recorrente de um insumo por um rebanho. Nunca escreve no ledger; alimenta apenas a projeção de saldo.",
+        description: "Consumo diário recorrente de um insumo por um rebanho. Manual: só alimenta a projeção de saldo. Com `lancamentoAutomatico`: o servidor lança uma saída `ConsumoRebanho` a cada 24 h (issue #72).",
         properties: {
             id: { type: "string", format: "uuid", example: "f6a7b8c9-d0e1-2345-f678-456789012345" },
             rebanhoId: { type: "string", format: "uuid", example: "c3d4e5f6-a7b8-9012-cdef-123456789012" },
@@ -178,6 +179,7 @@ const insumoSchemas = {
             dataInicio: { type: "string", format: "date-time", example: "2026-08-01T00:00:00.000Z" },
             dataFim: { type: "string", format: "date-time", nullable: true, example: null, description: "`null` enquanto o regime está em aberto. Preenchida quando o regime é encerrado." },
             ativo: { type: "boolean", example: true, description: "`false` quando o regime foi encerrado (pelo produtor ou por um novo regime do mesmo par)." },
+            lancamentoAutomatico: { type: "boolean", example: true, description: "O servidor lança o consumo sozinho, uma saída por dia (issue #72). `false` (padrão): o produtor lança à mão e o consumo fica só na projeção." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-01T08:00:00.000Z" },
             updatedAt: { type: "string", format: "date-time", example: "2026-08-01T08:00:00.000Z" },
             insumo: {
@@ -207,6 +209,7 @@ const insumoSchemas = {
             quantidadeDia: { type: "number", exclusiveMinimum: 0, description: "Quantidade consumida por dia, na unidade do insumo. Deve ser maior que zero.", example: 5 },
             dataInicio: { type: "string", format: "date-time", description: "Início da vigência do regime.", example: "2026-08-01T00:00:00.000Z" },
             dataFim: { type: "string", format: "date-time", nullable: true, description: "Fim opcional da vigência. Quando informada, deve ser >= `dataInicio`.", example: null },
+            lancamentoAutomatico: { type: "boolean", description: "Opcional (padrão `false`): lançar o consumo sozinho, uma saída `ConsumoRebanho` a cada 24 h (issue #72).", example: true },
         },
         required: ["rebanhoId", "insumoId", "quantidadeDia", "dataInicio"],
         description: "Esquema para criação de regime de consumo. Criar um regime para um par (rebanho, insumo) que já tem regime em aberto encerra o anterior (`dataFim` = `dataInicio` do novo, `ativo` = false) na mesma transação.",

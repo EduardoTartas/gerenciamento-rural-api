@@ -379,7 +379,7 @@ const insumoRoutes = {
         patch: {
             tags: ["Insumos"],
             summary: "Atualiza parcialmente um regime de consumo",
-            description: "Aceita `quantidadeDia` e `dataFim`. Enviar `dataFim` encerra o regime (`ativo: false`).",
+            description: "Aceita `quantidadeDia`, `dataFim` e `lancamentoAutomatico`. Enviar `dataFim` encerra o regime (`ativo: false`). Ligar o automático lança o consumo pendente desde o último consumo lançado do rebanho na próxima verificação.",
             security: [{ bearerAuth: [] }],
             parameters: [idParam("o Regime de Consumo")],
             requestBody: {
@@ -391,6 +391,7 @@ const insumoRoutes = {
                             properties: {
                                 quantidadeDia: { type: "number", exclusiveMinimum: 0, description: "Nova quantidade diária (> 0)", example: 6 },
                                 dataFim: { type: "string", format: "date-time", nullable: true, description: "Data de encerramento do regime. Enviar encerra o regime (`ativo: false`).", example: "2026-09-30T00:00:00.000Z" },
+                                lancamentoAutomatico: { type: "boolean", description: "Liga ou desliga o lançamento automático do consumo diário (issue #72).", example: true },
                             },
                         },
                     },

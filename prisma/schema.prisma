@@ -401,35 +401,40 @@ model manejoPasto {
 /// `historicoMovimentacao`. Saldo = entradas - saídas (sem ajuste desde a issue #67).
 /// Cada item de insumo de um manejo é uma linha `Saida` com `manejoXId` preenchido.
 model movimentacaoInsumo {
-  id              String         @id @default(uuid())
+  id              String               @id @default(uuid())
   insumoId        String
-  insumo          insumo         @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  insumo          insumo               @relation(fields: [insumoId], references: [id], onDelete: Cascade)
   tipo            String // enum aplicação: Entrada | Saida (sem Ajuste desde a issue #67)
   quantidade      Decimal // sempre positiva
   data            DateTime
   origem          String // enum aplicação — Entrada: Compra | CadastroInicial | Devolucao | Outro; Saida: ManejoRebanho | ManejoPasto | ConsumoRebanho | Perda | Outro; AjusteContagem só legado (contagem convertida, qualquer tipo)
   manejoRebanhoId String?
-  manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
+  manejoRebanho   manejoRebanho?       @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
   manejoPastoId   String?
-  manejoPasto     manejoPasto?   @relation(fields: [manejoPastoId], references: [id], onDelete: Cascade)
+  manejoPasto     manejoPasto?         @relation(fields: [manejoPastoId], references: [id], onDelete: Cascade)
   rebanhoId       String?
-  rebanho         rebanho?       @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
+  rebanho         rebanho?             @relation(fields: [rebanhoId], references: [id], onDelete: SetNull)
   pastoId         String?
-  pasto           pasto?         @relation(fields: [pastoId], references: [id], onDelete: SetNull)
+  pasto           pasto?               @relation(fields: [pastoId], references: [id], onDelete: SetNull)
   // Quanto foi pago pela entrada inteira, em R$ (issue #70). Opcional e só em
   // `Entrada`: alimenta o custo do consumo no relatório do app.
   valorTotal      Decimal?
+  // Lançamento automático do consumo diário (issue #72): o regime que gerou
+  // esta saída. Único com a data — o job nunca lança o mesmo dia duas vezes.
+  regimeConsumoId String?
+  regimeConsumo   regimeConsumoInsumo? @relation(fields: [regimeConsumoId], references: [id], onDelete: SetNull)
   observacoes     String?
-  ativo           Boolean        @default(true)
-  createdAt       DateTime       @default(now())
-  updatedAt       DateTime       @updatedAt
+  ativo           Boolean              @default(true)
+  createdAt       DateTime             @default(now())
+  updatedAt       DateTime             @updatedAt
 
-  @@index([insumoId])
-  @@index([insumoId, data])
-  @@index([insumoId, updatedAt])
   // Sustenta a leitura por diferença por propriedade (sem insumoId): o filtro
   // inicial é `updatedAt > marca`, e o índice composto acima não serve porque
   // sua primeira coluna é insumoId.
+  @@unique([regimeConsumoId, data])
+  @@index([insumoId])
+  @@index([insumoId, data])
+  @@index([insumoId, updatedAt])
   @@index([updatedAt])
   @@index([manejoRebanhoId])
   @@index([manejoPastoId])
@@ -440,17 +445,21 @@ model movimentacaoInsumo {
 /// o saldo projetado é calculado na leitura. Um regime ativo por par
 /// (rebanhoId, insumoId) — índice único parcial WHERE ativo = true AND dataFim IS NULL.
 model regimeConsumoInsumo {
-  id            String    @id @default(uuid())
-  rebanhoId     String
-  rebanho       rebanho   @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
-  insumoId      String
-  insumo        insumo    @relation(fields: [insumoId], references: [id], onDelete: Cascade)
-  quantidadeDia Decimal
-  dataInicio    DateTime
-  dataFim       DateTime?
-  ativo         Boolean   @default(true)
-  createdAt     DateTime  @default(now())
-  updatedAt     DateTime  @updatedAt
+  id                   String               @id @default(uuid())
+  rebanhoId            String
+  rebanho              rebanho              @relation(fields: [rebanhoId], references: [id], onDelete: Cascade)
+  insumoId             String
+  insumo               insumo               @relation(fields: [insumoId], references: [id], onDelete: Cascade)
+  quantidadeDia        Decimal
+  dataInicio           DateTime
+  dataFim              DateTime?
+  // O servidor lança o consumo sozinho, uma saída a cada 24 h (issue #72).
+  // Padrão falso: os regimes de antes continuam manuais.
+  lancamentoAutomatico Boolean              @default(false)
+  ativo                Boolean              @default(true)
+  createdAt            DateTime             @default(now())
+  updatedAt            DateTime             @updatedAt
+  lancamentos          movimentacaoInsumo[]
 
   @@index([rebanhoId])
   @@index([insumoId])
