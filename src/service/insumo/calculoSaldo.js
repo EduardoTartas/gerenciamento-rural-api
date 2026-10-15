@@ -23,14 +23,32 @@ export function calcularSaldoReal(movimentacoes = []) {
     }, 0);
 }
 
+/** Regime lido do banco (Decimal) no formato que as funções daqui esperam. */
+export function regimeParaCalculo(r) {
+    return {
+        rebanhoId: r.rebanhoId,
+        quantidadeDia: Number(r.quantidadeDia),
+        dataInicio: r.dataInicio,
+        dataFim: r.dataFim,
+        ativo: r.ativo,
+        lancamentoAutomatico: r.lancamentoAutomatico === true,
+    };
+}
+
 /**
  * Consumo dos regimes desde o marco de cada um (ou desde o início do regime, o
  * que for mais recente) até `agora`, respeitando o `dataFim` de cada regime.
+ *
+ * O regime automático fica de fora (issue #73): o servidor lança o consumo
+ * dele sozinho, só nos dias em que havia estoque (`lancamentoAutomatico.js`).
+ * Estimar os dias dele contaria de novo o que já está no ledger, ou o que
+ * nunca vai ser lançado porque o estoque tinha acabado.
  *
  * @param {(regime) => Date|null} marcoDe marco de consumo que vale para o regime
  */
 function consumoProjetadoDesde(regimes, marcoDe, agora) {
     return regimes.reduce((total, regime) => {
+        if (regime.lancamentoAutomatico) return total;
         const marco = marcoDe(regime);
         const inicioBase = marco && marco > regime.dataInicio ? marco : regime.dataInicio;
         const fim = regime.dataFim && regime.dataFim < agora ? regime.dataFim : agora;

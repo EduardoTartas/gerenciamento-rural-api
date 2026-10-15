@@ -3,7 +3,7 @@ import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.j
 import { insumoRepository, propriedadeRepository, regimeConsumoInsumoRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 import { comTransacao } from '../utils/helpers/transacao.js';
-import { calcularSaldos, calcularSaldosComResumo } from './insumo/calculoSaldo.js';
+import { calcularSaldos, calcularSaldosComResumo, regimeParaCalculo } from './insumo/calculoSaldo.js';
 
 class InsumoService {
     constructor() {
@@ -15,13 +15,7 @@ class InsumoService {
 
     /** Converte Decimal -> Number e anexa o pacote de saldo a um insumo lido. */
     comSaldo(insumo) {
-        const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
-            rebanhoId: r.rebanhoId,
-            quantidadeDia: Number(r.quantidadeDia),
-            dataInicio: r.dataInicio,
-            dataFim: r.dataFim,
-            ativo: r.ativo,
-        }));
+        const regimes = (insumo.regimesConsumo ?? []).map(regimeParaCalculo);
         const agora = new Date();
 
         // Listagem: o repository já agregou o ledger em `_resumoLedger`.

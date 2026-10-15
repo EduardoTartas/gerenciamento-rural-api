@@ -9,7 +9,7 @@ import {
 } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 import { comTransacao } from '../utils/helpers/transacao.js';
-import { calcularSaldos } from './insumo/calculoSaldo.js';
+import { calcularSaldos, regimeParaCalculo } from './insumo/calculoSaldo.js';
 
 class ManejoRebanhoService {
     constructor() {
@@ -122,9 +122,7 @@ class ManejoRebanhoService {
                     tipo: m.tipo, quantidade: Number(m.quantidade), origem: m.origem, data: m.data, rebanhoId: m.rebanhoId,
                 }));
                 movs.push({ tipo: 'Saida', quantidade: item.quantidade, origem: 'ManejoRebanho', data: dadosManejo.dataAtividade });
-                const regimes = (insumo.regimesConsumo ?? []).map((r) => ({
-                    rebanhoId: r.rebanhoId, quantidadeDia: Number(r.quantidadeDia), dataInicio: r.dataInicio, dataFim: r.dataFim, ativo: r.ativo,
-                }));
+                const regimes = (insumo.regimesConsumo ?? []).map(regimeParaCalculo);
                 if (calcularSaldos({ movimentacoes: movs, regimes, agora: new Date() }).saldoProjetado < 0) {
                     avisos.push(`Estoque insuficiente de "${insumo.nome}" — saldo ficará negativo.`);
                 }

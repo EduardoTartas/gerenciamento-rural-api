@@ -22,7 +22,9 @@ const INSUMO_SELECT_BASE = {
     // consumo real antes do `dataFim` que a projeção precisa contar. O filtro
     // de vigência diária fica em `calcularConsumoDiaTotal` (respeita `ativo`).
     regimesConsumo: {
-        select: { rebanhoId: true, quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true },
+        select: {
+            rebanhoId: true, quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true, lancamentoAutomatico: true,
+        },
     },
 };
 
