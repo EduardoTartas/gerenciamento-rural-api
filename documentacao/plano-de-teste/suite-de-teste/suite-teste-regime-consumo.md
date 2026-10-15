@@ -120,6 +120,10 @@ Pré-condição comum: A com propriedade, pasto, rebanho e insumo (`destino` `Am
 | CONSAUTO-07 | respeita o fim do regime | regime automático encerrado: início há 6,5 dias, fim há 4 | 200 | 2 saídas |
 | CONSAUTO-08 | consumo lançado de um lote não apaga a estimativa do consumo manual de outro | lote 1 automático (5/dia), lote 2 manual (2/dia), ambos há 4,5 dias | 200 | `GET /insumos/:id` e `GET /insumos`: `saldoReal` 80 e `consumoProjetado` 8 (marco por rebanho) |
 | CONSAUTO-09 | `/sync` cria regime automático e a saída lançada traz o regime | `regimes_consumo_insumo:CREATE` com `lancamentoAutomatico: true` | 200 | mutação aceita; `GET /insumos/movimentacoes` devolve a saída com `regimeConsumoId` |
+| CONSAUTO-10 | dia sem estoque não é lançado, e a compra de hoje não cobre os dias que passaram | regime automático de 40/dia há 5,5 dias, estoque 100; depois entrada de 100 agora | 200 | só 40, 40 e 20; segunda verificação: `lancamentos` = 0; `saldoReal` 100, `consumoProjetado` 0 |
+| CONSAUTO-11 | compra registrada depois, com a data em que chegou, cobre os dias desde ela | como o 10, com a entrada de 100 datada de 2 dias atrás | 200 | saídas 40, 40, 20, 40 e 40; `saldoReal` 20 |
+| CONSAUTO-12 | não lança o que deixaria o estoque negativo por uma saída registrada depois do dia | perda de 90 há 0,2 dia; regime automático de 20/dia há 3,5 dias | 200 | uma saída de 10; `saldoReal` 0 |
+| CONSAUTO-13 | com dois lotes, o estoque vai para os dias em ordem de data | estoque 50; lote 1 20/dia há 3,5 dias, lote 2 20/dia há 3,2 dias | 200 | lote 1: 20 e 10; lote 2: 20; `saldoReal` 0 |
 
 ## Divergências
 

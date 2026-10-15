@@ -185,4 +185,66 @@ describe('Lançamento automático do consumo diário', () => {
         expect(movs.body.data.docs).toHaveLength(1);
         expect(movs.body.data.docs[0].regimeConsumoId).toBe(entidadeId);
     });
+
+    it('CONSAUTO-10 dia sem estoque não é lançado, e a compra de hoje não cobre os dias que passaram', async () => {
+        const regime = await criarRegimeConsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 40, dataInicio: diasAtras(5.5), lancamentoAutomatico: true,
+        });
+        await verificar();
+        await criarMovimentacaoInsumo(insumo.id, { quantidade: 100, data: new Date() });
+
+        const r = await verificar();
+
+        expect(r.body.data.lancamentos).toBe(0);
+        expect((await lancamentos(regime.id)).map((m) => Number(m.quantidade))).toEqual([40, 40, 20]);
+        const saldo = await saldoDoInsumo();
+        expect(saldo.saldoReal).toBe(100);
+        expect(saldo.consumoProjetado).toBe(0);   // o automático não é estimado: o servidor lança
+        expect(saldo.saldoProjetado).toBe(100);
+    });
+
+    it('CONSAUTO-11 compra registrada depois, com a data em que chegou, cobre os dias desde ela', async () => {
+        const regime = await criarRegimeConsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 40, dataInicio: diasAtras(5.5), lancamentoAutomatico: true,
+        });
+        await verificar();
+        await criarMovimentacaoInsumo(insumo.id, { quantidade: 100, data: diasAtras(2) });
+
+        await verificar();
+
+        const lista = await lancamentos(regime.id);
+        expect(lista.map((m) => Number(m.quantidade))).toEqual([40, 40, 20, 40, 40]);
+        expect((await saldoDoInsumo()).saldoReal).toBe(20);
+    });
+
+    it('CONSAUTO-12 não lança o que deixaria o estoque negativo por uma saída registrada depois do dia', async () => {
+        await criarMovimentacaoInsumo(insumo.id, {
+            tipo: 'Saida', origem: 'Perda', quantidade: 90, data: diasAtras(0.2),
+        });
+        const regime = await criarRegimeConsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 20, dataInicio: diasAtras(3.5), lancamentoAutomatico: true,
+        });
+
+        await verificar();
+
+        expect((await lancamentos(regime.id)).map((m) => Number(m.quantidade))).toEqual([10]);
+        expect((await saldoDoInsumo()).saldoReal).toBe(0);
+    });
+
+    it('CONSAUTO-13 com dois lotes, o estoque vai para os dias em ordem de data', async () => {
+        await criarMovimentacaoInsumo(insumo.id, { tipo: 'Saida', origem: 'Perda', quantidade: 50, data: diasAtras(29) });
+        const outro = await criarRebanho(propriedade.id, pasto.id, { nomeRebanho: 'Novilhas' });
+        const primeiro = await criarRegimeConsumo(rebanho.id, insumo.id, {
+            quantidadeDia: 20, dataInicio: diasAtras(3.5), lancamentoAutomatico: true,
+        });
+        const segundo = await criarRegimeConsumo(outro.id, insumo.id, {
+            quantidadeDia: 20, dataInicio: diasAtras(3.2), lancamentoAutomatico: true,
+        });
+
+        await verificar();
+
+        expect((await lancamentos(primeiro.id)).map((m) => Number(m.quantidade))).toEqual([20, 10]);
+        expect((await lancamentos(segundo.id)).map((m) => Number(m.quantidade))).toEqual([20]);
+        expect((await saldoDoInsumo()).saldoReal).toBe(0);
+    });
 });
