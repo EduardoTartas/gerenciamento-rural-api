@@ -181,6 +181,7 @@ não para corrigir o código.
 | `/usuarios` | [suite-teste-usuario.md](./suite-teste-usuario.md) | USR |
 | `/uploads` | [suite-teste-upload.md](./suite-teste-upload.md) | UPL |
 | `/sync` | [suite-teste-sincronizacao.md](./suite-teste-sincronizacao.md) | SYNC |
+| `/pastagens/manejos/:id/fotos`, `/rebanhos/manejos/:id/fotos`, `/manejos/fotos` | [suite-teste-foto-atividade.md](./suite-teste-foto-atividade.md) | FOTO |
 | `/notificacoes`, `/dispositivos` | [suite-teste-notificacoes.md](./suite-teste-notificacoes.md) | NOTIF, DISP, NPAAS, VERIF, NOVO |
 | Transversal (`/health`, 404, JSON inválido, ordem de rotas, 401) | [suite-teste-transversal.md](./suite-teste-transversal.md) | APP |
 
@@ -202,6 +203,7 @@ não para corrigir o código.
 | USR | `/usuarios` |
 | UPL | `/uploads` |
 | SYNC | `/sync` |
+| FOTO | fotos de atividade (envio, leitura, exclusão e `fotos_atividade:DELETE` no `/sync`) |
 | NOTIF | `/notificacoes` (caixa e `notificacoes:UPDATE` no `/sync`) |
 | DISP | `/dispositivos` |
 | NPAAS | cliente do NPaaS |

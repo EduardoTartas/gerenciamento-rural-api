@@ -1,5 +1,6 @@
 // src/service/sync/despacho.js
 
+import FotoAtividadeService from '../FotoAtividadeService.js';
 import InsumoService from '../InsumoService.js';
 import ManejoPastoService from '../ManejoPastoService.js';
 import ManejoRebanhoService from '../ManejoRebanhoService.js';
@@ -23,6 +24,7 @@ const movimentacaoInsumo = new MovimentacaoInsumoService();
 const regimeConsumoInsumo = new RegimeConsumoInsumoService();
 const saidaRebanho = new SaidaRebanhoService();
 const notificacao = new NotificacaoService();
+const fotoAtividade = new FotoAtividadeService();
 
 /**
  * Liga `(entidade, ação)` ao método do service de domínio.
@@ -34,6 +36,7 @@ const notificacao = new NotificacaoService();
  * `historico_movimentacoes` não tem `UPDATE`: movimentação é evento que
  * produziu efeito, e corrigir significa desfazer a última ou lançar outra.
  * `saidas_rebanho` só tem `CREATE`: a saída também é evento imutável.
+ * `fotos_atividade` só tem `DELETE`: o envio é multipart e não cabe no lote.
  */
 export const DESPACHO = {
     'propriedades:CREATE': ({ entidadeId, dados, req, tx }) =>
@@ -94,6 +97,11 @@ export const DESPACHO = {
         regimeConsumoInsumo.update(entidadeId, dados, req, tx),
     'regimes_consumo_insumo:DELETE': ({ entidadeId, req, tx }) =>
         regimeConsumoInsumo.remove(entidadeId, req, tx),
+
+    // Só exclusão (issue #74). Foto inexistente é aceita: o aparelho pode estar
+    // repetindo a exclusão de uma foto que nunca chegou a subir.
+    'fotos_atividade:DELETE': ({ entidadeId, req, tx }) =>
+        fotoAtividade.remove(entidadeId, req, tx, { tolerarAusente: true }),
 
     // Só marcar como lida (issue #62): a notificação nasce no servidor.
     'notificacoes:UPDATE': ({ entidadeId, dados, req, tx }) =>

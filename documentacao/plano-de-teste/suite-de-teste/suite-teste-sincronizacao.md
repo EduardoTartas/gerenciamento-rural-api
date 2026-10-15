@@ -196,6 +196,11 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
 | SYNC-POST-81 | `saidas_rebanho:CREATE` de venda sem valor | rebanho com 3 cabeças | 200 | `recusado`, `erro.tipo: validationError`, `campo: precoArroba` |
 | SYNC-POST-80 | `saidas_rebanho:CREATE` acima do saldo | rebanho com 3 cabeças, saída de 4 | 200 | `recusado`, `erro.tipo: conflict`, `recuperavel: false`, `campo: quantidadeCabecas` |
 
+## fotos_atividade
+
+Os cenários de `fotos_atividade:DELETE` ficam junto da suíte de fotos, em
+[suite-teste-foto-atividade.md](./suite-teste-foto-atividade.md) (FOTO-SYNC-01 a 04).
+
 ## Divergências
 
 - **SYNC-POST-49 e SYNC-POST-52 (corrigidas nesta task)**: a redação original dizia "exclusão real

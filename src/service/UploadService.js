@@ -8,7 +8,26 @@ import { CustomError, HttpStatusCodes } from '../utils/helpers/index.js';
 
 const EXTENSOES_VALIDAS = ['jpg', 'jpeg', 'png'];
 const MIME_TYPES_VALIDOS = ['image/jpeg', 'image/png'];
-const MAX_BYTES = 5 * 1024 * 1024; // avatar não precisa dos 50MB globais do express-fileupload
+const MB = 1024 * 1024;
+
+/**
+ * Como cada tipo de imagem é recomprimida. O avatar é quadrado e pequeno; a foto
+ * de atividade (issue #74) preserva o enquadramento e só limita o lado maior,
+ * porque é registro de campo — cortar tiraria justamente o que se quis mostrar.
+ * Nenhum dos dois precisa dos 50MB globais do express-fileupload.
+ */
+export const PERFIS_DE_IMAGEM = {
+    avatar: {
+        maxBytes: 5 * MB,
+        resize: [512, 512, { fit: 'cover', withoutEnlargement: true }],
+        jpeg: { quality: 80, progressive: true, mozjpeg: true },
+    },
+    atividade: {
+        maxBytes: 10 * MB,
+        resize: [1600, 1600, { fit: 'inside', withoutEnlargement: true }],
+        jpeg: { quality: 75, mozjpeg: true },
+    },
+};
 
 class UploadService {
     constructor() {
@@ -18,9 +37,14 @@ class UploadService {
     /**
      * Valida, recomprime (Sharp) e envia uma imagem para o Garage.
      * @param {Object} file - Arquivo do express-fileupload (req.files.file).
+     * @param {Object} [opcoes]
+     * @param {'avatar'|'atividade'} [opcoes.perfil='avatar'] - Regra de tamanho e recompressão.
+     * @param {string} [opcoes.fileName] - Chave no bucket; padrão `<uuid>.jpeg`.
      * @returns {Promise<{url: string, fileName: string}>}
      */
-    async processarImagem(file) {
+    async processarImagem(file, { perfil = 'avatar', fileName = `${uuidv4()}.jpeg` } = {}) {
+        const regra = PERFIS_DE_IMAGEM[perfil];
+
         if (!file) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
@@ -59,16 +83,14 @@ class UploadService {
             });
         }
 
-        if (file.size > MAX_BYTES) {
+        if (file.size > regra.maxBytes) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
                 field: 'file',
-                customMessage: `Arquivo excede o tamanho máximo de ${MAX_BYTES / (1024 * 1024)}MB.`,
+                customMessage: `Arquivo excede o tamanho máximo de ${regra.maxBytes / MB}MB.`,
             });
         }
-
-        const fileName = `${uuidv4()}.jpeg`;
 
         let buffer;
         try {
@@ -77,8 +99,8 @@ class UploadService {
             // sharp descarta a tag ao gerar o JPEG, então sem isso a foto sai torta.
             buffer = await sharp(file.data)
                 .rotate()
-                .resize(512, 512, { fit: 'cover', withoutEnlargement: true })
-                .jpeg({ quality: 80, progressive: true, mozjpeg: true })
+                .resize(...regra.resize)
+                .jpeg(regra.jpeg)
                 .toBuffer();
         } catch {
             throw new CustomError({

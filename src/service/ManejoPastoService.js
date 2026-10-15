@@ -6,6 +6,7 @@ import {
     messages,
 } from '../utils/helpers/index.js';
 import {
+    fotoAtividadeRepository,
     insumoRepository,
     manejoPastoRepository,
     movimentacaoInsumoRepository,
@@ -21,6 +22,7 @@ class ManejoPastoService {
         this.pastoRepository = pastoRepository;
         this.insumoRepository = insumoRepository;
         this.movimentacaoInsumoRepository = movimentacaoInsumoRepository;
+        this.fotoAtividadeRepository = fotoAtividadeRepository;
         this.prisma = DbConnect.prisma;
     }
 
@@ -232,6 +234,9 @@ class ManejoPastoService {
             // Sem isto, as Saídas de insumo do manejo continuam debitando o saldo
             // enquanto o manejo já não aparece em nenhuma leitura.
             await this.movimentacaoInsumoRepository.desativarPorManejo('manejoPastoId', id, trx);
+            // Foto de atividade excluída não pode continuar aparecendo na leitura
+            // por diferença como viva (issue #74).
+            await this.fotoAtividadeRepository.desativarPorManejo('manejoPastoId', id, trx);
             return removido;
         });
     }

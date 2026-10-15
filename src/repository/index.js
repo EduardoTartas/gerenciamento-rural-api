@@ -16,6 +16,7 @@ import InsumoRepository from './InsumoRepository.js';
 import MovimentacaoInsumoRepository from './MovimentacaoInsumoRepository.js';
 import RegimeConsumoInsumoRepository from './RegimeConsumoInsumoRepository.js';
 import NotificacaoRepository from './NotificacaoRepository.js';
+import FotoAtividadeRepository from './FotoAtividadeRepository.js';
 
 export const userRepository = new UserRepository();
 export const propriedadeRepository = new PropriedadeRepository();
@@ -31,3 +32,4 @@ export const insumoRepository = new InsumoRepository();
 export const movimentacaoInsumoRepository = new MovimentacaoInsumoRepository();
 export const regimeConsumoInsumoRepository = new RegimeConsumoInsumoRepository();
 export const notificacaoRepository = new NotificacaoRepository();
+export const fotoAtividadeRepository = new FotoAtividadeRepository();
