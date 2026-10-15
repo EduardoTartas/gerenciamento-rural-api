@@ -17,7 +17,7 @@ const insumoSchemas = {
         description: "Pacote de saldo calculado na leitura do insumo a partir do ledger e dos regimes de consumo ativos. Nunca é materializado no banco.",
         properties: {
             saldoReal: { type: "number", example: 120, description: "Soma do ledger: Σ(Entrada) − Σ(Saída). Número de registro." },
-            consumoProjetado: { type: "number", example: 45, description: "Consumo dos regimes ainda não lançado no ledger, contado desde o último consumo lançado (saída `ConsumoRebanho`) ou contagem antiga (`AjusteContagem`), ou desde o início de cada regime, o que for mais recente. Compra, perda, devolução, `Outro` e manejo não mexem no marco." },
+            consumoProjetado: { type: "number", example: 45, description: "Consumo dos regimes manuais ainda não lançado no ledger (o regime automático fica de fora: o servidor lança o consumo dele), contado desde o último consumo lançado (saída `ConsumoRebanho`) ou contagem antiga (`AjusteContagem`), ou desde o início de cada regime, o que for mais recente. Compra, perda, devolução, `Outro` e manejo não mexem no marco." },
             saldoProjetado: { type: "number", example: 75, description: "`saldoReal − consumoProjetado`. É o número que o app usa para alertar estoque baixo." },
             consumoDiaTotal: { type: "number", example: 5, description: "Soma de `quantidadeDia` dos regimes vigentes hoje para este insumo." },
             diasRestantes: { type: "number", nullable: true, example: 15, description: "`saldoProjetado / consumoDiaTotal`. `null` quando não há consumo diário." },

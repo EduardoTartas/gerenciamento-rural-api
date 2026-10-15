@@ -379,7 +379,7 @@ const insumoRoutes = {
         patch: {
             tags: ["Insumos"],
             summary: "Atualiza parcialmente um regime de consumo",
-            description: "Aceita `quantidadeDia`, `dataFim` e `lancamentoAutomatico`. Enviar `dataFim` encerra o regime (`ativo: false`). Ligar o automático lança o consumo pendente desde o último consumo lançado do rebanho na próxima verificação.",
+            description: "Aceita `quantidadeDia`, `dataFim` e `lancamentoAutomatico`. Enviar `dataFim` encerra o regime (`ativo: false`). Ligar o automático lança, na próxima verificação, o consumo pendente desde o último consumo lançado do rebanho — só dos dias em que havia estoque.",
             security: [{ bearerAuth: [] }],
             parameters: [idParam("o Regime de Consumo")],
             requestBody: {
