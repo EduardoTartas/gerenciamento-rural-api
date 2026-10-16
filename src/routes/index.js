@@ -17,6 +17,7 @@ import manejoPastoRoutes from './manejoPastoRoutes.js';
 import catalogoRoutes from './catalogoRoutes.js';
 import rebanhoRoutes from './rebanhoRoutes.js';
 import manejoRebanhoRoutes from './manejoRebanhoRoutes.js';
+import fotoAtividadeRoutes from './fotoAtividadeRoutes.js';
 import movimentacaoRoutes from './movimentacaoRoutes.js';
 import saidaRebanhoRoutes from './saidaRebanhoRoutes.js';
 import insumoRoutes from './insumoRoutes.js';
@@ -90,6 +91,7 @@ const routes = (app) => {
         catalogoRoutes,
         manejoPastoRoutes,
         manejoRebanhoRoutes,
+        fotoAtividadeRoutes,
         movimentacaoRoutes,
         saidaRebanhoRoutes,
         insumoRoutes,

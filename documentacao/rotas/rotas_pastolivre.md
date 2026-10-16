@@ -163,6 +163,7 @@ Gerenciamento de eventos operacionais aplicados a um espaço físico (ex: Aduba�
 **Caso de Uso:** Apagar um log de manejo lançado por engano.
 **Regras de Negócio:**
 - **Soft-Delete (`ativo: false`):** a linha continua no banco. Apagá-la de verdade tirava dela o `updatedAt` que a leitura por diferença precisa para reportar a exclusão, e o app ficava com um registro fantasma para sempre.
+- **Fotos:** as fotos do manejo (§ 15) são desativadas na mesma transação.
 
 ---
 
@@ -308,6 +309,7 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 **Caso de Uso:** Remover um manejo lançado por engano.
 **Regras de Negócio:**
 - **Soft-Delete (`ativo: false`):** a linha continua no banco, mesmo padrão de `pastagens/manejos` — sustenta a leitura por diferença (`atualizadoDesde`).
+- **Fotos:** as fotos do manejo (§ 15) são desativadas na mesma transação.
 
 ---
 
@@ -428,7 +430,7 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
 - **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
 - **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
-- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`, `notificacoes`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`. `notificacoes` aceita só `UPDATE` com `{ lida }` (a notificação nasce no servidor; ver [Notificações](#notificações)).
+- **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`, `notificacoes`, `fotos_atividade`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`. `notificacoes` aceita só `UPDATE` com `{ lida }` (a notificação nasce no servidor; ver [Notificações](#notificações)). `fotos_atividade` aceita só `DELETE` — o envio da foto é multipart e vai pelo REST (§ 15); foto inexistente ou já excluída é aceita.
 - **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
 - **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
 - **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
@@ -641,3 +643,37 @@ Avisos da fazenda (issue #62). O servidor avalia periodicamente as fazendas de c
 
 ### 14.7 POST /dispositivos/desativar-token
 **Caso de Uso:** Parar o push no aparelho (logout). Corpo `{ tokenFcm }`. Responde `{ desativado }`, 200 mesmo com o NPaaS fora.
+
+---
+
+## 15. Fotos de atividade
+Fotos dos manejos de pastagem e de rebanho (issue #74). Cada foto pertence a **exatamente um** manejo
+(CHECK no banco) e o dono é o usuário da propriedade do pasto ou do rebanho. O arquivo fica no
+mesmo bucket da foto de perfil (`GARAGE_BUCKET_FOTOS`), na chave `atividades/<id>.jpeg`; `url` é o
+endereço público. Excluir é soft-delete (`ativo: false`).
+
+### 15.1 POST /pastagens/manejos/:id/fotos e POST /rebanhos/manejos/:id/fotos
+**Caso de Uso:** Anexar uma foto à atividade. O app sobe a foto só depois que o manejo dono já sincronizou.
+**Regras de Negócio:**
+- **Corpo:** `multipart/form-data` com `file` (jpg, jpeg ou png, até 10MB) e `id` (UUID, opcional — o app sempre manda). Qualquer outro campo de texto: 400.
+- **Limite:** até **3 fotos ativas** por atividade. A quarta: 400 "Esta atividade já tem 3 fotos." (`field: file`). Foto excluída libera a vaga. A contagem é refeita dentro da transação, com a linha do manejo travada.
+- **Dono:** manejo inexistente ou de outro usuário: 404. Manejo excluído: 400.
+- **Idempotência:** o mesmo `id` já gravado **no mesmo manejo** devolve **200** ("Foto já enviada.") com a foto existente, sem processar nem subir de novo — o app reenvia quando perde a resposta. O mesmo `id` em outro manejo: 409.
+- **Processamento:** aplica a orientação do EXIF (`.rotate()`), limita o lado maior a 1600px (`fit: inside`, sem ampliar) e reencoda em JPEG qualidade 75 (mozjpeg).
+- **Falha do armazenamento:** 503 `storageError`, nada é gravado. Se a gravação no banco falhar depois do upload, o arquivo é removido em melhor esforço.
+- **Resposta (201):** `{ id, manejoPastoId, manejoRebanhoId, url, ativo, createdAt, updatedAt }`.
+
+### 15.2 GET /manejos/fotos
+**Caso de Uso:** O app lê as fotos da atividade ao abrir a ficha (leitura por diferença do PullEngine).
+**Regras de Negócio:**
+- **Filtros:** `manejoPastoId`, `manejoRebanhoId`, `pastoId`, `rebanhoId`, `propriedadeId`, `ativo`, `atualizadoDesde` (ISO 8601), `page`, `limit` (máx. 100). Filtro desconhecido: 400.
+- Só fotos de manejos do usuário autenticado, ordenadas por `createdAt` crescente. Envelope paginado como as demais listas (`data.docs`, `totalDocs`, `page`, `limit`, `totalPages`).
+- **Filtro `ativo`:** por padrão só as ativas. Com `atualizadoDesde` o padrão sai e vêm também as excluídas, cada uma com `ativo` e `updatedAt`.
+
+### 15.3 DELETE /manejos/fotos/:id
+**Caso de Uso:** Tirar uma foto da atividade.
+**Regras de Negócio:**
+- **Soft-Delete (`ativo: false`)**, e o arquivo é removido do bucket em melhor esforço: a falha na remoção só vai para o log, a exclusão responde 200.
+- Foto já excluída: 200 com o registro como está. Inexistente ou de outro usuário: 404.
+- **No `/sync`:** `fotos_atividade:DELETE` tem o mesmo efeito; ali a foto inexistente também é aceita (o aparelho pode repetir a exclusão de uma foto que nunca subiu).
+- **Exclusão do manejo:** `DELETE /pastagens/manejos/:id` e `DELETE /rebanhos/manejos/:id` desativam as fotos do manejo na mesma transação (os arquivos ficam no bucket).

@@ -50,6 +50,8 @@ const getSwaggerOptions = async () => {
         import.meta.url).href + t)).default;
     const notificacaoPaths = (await import(new URL("../paths/notificacao.js",
         import.meta.url).href + t)).default;
+    const fotoAtividadePaths = (await import(new URL("../paths/fotoAtividade.js",
+        import.meta.url).href + t)).default;
 
     // Schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
@@ -79,6 +81,8 @@ const getSwaggerOptions = async () => {
     const uploadSchemas = (await import(new URL("../schemas/uploadSchema.js",
         import.meta.url).href + t)).default;
     const notificacaoSchemas = (await import(new URL("../schemas/notificacaoSchema.js",
+        import.meta.url).href + t)).default;
+    const fotoAtividadeSchemas = (await import(new URL("../schemas/fotoAtividadeSchema.js",
         import.meta.url).href + t)).default;
 
     return {
@@ -200,6 +204,10 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     description: "Upload genérico de imagens para o armazenamento (Garage)"
                 },
                 {
+                    name: "Fotos de Atividade",
+                    description: "Fotos dos manejos de pastagem e de rebanho (até 3 por atividade)"
+                },
+                {
                     name: "Notificações",
                     description: "Avisos da fazenda (caixa de notificações e push via NPaaS)"
                 }
@@ -219,6 +227,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...syncPaths,
                 ...uploadPaths,
                 ...notificacaoPaths,
+                ...fotoAtividadePaths,
             },
             components: {
                 securitySchemes: {
@@ -243,6 +252,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     ...syncSchemas,
                     ...uploadSchemas,
                     ...notificacaoSchemas,
+                    ...fotoAtividadeSchemas,
                 }
             },
             security: [{
