@@ -54,8 +54,17 @@ class UploadRepository {
         return `${baseUrlPublica(this.bucket)}/${fileName}`;
     }
 
+    /**
+     * Chave do objeto no bucket. A URL pública vira chave tirando a base do
+     * bucket — e não pegando só o último segmento, que perderia o prefixo das
+     * fotos de atividade (`atividades/<id>.jpeg`). Fora isso, uma URL de outra
+     * base cai no último segmento (avatares antigos ficam na raiz) e o resto já é
+     * a própria chave.
+     */
     extractFileName(fileNameOrUrl) {
-        if (!fileNameOrUrl.includes('/')) return fileNameOrUrl;
+        const base = `${baseUrlPublica(this.bucket)}/`;
+        if (fileNameOrUrl.startsWith(base)) return fileNameOrUrl.slice(base.length);
+        if (!/^https?:\/\//.test(fileNameOrUrl)) return fileNameOrUrl;
         const parts = fileNameOrUrl.split('/');
         return parts[parts.length - 1];
     }

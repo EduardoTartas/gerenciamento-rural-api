@@ -369,6 +369,7 @@ model manejoRebanho {
   updatedAt         DateTime          @updatedAt
 
   movimentacoesInsumo movimentacaoInsumo[]
+  fotos               fotoAtividade[]
 
   @@index([rebanhoId])
   @@index([tipoManejoId])
@@ -389,11 +390,34 @@ model manejoPasto {
   updatedAt     DateTime        @updatedAt
 
   movimentacoesInsumo movimentacaoInsumo[]
+  fotos               fotoAtividade[]
 
   @@index([pastoId])
   @@index([tipoManejoId])
   @@index([pastoId, updatedAt])
   @@map("manejo_pastos")
+}
+
+/// Foto de uma atividade (issue #74): até 3 ativas por manejo de pastagem OU de
+/// rebanho — exatamente um dos dois FKs preenchido, garantido por CHECK criado na
+/// migration (o Prisma não declara CHECK). O arquivo fica no bucket de fotos do
+/// Garage em `atividades/<id>.jpeg`; `url` é o endereço público. Exclusão lógica
+/// (`ativo`), como os manejos, para a leitura por diferença reportá-la.
+model fotoAtividade {
+  id              String         @id @default(uuid())
+  manejoPastoId   String?
+  manejoPasto     manejoPasto?   @relation(fields: [manejoPastoId], references: [id], onDelete: Cascade)
+  manejoRebanhoId String?
+  manejoRebanho   manejoRebanho? @relation(fields: [manejoRebanhoId], references: [id], onDelete: Cascade)
+  url             String
+  ativo           Boolean        @default(true)
+  createdAt       DateTime       @default(now())
+  updatedAt       DateTime       @updatedAt
+
+  @@index([manejoPastoId])
+  @@index([manejoRebanhoId])
+  @@index([updatedAt])
+  @@map("fotos_atividade")
 }
 
 /// Ledger de estoque de insumo. Evento com exclusão lógica (`ativo`): a linha
