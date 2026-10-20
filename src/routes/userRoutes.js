@@ -15,6 +15,7 @@ router
     .get('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.list.bind(userController)))
     .patch('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.update.bind(userController)))
     .patch('/usuarios/:id/foto', AuthMiddleware, asyncWrapper(userController.registrarFoto.bind(userController)))
+    .get('/usuarios/:id/exportacao', AuthMiddleware, asyncWrapper(userController.exportar.bind(userController)))
     .delete('/usuarios/:id', AuthMiddleware, asyncWrapper(userController.remove.bind(userController)));
 
 export default router;
