@@ -2,6 +2,7 @@
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 /**
@@ -25,6 +26,7 @@ const REBANHO_SELECT = {
     dataCompra: true,
     cabecasCompra: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     propriedade: { select: { id: true, nome: true } },
@@ -114,7 +116,7 @@ class RebanhoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).rebanho.update({ where: { id }, data, select: REBANHO_SELECT });
+        return ondeEscrever(tx, this.prisma).rebanho.update({ where: { id }, data: comVersaoNova(data), select: REBANHO_SELECT });
     }
 
     /**

@@ -23,6 +23,7 @@ const manejoRebanhoSchemas = {
             observacoes:       { type: "string", nullable: true, example: "Vacinação semestral do lote" },
             ativo:             { type: "boolean", example: true, description: "`false` quando o manejo foi excluído. Numa leitura por diferença é o que distingue a linha excluída de uma vigente." },
             createdAt:         { type: "string", format: "date-time", example: "2026-04-15T10:30:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt:         { type: "string", format: "date-time", example: "2026-04-15T10:30:00.000Z" },
             tipoManejo: {
                 type: "object",

@@ -14,6 +14,13 @@ const MutacaoSchema = z
         }),
         entidadeId: z.string().uuid('O id da entidade deve ser um UUID válido.'),
         dependeDe: z.string().uuid().nullish(),
+        // Versão do registro em que o aparelho editou (issue #76). Só vale em UPDATE;
+        // ausente = aparelho antigo, aplica como antes (a última edição vence).
+        versaoBase: z
+            .number('A versão base deve ser um número.')
+            .int('A versão base deve ser um número inteiro.')
+            .positive('A versão base deve ser maior que zero.')
+            .nullish(),
         dados: z.record(z.string(), z.unknown()).optional(),
     })
     .strict()

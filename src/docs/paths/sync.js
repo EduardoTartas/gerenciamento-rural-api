@@ -14,7 +14,8 @@ const syncRoutes = {
                 1. Reordena as mutações por dependência (\`dependeDe\`), respeitando a ordem em que precisam ser aplicadas dentro do próprio lote.
                 2. Aplica cada mutação em sua **própria transação**, delegando ao service de domínio correspondente (propriedades, pastos, rebanhos, manejo_pastos, manejo_rebanhos, historico_movimentacoes, saidas_rebanho, insumos, movimentacoes_insumo, regimes_consumo_insumo, notificacoes, fotos_atividade).
                 3. **Idempotência:** reenviar uma mutação com o mesmo \`id\` já aplicada anteriormente devolve o resultado registrado da primeira vez, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
-                4. **Cascata de bloqueio:** se uma mutação é recusada, toda mutação do lote que dependia dela (direta ou indiretamente, via \`dependeDe\`) sai como \`bloqueado\` em vez de ser tentada.
+                4. **Cascata de bloqueio:** se uma mutação é recusada ou entra em conflito, toda mutação do lote que dependia dela (direta ou indiretamente, via \`dependeDe\`) sai como \`bloqueado\` em vez de ser tentada.
+                5. **Conflito de edição (issue #76):** um \`UPDATE\` pode trazer \`versaoBase\`, a \`versao\` do registro quando o app o editou. Se o registro já estiver em outra versão no servidor, a mutação **não é aplicada** e o item volta com \`situacao = conflito\`, \`versaoBase\`, \`versaoServidor\` e \`erro.tipo = conflict\`. Sem \`versaoBase\` (app antigo), a última edição vence, como antes.
 
             + Regras de Negócio:
                 - O lote aceita de **1 a 100** mutações por requisição.
@@ -28,7 +29,7 @@ const syncRoutes = {
                 - **O lote não é atômico entre itens:** uma mutação recusada não derruba as demais — só bloqueia quem dependia dela.
 
             + Resultado Esperado:
-                - **Sempre HTTP 200**, mesmo havendo mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada mutação individual. Cada item do lote carrega sua própria situação em \`data.resultados[].situacao\` (\`aceito\`, \`recusado\` ou \`bloqueado\`).
+                - **Sempre HTTP 200**, mesmo havendo mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada mutação individual. Cada item do lote carrega sua própria situação em \`data.resultados[].situacao\` (\`aceito\`, \`recusado\`, \`bloqueado\` ou \`conflito\`).
                 - HTTP 400 só ocorre por erro de construção do lote em si (ex.: \`dependeDe\` apontando para uma mutação fora do lote, ou ciclo de dependência) — nesse caso nenhuma mutação chega a ser tentada.
             `,
             security: [{ bearerAuth: [] }],

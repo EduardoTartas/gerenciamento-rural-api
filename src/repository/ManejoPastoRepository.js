@@ -2,6 +2,7 @@
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MANEJO_SELECT = {
@@ -15,6 +16,7 @@ const MANEJO_SELECT = {
     // viva e a ressuscita — o oposto do que o rastro de exclusão existe para
     // resolver.
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     tipoManejo: { select: { id: true, nome: true } },
@@ -113,7 +115,7 @@ class ManejoPastoRepository {
      * nada e escreve pelo pool. Issue #34.
      */
     async update(id, data, tx) {
-        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data, select: MANEJO_SELECT }));
+        return comItens(await ondeEscrever(tx, this.prisma).manejoPasto.update({ where: { id }, data: comVersaoNova(data), select: MANEJO_SELECT }));
     }
 
     /**
@@ -128,7 +130,7 @@ class ManejoPastoRepository {
     async remove(id, tx) {
         return ondeEscrever(tx, this.prisma).manejoPasto.update({
             where: { id },
-            data: { ativo: false },
+            data: comVersaoNova({ ativo: false }),
         });
     }
 }
