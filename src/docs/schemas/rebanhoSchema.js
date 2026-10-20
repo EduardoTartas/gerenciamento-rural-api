@@ -34,6 +34,7 @@ const rebanhoSchemas = {
             cabecasCompra:         { type: "integer", nullable: true, description: "Cabeças na compra (base do custo por cabeça)", example: 120 },
             ativo:                 { type: "boolean", example: true },
             createdAt:             { type: "string", format: "date-time", example: "2026-01-15T10:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt:             { type: "string", format: "date-time", example: "2026-04-10T08:30:00.000Z" },
             propriedade:   { type: "object", properties: { id: { type: "string", format: "uuid" }, nome: { type: "string", example: "Fazenda Boa Esperança" } } },
             pastoAtual:    { type: "object", nullable: true, properties: { id: { type: "string", format: "uuid" }, nome: { type: "string", example: "Pasto Norte" }, status: { type: "string", example: "Ocupado" } } },

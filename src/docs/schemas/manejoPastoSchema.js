@@ -22,6 +22,7 @@ const manejoPastoSchemas = {
             dataAtividade: { type: "string", format: "date-time", example: "2026-04-01T00:00:00.000Z" },
             observacoes: { type: "string", nullable: true, example: "Roçagem completa do pasto norte" },
             ativo: { type: "boolean", example: true, description: "`false` quando o manejo foi excluído. Numa leitura por diferença é o que distingue a linha excluída de uma vigente." },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-01T10:30:00.000Z", description: "Marca d'água da sincronização: o cliente usa o maior valor recebido como próximo `atualizadoDesde`." },
             pasto: {
                 type: "object",

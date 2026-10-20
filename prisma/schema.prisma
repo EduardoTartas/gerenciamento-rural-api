@@ -188,6 +188,9 @@ model propriedade {
   localizacao String?
   areaTotalHa Decimal?
   ativo       Boolean  @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt   DateTime @default(now())
   updatedAt   DateTime @updatedAt
 
@@ -217,6 +220,9 @@ model pasto {
   status          String        @default("Vazio") // Enum validado em application: Ocupado | Vazio | Descanso
   dataUltimaSaida DateTime?
   ativo           Boolean       @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt       DateTime      @default(now())
   updatedAt       DateTime      @updatedAt
 
@@ -246,6 +252,9 @@ model insumo {
   unidadeMedida String // enum aplicação: kg | g | L | mL | dose | saco | unidade
   estoqueMinimo Decimal?
   ativo         Boolean     @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt     DateTime    @default(now())
   updatedAt     DateTime    @updatedAt
 
@@ -288,6 +297,9 @@ model rebanho {
   dataCompra            DateTime?
   cabecasCompra         Int?
   ativo                 Boolean          @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt             DateTime         @default(now())
   updatedAt             DateTime         @updatedAt
 
@@ -365,6 +377,9 @@ model manejoRebanho {
   dataAtividade     DateTime
   observacoes       String?
   ativo             Boolean           @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
 
@@ -386,6 +401,9 @@ model manejoPasto {
   dataAtividade DateTime
   observacoes   String?
   ativo         Boolean         @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt     DateTime        @default(now())
   updatedAt     DateTime        @updatedAt
 
@@ -449,6 +467,9 @@ model movimentacaoInsumo {
   regimeConsumo   regimeConsumoInsumo? @relation(fields: [regimeConsumoId], references: [id], onDelete: SetNull)
   observacoes     String?
   ativo           Boolean              @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt       DateTime             @default(now())
   updatedAt       DateTime             @updatedAt
 
@@ -481,6 +502,9 @@ model regimeConsumoInsumo {
   // Padrão falso: os regimes de antes continuam manuais.
   lancamentoAutomatico Boolean              @default(false)
   ativo                Boolean              @default(true)
+  // Sobe a cada edição feita pelo usuário (REST ou lote). Base da detecção de
+  // conflito do sync: o aparelho manda a versão em que editou (issue #76).
+  versao Int @default(1)
   createdAt            DateTime             @default(now())
   updatedAt            DateTime             @updatedAt
   lancamentos          movimentacaoInsumo[]

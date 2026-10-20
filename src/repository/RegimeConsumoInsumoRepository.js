@@ -1,6 +1,7 @@
 // src/repository/RegimeConsumoInsumoRepository.js
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 const REGIME_SELECT = {
@@ -12,6 +13,7 @@ const REGIME_SELECT = {
     dataFim: true,
     lancamentoAutomatico: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     insumo: { select: { id: true, nome: true, unidadeMedida: true } },
@@ -81,7 +83,7 @@ class RegimeConsumoInsumoRepository {
     }
 
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).regimeConsumoInsumo.update({ where: { id }, data, select: REGIME_SELECT });
+        return ondeEscrever(tx, this.prisma).regimeConsumoInsumo.update({ where: { id }, data: comVersaoNova(data), select: REGIME_SELECT });
     }
 
     /**

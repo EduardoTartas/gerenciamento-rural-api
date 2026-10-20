@@ -196,6 +196,30 @@ Arquivo: `test/endpoints/sync/post-sync-multitenancy.test.js` (cobre também a s
 | SYNC-POST-81 | `saidas_rebanho:CREATE` de venda sem valor | rebanho com 3 cabeças | 200 | `recusado`, `erro.tipo: validationError`, `campo: precoArroba` |
 | SYNC-POST-80 | `saidas_rebanho:CREATE` acima do saldo | rebanho com 3 cabeças, saída de 4 | 200 | `recusado`, `erro.tipo: conflict`, `recuperavel: false`, `campo: quantidadeCabecas` |
 
+## Conflito de edição por versão (issue #76)
+
+Arquivos: `test/endpoints/sync/post-sync-conflito.test.js`, `post-sync-conflito-entidades.test.js` e `test/endpoints/pastagens/get-pastagens-versao.test.js`.
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| SYNC-POST-VER-01 | registro novo nasce na versão 1 | `pastos:CREATE` | 200 | `dados.versao` = 1 |
+| SYNC-POST-VER-02 | `UPDATE` com a versão base atual | pasto na versão 1; `versaoBase: 1` | 200 (`aceito`) | `dados.versao` = 2 e nome gravado |
+| SYNC-POST-VER-03 | `UPDATE` com versão base antiga | outra edição (REST) levou o pasto à versão 2; `versaoBase: 1` | 200 (`conflito`) | `versaoBase` 1, `versaoServidor` 2, `erro.tipo` `conflict`, `erro.campo` `versaoBase`, `recuperavel` false; nome do banco intacto |
+| SYNC-POST-VER-04 | `UPDATE` sem `versaoBase` (app antigo) | pasto na versão 2 | 200 (`aceito`) | aplicado como antes; versão sobe para 3 |
+| SYNC-POST-VER-05 | reenvio de mutação aceita | mesma mutação enviada duas vezes | 200 | segundo resultado igual ao primeiro; versão do banco sobe uma vez só |
+| SYNC-POST-VER-06 | reenvio de mutação em conflito | idem VER-03, duas vezes | 200 | segue `conflito`; nada em `mutacoes_aplicadas` para esse `id` |
+| SYNC-POST-VER-07 | manter a edição do aparelho | conflito resolvido reenviando com `versaoBase = versaoServidor` (novo `id`) | 200 (`aceito`) | nome do aparelho gravado, versão 3 |
+| SYNC-POST-VER-08 | conflito bloqueia dependentes | `CREATE` com `dependeDe` = a edição em conflito | 200 | `bloqueado` com `bloqueadoPor`; nada criado |
+| SYNC-POST-VER-09 | conflito de um item não derruba o lote | dois pastos, só o primeiro desatualizado | 200 | `["conflito", "aceito"]` |
+| SYNC-POST-VER-10 | duas edições do mesmo registro no lote | `versaoBase` 1 e depois 2 | 200 | as duas `aceito` |
+| SYNC-POST-VER-11 | registro de outro usuário | B edita pasto de A com `versaoBase` 99 | 200 | `recusado` (404 de sempre); sem `versaoServidor` na resposta |
+| SYNC-POST-VER-12 | `versaoBase` inválida | `0`, `-1`, `1.5`, `"abc"` | 400 | lote recusado |
+| SYNC-POST-VER-13 | `DELETE` ignora `versaoBase` | `versaoBase: 99` | 200 (`aceito`) | exclusão aplicada |
+| SYNC-POST-VER-14 | consequência do servidor não sobe a versão | `POST /rebanhos` ocupa o pasto | 201 | pasto `Ocupado`, versão 1; `UPDATE` com `versaoBase: 1` segue aceito |
+| SYNC-POST-VER-15 | dois lotes simultâneos na mesma versão base | duas requisições em paralelo | 200 | uma `aceito`, outra `conflito`; versão final 2 |
+| SYNC-POST-VER-20 | as 8 entidades | propriedades, pastos, rebanhos, insumos, manejo_pastos, manejo_rebanhos, movimentacoes_insumo, regimes_consumo_insumo | 200 | versão antiga: `conflito`; versão atual: `aceito` com `versao` +1 |
+| VER-GET-01 | leitura devolve a versão | pasto editado uma vez | 200 | `GET /pastagens/:id` e a listagem trazem `versao` = 2 |
+
 ## fotos_atividade
 
 Os cenários de `fotos_atividade:DELETE` ficam junto da suíte de fotos, em
