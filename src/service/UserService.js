@@ -121,10 +121,26 @@ class UserService {
             }
         }
 
+        // Lidas antes: a cascata apaga as linhas e leva junto o endereço dos arquivos.
+        const fotosAtividade = await this.repository.urlsFotosAtividade(id);
+
         const removido = await this.repository.remove(id);
-        // Só depois de apagar o usuário: se a exclusão falhar, a foto continua valendo.
+        // Só depois de apagar o usuário: se a exclusão falhar, as fotos continuam valendo.
         this.descartarFoto(user.image);
+        fotosAtividade.forEach((url) => this.descartarFoto(url));
         return removido;
+    }
+
+    /**
+     * Exporta todos os dados da conta (direito de acesso e portabilidade, LGPD
+     * art. 18). Só o próprio titular: nem o admin baixa os dados de outra pessoa.
+     */
+    async exportar(id, req) {
+        await this.ensureUserExists(id);
+        this.ensureSelfAction(req.user.id, id, 'exportar os dados de outro usuário');
+
+        const dados = await this.repository.exportarDados(id);
+        return { exportadoEm: new Date().toISOString(), ...dados };
     }
 
     // ================================
