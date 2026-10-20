@@ -395,6 +395,17 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 - **Ação Própria:** somente o próprio usuário pode excluir sua conta. **Admin:** pode excluir a conta de qualquer usuário.
 - **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
 - **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
+- **Mutações do sync:** as linhas de `mutacaoAplicada` do usuário (sem relação com `user`) são apagadas na mesma transação da exclusão, e só as dele.
+- **Arquivos no bucket:** depois da exclusão, a foto de perfil e as fotos das atividades (ativas ou não) saem do bucket em segundo plano. As URLs são lidas antes, porque a cascata apaga as linhas.
+
+### 9.4.1 GET /usuarios/:id/exportacao
+**Caso de Uso:** Exportar os dados da conta a pedido do titular (LGPD, art. 18: acesso e portabilidade).
+**Regras de Negócio:**
+- **Ação Própria, sem bypass:** somente o próprio titular exporta (403 caso contrário). **Admin não** exporta dados de outro usuário.
+- **Conteúdo:** `exportadoEm`, `titular` (perfil e provedores de login), `propriedades` (com pastos e manejos, rebanhos com movimentações, saídas, manejos e regimes de consumo, insumos com movimentações, e as fotos das atividades) e `notificacoes`.
+- **Exclusão lógica:** registros com `ativo: false` entram na exportação, porque continuam armazenados.
+- **Sem segredos:** não retorna senha, tokens nem sessões; de `accounts` saem só `providerId` e `createdAt`.
+- **Resposta:** envelope padrão do `CommonResponse`, com os dados em `data`.
 
 ### 9.5 PATCH /usuarios/:id/foto
 **Caso de Uso:** Registrar a foto de perfil após envio via `POST /uploads/imagens`.

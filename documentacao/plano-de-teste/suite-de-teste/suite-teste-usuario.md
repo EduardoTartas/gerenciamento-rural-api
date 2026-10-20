@@ -9,9 +9,10 @@ Pré-condições comuns: usuário A e usuário B autenticados via BetterAuth; us
 admin pelo fluxo normal de sign-up).
 
 `GET /usuarios` (listagem) é restrito a admin pela rota (`AdminMiddleware`, antes do controller).
-`GET/PATCH/DELETE /usuarios/:id` e `PATCH /usuarios/:id/foto` distinguem "ação própria" de
+`GET/PATCH/DELETE /usuarios/:id`, `PATCH /usuarios/:id/foto` e `GET /usuarios/:id/exportacao` distinguem "ação própria" de
 "outro usuário" dentro do `UserService` — admin tem bypass de `ensureSelfAction` em todos eles,
 de forma uniforme: pode consultar, atualizar, excluir e trocar a foto de qualquer usuário.
+A exceção é a exportação, que é só do titular.
 
 `:id` aceita tanto o formato de id gerado pelo BetterAuth (string alfanumérica de 32 caracteres,
 sem hífens) quanto UUID (usado no `id` opcional do fluxo offline-first e nos testes com
@@ -91,6 +92,22 @@ dependem do upload real, uma URL sintética `${GARAGE_PUBLIC_URL}/<uuid>.jpeg`.
 | USR-PATCH-FOTO-13 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
 | USR-PATCH-FOTO-14 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
 
+## GET /usuarios/:id/exportacao
+
+Arquivo: `test/endpoints/usuarios/get-usuarios-id-exportacao.test.js`
+
+| ID | Cenário | Pré-condição | Status | Verifica |
+| :--- | :--- | :--- | :--- | :--- |
+| USR-EXPORT-01 | titular exporta os próprios dados | A autenticado, `id` = A; A com propriedade, pasto, rebanho e insumo | 200 | envelope; mensagem "Dados da conta exportados com sucesso."; `data.exportadoEm`; `data.titular` com `id` e `email` de A; uma propriedade com o pasto, o rebanho e o insumo criados |
+| USR-EXPORT-02 | exportação inclui registros com exclusão lógica e as fotos das atividades | A com pasto `ativo: false`, manejo de pasto e foto de atividade inativa | 200 | o pasto sai com `ativo: false`; `pastos[0].manejosPasto[0].fotos[0].url` é a URL da foto |
+| USR-EXPORT-03 | exportação não traz dados de outro usuário | B com propriedade; A sem nada | 200 | `data.propriedades` de A é `[]` |
+| USR-EXPORT-04 | exportação não vaza senha, tokens nem sessões | A autenticado | 200 | o JSON não contém `password`, `accessToken`, `refreshToken`, `idToken` nem `token`; `titular.accounts[0]` tem só `providerId` e `createdAt` |
+| USR-EXPORT-05 | usuário comum tenta exportar dados de outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para exportar os dados de outro usuário." |
+| USR-EXPORT-06 | admin também não exporta dados de outro usuário | admin autenticado, `id` = A | 403 | `tipo` `forbidden` — sem bypass de `ensureSelfAction` |
+| USR-EXPORT-07 | ID em formato inválido | A; `/usuarios/abc/exportacao` | 400 | `tipo` `validationError` |
+| USR-EXPORT-08 | ID válido mas inexistente | A; UUID aleatório | 404 | `tipo` `resourceNotFound` |
+| USR-EXPORT-09 | 401 sem token | sem header `Authorization` | 401 | `tipo` `unauthorized` |
+
 ## DELETE /usuarios/:id
 
 Arquivo: `test/endpoints/usuarios/delete-usuarios-id.test.js`
@@ -100,6 +117,8 @@ Arquivo: `test/endpoints/usuarios/delete-usuarios-id.test.js`
 | USR-DELETE-01 | usuário exclui a própria conta | A autenticado, `id` = A; A com ao menos uma sessão ativa | 200 | envelope com `data.id`, `data.name`, `data.email`; mensagem "Usuário removido com sucesso."; no banco, o registro em `user` não existe mais |
 | USR-DELETE-02 | sessões do usuário são revogadas antes da exclusão | A autenticado, `id` = A; A com sessão ativa (token da própria requisição) | 200 | após a chamada, uma requisição autenticada com o token revogado retorna 401 (ou a tabela `session` não tem mais linhas para `userId = A.id`, já que o usuário some por cascata) |
 | USR-DELETE-03 | exclusão em cascata remove dados do domínio do usuário | A com ao menos uma propriedade cadastrada | 200 | no banco, propriedades/pastos/rebanhos/históricos de A não existem mais (cascade do schema Prisma) |
+| USR-DELETE-03c | excluir a conta apaga as mutações do sync, só as dela | A e B com mutações em `mutacaoAplicada` | 200 | no banco, `mutacaoAplicada` de A tem 0 linhas e a de B continua com 1 |
+| USR-DELETE-03d | excluir a conta apaga do bucket as fotos das atividades | A com manejo de pasto e duas `fotoAtividade` (uma ativa, uma `ativo: false`), URLs do bucket | 200 | `removeObject` chamado 2 vezes, uma para cada arquivo (nome do objeto sem o prefixo do bucket) |
 | USR-DELETE-04 | usuário comum tenta excluir outro usuário | A autenticado, `id` = B | 403 | `tipo` `forbidden`; mensagem "Você não tem permissão para excluir a conta de outro usuário."; no banco, B continua existindo |
 | USR-DELETE-05 | admin exclui outro usuário (bypass) | admin autenticado, `id` = A | 200 | no banco, A não existe mais — exclusão administrativa de conta alheia é permitida |
 | USR-DELETE-06 | ID em formato inválido | A; `/usuarios/abc` | 400 | `tipo` `validationError` |

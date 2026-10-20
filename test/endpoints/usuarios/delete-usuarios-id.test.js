@@ -3,7 +3,8 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
-import { criarPropriedade } from '../../apoio/fabricas.js';
+import { criarPasto, criarPropriedade, criarTipoManejoPasto } from '../../apoio/fabricas.js';
+import { criarMutacaoAplicada } from '../sync/apoio-local.js';
 
 // Mock do Garage/MinIO (mesmo padrão de patch-usuarios-id-foto): a suíte não sobe
 // storage real, e o descarte da foto antiga precisa ser espiado.
@@ -68,6 +69,45 @@ describe('DELETE /v1/usuarios/:id', () => {
         await esperarDescarte();
         expect(removeObject).toHaveBeenCalledTimes(1);
         expect(removeObject.mock.calls[0][1]).toBe(foto.split('/').pop());
+    });
+
+    it('USR-DELETE-03c excluir a conta apaga as mutações do sync, só as dela', async () => {
+        const a = await criarUsuario();
+        const b = await criarUsuario();
+        await criarMutacaoAplicada(a.id, { id: randomUUID() });
+        await criarMutacaoAplicada(b.id, { id: randomUUID() });
+
+        const r = await del(a, a.id);
+
+        expect(r.status).toBe(200);
+        expect(await DbConnect.prisma.mutacaoAplicada.count({ where: { usuarioId: a.id } })).toBe(0);
+        expect(await DbConnect.prisma.mutacaoAplicada.count({ where: { usuarioId: b.id } })).toBe(1);
+    });
+
+    it('USR-DELETE-03d excluir a conta apaga do bucket as fotos das atividades', async () => {
+        const a = await criarUsuario();
+        const propriedade = await criarPropriedade(a.id);
+        const pasto = await criarPasto(propriedade.id);
+        const tipo = await criarTipoManejoPasto();
+        const manejo = await DbConnect.prisma.manejoPasto.create({
+            data: { pastoId: pasto.id, tipoManejoId: tipo.id, dataAtividade: new Date() },
+        });
+        const ativa = `${BUCKET_URL}/atividades/${randomUUID()}.jpeg`;
+        const removida = `${BUCKET_URL}/atividades/${randomUUID()}.jpeg`;
+        await DbConnect.prisma.fotoAtividade.createMany({
+            data: [
+                { manejoPastoId: manejo.id, url: ativa },
+                { manejoPastoId: manejo.id, url: removida, ativo: false },
+            ],
+        });
+
+        const r = await del(a, a.id);
+
+        expect(r.status).toBe(200);
+        await esperarDescarte();
+        expect(removeObject).toHaveBeenCalledTimes(2);
+        const apagados = removeObject.mock.calls.map((chamada) => chamada[1]).sort();
+        expect(apagados).toEqual([ativa, removida].map((u) => u.slice(BUCKET_URL.length + 1)).sort());
     });
 
     it('USR-DELETE-04 usuário comum tenta excluir outro usuário', async () => {
