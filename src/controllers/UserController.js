@@ -105,6 +105,23 @@ class UserController {
     }
 
     /**
+     * GET /usuarios/:id/exportacao
+     * Entrega todos os dados da conta ao titular (LGPD, art. 18).
+     */
+    async exportar(req, res) {
+        const { id } = req.params;
+        UserIdSchema.parse(id);
+
+        const data = await this.service.exportar(id, req);
+        return CommonResponse.success(
+            res,
+            data,
+            HttpStatusCodes.OK.code,
+            'Dados da conta exportados com sucesso.',
+        );
+    }
+
+    /**
      * DELETE /users/:id
      */
     async remove(req, res) {

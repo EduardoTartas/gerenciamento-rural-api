@@ -40,6 +40,7 @@ const insumoSchemas = {
             estoqueMinimo: { type: "number", nullable: true, example: 50, description: "Limiar opcional de alerta. Quando definido, `saldo.estoqueBaixo` fica `true` se `saldoProjetado <= estoqueMinimo`." },
             ativo: { type: "boolean", example: true, description: "`false` quando o insumo foi excluído (soft-delete). Numa leitura por diferença é o que distingue a linha excluída de uma vigente." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-01T10:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-08-20T14:30:00.000Z", description: "Marca d'água da sincronização: o cliente usa o maior valor recebido como próximo `atualizadoDesde`." },
             tipoInsumo: {
                 type: "object",
@@ -116,6 +117,7 @@ const insumoSchemas = {
             observacoes: { type: "string", nullable: true, maxLength: 500, example: "Nota fiscal 12345" },
             ativo: { type: "boolean", example: true, description: "`false` quando a movimentação foi excluída (soft-delete)." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-10T09:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-08-10T09:00:00.000Z" },
             insumo: {
                 type: "object",
@@ -181,6 +183,7 @@ const insumoSchemas = {
             ativo: { type: "boolean", example: true, description: "`false` quando o regime foi encerrado (pelo produtor ou por um novo regime do mesmo par)." },
             lancamentoAutomatico: { type: "boolean", example: true, description: "O servidor lança o consumo sozinho, uma saída por dia (issue #72). `false` (padrão): o produtor lança à mão e o consumo fica só na projeção." },
             createdAt: { type: "string", format: "date-time", example: "2026-08-01T08:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-08-01T08:00:00.000Z" },
             insumo: {
                 type: "object",

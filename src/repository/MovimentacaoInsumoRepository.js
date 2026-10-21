@@ -1,6 +1,7 @@
 // src/repository/MovimentacaoInsumoRepository.js
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { aplicarAtivoOuDiferenca, intervaloData } from '../utils/helpers/index.js';
 
 const MOV_SELECT = {
@@ -18,6 +19,7 @@ const MOV_SELECT = {
     regimeConsumoId: true,
     observacoes: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     insumo: { select: { id: true, nome: true, unidadeMedida: true } },
@@ -89,7 +91,7 @@ class MovimentacaoInsumoRepository {
     }
 
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data, select: MOV_SELECT });
+        return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data: comVersaoNova(data), select: MOV_SELECT });
     }
 
     /**

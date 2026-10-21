@@ -395,6 +395,17 @@ Gerenciamento de usuários. Perfil próprio para usuário comum; leitura complet
 - **Ação Própria:** somente o próprio usuário pode excluir sua conta. **Admin:** pode excluir a conta de qualquer usuário.
 - **Revogação de Sessões:** todas as sessões ativas são revogadas antes da exclusão.
 - **Hard-Delete em Cascata:** a exclusão remove o usuário e, por cascata, todas as suas propriedades, pastos, rebanhos e históricos. A operação é irreversível.
+- **Mutações do sync:** as linhas de `mutacaoAplicada` do usuário (sem relação com `user`) são apagadas na mesma transação da exclusão, e só as dele.
+- **Arquivos no bucket:** depois da exclusão, a foto de perfil e as fotos das atividades (ativas ou não) saem do bucket em segundo plano. As URLs são lidas antes, porque a cascata apaga as linhas.
+
+### 9.4.1 GET /usuarios/:id/exportacao
+**Caso de Uso:** Exportar os dados da conta a pedido do titular (LGPD, art. 18: acesso e portabilidade).
+**Regras de Negócio:**
+- **Ação Própria, sem bypass:** somente o próprio titular exporta (403 caso contrário). **Admin não** exporta dados de outro usuário.
+- **Conteúdo:** `exportadoEm`, `titular` (perfil e provedores de login), `propriedades` (com pastos e manejos, rebanhos com movimentações, saídas, manejos e regimes de consumo, insumos com movimentações, e as fotos das atividades) e `notificacoes`.
+- **Exclusão lógica:** registros com `ativo: false` entram na exportação, porque continuam armazenados.
+- **Sem segredos:** não retorna senha, tokens nem sessões; de `accounts` saem só `providerId` e `createdAt`.
+- **Resposta:** envelope padrão do `CommonResponse`, com os dados em `data`.
 
 ### 9.5 PATCH /usuarios/:id/foto
 **Caso de Uso:** Registrar a foto de perfil após envio via `POST /uploads/imagens`.
@@ -428,17 +439,18 @@ Aplicação em lote de mutações acumuladas pelo app enquanto operava offline.
 **Caso de Uso:** Ao reconectar, o app envia de uma vez a fila de criações, edições e exclusões feitas offline.
 **Regras de Negócio:**
 - **Envelope:** `{ mutacoes: [...] }`, de **1 a 100** mutações por requisição.
-- **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
+- **Campos de cada mutação:** `id` (UUID da mutação, usado para idempotência), `entidade`, `acao` (`CREATE`/`UPDATE`/`DELETE`), `entidadeId` (UUID da entidade afetada), `dependeDe` (opcional, UUID de outra mutação do mesmo lote), `versaoBase` (opcional, só em `UPDATE`; ver **Conflito de edição**) e `dados` (obrigatório em `CREATE`/`UPDATE`, ausente em `DELETE`).
 - **Identificador único:** `entidadeId` é a única fonte do id — `dados` nunca pode conter a chave `id`.
 - **Entidades suportadas:** `propriedades`, `pastos`, `rebanhos`, `manejo_pastos`, `manejo_rebanhos`, `historico_movimentacoes`, `saidas_rebanho`, `insumos`, `movimentacoes_insumo`, `regimes_consumo_insumo`, `notificacoes`, `fotos_atividade`. `historico_movimentacoes` e `movimentacoes_insumo` não aceitam `UPDATE` (movimentação é evento imutável): `historico_movimentacoes` aceita `CREATE`/`DELETE`, `movimentacoes_insumo` aceita `CREATE`/`DELETE`, `saidas_rebanho` aceita só `CREATE`, `insumos` e `regimes_consumo_insumo` aceitam `CREATE`/`UPDATE`/`DELETE`. `notificacoes` aceita só `UPDATE` com `{ lida }` (a notificação nasce no servidor; ver [Notificações](#notificações)). `fotos_atividade` aceita só `DELETE` — o envio da foto é multipart e vai pelo REST (§ 15); foto inexistente ou já excluída é aceita.
 - **Ordenação por dependência:** o servidor reordena as mutações pelo grafo formado por `dependeDe` antes de aplicar (ex.: criar o pasto antes do rebanho que aponta para ele), independentemente da ordem de envio. `dependeDe` sempre referencia outra mutação do lote, nunca uma entidade do banco.
 - **Uma mutação, uma transação:** cada mutação é aplicada e registrada atomicamente, mas **o lote inteiro não é atômico** — uma mutação recusada não derruba as demais.
-- **Cascata de bloqueio:** se uma mutação é recusada, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
+- **Cascata de bloqueio:** se uma mutação é recusada ou entra em conflito, toda mutação que dependia dela (direta ou indiretamente) sai como `bloqueado` em vez de ser tentada.
+- **Conflito de edição por versão (issue #76):** `propriedades`, `pastos`, `rebanhos`, `insumos`, `manejo_pastos`, `manejo_rebanhos`, `movimentacoes_insumo` e `regimes_consumo_insumo` têm o campo `versao` (inteiro, nasce em 1), devolvido em toda leitura (REST e pull) e no `dados` de toda mutação aceita. Ele sobe a cada **edição do usuário** (`PATCH`, exclusão lógica, `UPDATE`/`DELETE` do lote) e **não** sobe por consequência do servidor (status do pasto, peso médio do rebanho). Um `UPDATE` com `versaoBase` é comparado, dentro da transação e com a linha travada, com a versão atual: igual aplica; diferente devolve `situacao: conflito`, sem aplicar e sem registrar a mutação como aplicada (o reenvio reavalia). `versaoBase` ausente mantém o comportamento anterior (a última edição vence). Só `UPDATE` é checado; `CREATE` e `DELETE` ignoram `versaoBase`. Contrato completo em [`contrato-conflito-versao.md`](../contrato-conflito-versao.md).
 - **Idempotência:** reenviar o mesmo `id` de mutação já aplicado devolve o resultado registrado da primeira tentativa, sem repetir o efeito. O registro de idempotência é mantido por 30 dias.
 - **Delegação:** cada mutação é despachada para o service de domínio correspondente — o `/sync` não reimplementa regra de negócio nenhuma.
 - **Validação por entidade:** antes do despacho, `dados` é validado contra o **mesmo schema Zod da rota REST equivalente** (`pastos:UPDATE` → o schema do `PATCH /pastagens/:id`, e assim por diante), incluindo a recusa de campos fora do schema e a coerção de tipos (datas em texto viram `DateTime`). Um `pastos:UPDATE` carregando `propriedadeId`, por exemplo, é recusado — trocar o vínculo de propriedade não é edição de pasto, e aceitá-lo permitiria mover o registro para a fazenda de outro usuário. A recusa é do item (`situacao: recusado`, `erro.tipo: validationError`, `recuperavel: false`) e não derruba o lote.
 
-**Resposta:** **Sempre HTTP 200**, mesmo com mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada item (um 4xx faria o interceptor do app descartar o resultado das mutações que entraram). O corpo é `{ message: "N de M mutações aplicadas.", data: { resultados }, errors: [] }`, onde `resultados` traz um item por mutação enviada, na mesma ordem do envio, cada um com `situacao` (`aceito`, `recusado` ou `bloqueado`), `entidade`, `entidadeId` e, conforme o caso, `dados` (registro gravado), `erro` (`{ tipo, campo, mensagem, recuperavel }`) ou `bloqueadoPor` (id da mutação recusada que bloqueou esta).
+**Resposta:** **Sempre HTTP 200**, mesmo com mutações recusadas ou bloqueadas — o status HTTP descreve o transporte do lote, não o resultado de cada item (um 4xx faria o interceptor do app descartar o resultado das mutações que entraram). O corpo é `{ message: "N de M mutações aplicadas.", data: { resultados }, errors: [] }`, onde `resultados` traz um item por mutação enviada, na mesma ordem do envio, cada um com `situacao` (`aceito`, `recusado`, `bloqueado` ou `conflito`), `entidade`, `entidadeId` e, conforme o caso, `dados` (registro gravado), `erro` (`{ tipo, campo, mensagem, recuperavel }`), `versaoBase` e `versaoServidor` (só em `conflito`) ou `bloqueadoPor` (id da mutação recusada ou em conflito que bloqueou esta).
 `400` só ocorre por erro de construção do lote em si (`dependeDe` apontando para fora do lote, ou ciclo de dependência) — nesse caso nenhuma mutação chega a ser tentada.
 
 ---

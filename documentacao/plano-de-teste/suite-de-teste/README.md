@@ -202,7 +202,7 @@ não para corrigir o código.
 | CAT | `/catalogos` |
 | USR | `/usuarios` |
 | UPL | `/uploads` |
-| SYNC | `/sync` |
+| SYNC | `/sync` (inclui `SYNC-POST-VER-*`, conflito de edição por versão) |
 | FOTO | fotos de atividade (envio, leitura, exclusão e `fotos_atividade:DELETE` no `/sync`) |
 | NOTIF | `/notificacoes` (caixa e `notificacoes:UPDATE` no `/sync`) |
 | DISP | `/dispositivos` |

@@ -147,6 +147,8 @@ const userRoutes = {
 
             + Função de Negócio:
                 - Remove permanentemente o usuário e todas as sessões/contas associadas.
+                - Apaga também tudo o que a conta guarda: dados do domínio rural (em cascata), mutações do sync
+                  e, do bucket, a foto de perfil e as fotos das atividades (ativas ou não).
                 + Recebe como parâmetro de caminho:
                     - **id**: ID do usuário (formato do BetterAuth).
 
@@ -157,6 +159,48 @@ const userRoutes = {
 
             + Resultado Esperado:
                 - HTTP 200 OK com mensagem de confirmação.
+            `,
+            security: [{ bearerAuth: [] }],
+            parameters: [{
+                name: "id",
+                in: "path",
+                required: true,
+                schema: { type: "string" },
+                description: "ID do usuário (formato do BetterAuth)"
+            }],
+            responses: {
+                200: commonResponses[200](),
+                400: commonResponses[400](),
+                401: commonResponses[401](),
+                403: commonResponses[403](),
+                404: commonResponses[404](),
+                500: commonResponses[500]()
+            }
+        }
+    },
+
+    "/v1/usuarios/{id}/exportacao": {
+        get: {
+            tags: ["Usuários"],
+            summary: "Exporta todos os dados da conta",
+            description: `
+            + Caso de uso: Entregar ao titular uma cópia dos dados da própria conta (LGPD, art. 18 — acesso e portabilidade).
+
+            + Função de Negócio:
+                - Retorna \`exportadoEm\`, \`titular\` (perfil e provedores de login), \`propriedades\` (com pastos, manejos de pasto,
+                  rebanhos, movimentações, saídas, manejos de rebanho, regimes de consumo, insumos, movimentações de insumo e
+                  fotos das atividades) e \`notificacoes\`.
+                - Inclui registros com exclusão lógica (\`ativo: false\`), pois continuam armazenados.
+                + Recebe como parâmetro de caminho:
+                    - **id**: ID do usuário (formato do BetterAuth).
+
+            + Regras de Negócio:
+                - Requer uma sessão autenticada válida.
+                - Somente o próprio titular exporta; nem o admin exporta dados de outro usuário (403).
+                - Nunca retorna senha, tokens (acesso, refresh, id) nem sessões.
+
+            + Resultado Esperado:
+                - HTTP 200 OK com o envelope padrão e os dados da conta em \`data\`.
             `,
             security: [{ bearerAuth: [] }],
             parameters: [{
