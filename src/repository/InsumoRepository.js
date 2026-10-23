@@ -1,5 +1,6 @@
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { aplicarAtivoOuDiferenca, contemInsensitive, igualInsensitive } from '../utils/helpers/index.js';
 
 const INSUMO_SELECT_BASE = {
@@ -11,6 +12,7 @@ const INSUMO_SELECT_BASE = {
     unidadeMedida: true,
     estoqueMinimo: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     tipoInsumo: { select: { id: true, nome: true } },
@@ -135,11 +137,11 @@ class InsumoRepository {
     }
 
     async update(id, data, tx) {
-        return ondeEscrever(tx, this.prisma).insumo.update({ where: { id }, data, select: INSUMO_SELECT });
+        return ondeEscrever(tx, this.prisma).insumo.update({ where: { id }, data: comVersaoNova(data), select: INSUMO_SELECT });
     }
 
     async remove(id, tx) {
-        return ondeEscrever(tx, this.prisma).insumo.update({ where: { id }, data: { ativo: false } });
+        return ondeEscrever(tx, this.prisma).insumo.update({ where: { id }, data: comVersaoNova({ ativo: false }) });
     }
 }
 

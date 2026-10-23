@@ -1,5 +1,6 @@
 
 import { CustomError, HttpStatusCodes, messages, comTransacao } from '../utils/helpers/index.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { rebanhoRepository, pastoRepository, propriedadeRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
 
@@ -104,7 +105,7 @@ class RebanhoService {
 
         // transação atômica: cria rebanho + atualiza status do pasto
         return comTransacao(this.prisma, executor, async (tx) => {
-            await this.pastoRepository.update(parsedData.pastoAtualId, { status: 'Ocupado' }, tx);
+            await this.pastoRepository.update(parsedData.pastoAtualId, { status: 'Ocupado' }, tx, { semVersao: true });
 
             return this.repository.create({ ...dadosRebanho, dataEntradaPastoAtual }, tx);
         });
@@ -154,11 +155,11 @@ class RebanhoService {
             // inativa o rebanho e desvincula do pasto
             const resultado = await tx.rebanho.update({
                 where: { id: rebanho.id },
-                data: {
+                data: comVersaoNova({
                     ativo: false,
                     pastoAtualId: null,
                     dataEntradaPastoAtual: null,
-                },
+                }),
             });
 
             if (pastoAnteriorId) {
@@ -221,7 +222,7 @@ class RebanhoService {
 
             return tx.rebanho.update({
                 where: { id: rebanho.id },
-                data: { ...resto, ativo: true, pastoAtualId, dataEntradaPastoAtual },
+                data: comVersaoNova({ ...resto, ativo: true, pastoAtualId, dataEntradaPastoAtual }),
             });
         });
     }

@@ -6,6 +6,7 @@ import logger from '../utils/logger.js';
 import { DESPACHO } from './sync/despacho.js';
 import { descendentes, ordenarPorDependencia } from './sync/grafoDeDependencia.js';
 import { validarDadosDaMutacao } from './sync/validacao.js';
+import { buscarConflito } from './sync/versao.js';
 
 /** dias que uma mutação aplicada fica registrada. */
 const RETENCAO_EM_DIAS = 30;
@@ -61,7 +62,7 @@ class SyncService {
             const resultado = await this._aplicarUma(mutacao, usuarioId, req);
             resultados.set(id, resultado);
 
-            if (resultado.situacao === 'recusado') {
+            if (resultado.situacao === 'recusado' || resultado.situacao === 'conflito') {
                 for (const descendente of descendentes(mutacoes, id)) {
                     if (!bloqueadas.has(descendente)) bloqueadas.set(descendente, id);
                 }
@@ -72,7 +73,7 @@ class SyncService {
     }
 
     async _aplicarUma(mutacao, usuarioId, req) {
-        const { id, entidade, acao, entidadeId, dados } = mutacao;
+        const { id, entidade, acao, entidadeId, dados, versaoBase } = mutacao;
         const executar = DESPACHO[`${entidade}:${acao}`];
 
         if (!executar) {
@@ -91,6 +92,11 @@ class SyncService {
 
         try {
             return await this.prisma.$transaction(async (tx) => {
+                if (acao === 'UPDATE') {
+                    const conflito = await buscarConflito({ tx, entidade, entidadeId, versaoBase, usuarioId });
+                    if (conflito) return this._conflito(mutacao, conflito.versaoServidor);
+                }
+
                 const gravado = await executar({ entidadeId, dados: dadosValidados, req, tx });
 
                 const resultado = {
@@ -114,6 +120,24 @@ class SyncService {
         } catch (erro) {
             return this._recusa(mutacao, erro);
         }
+    }
+
+    _conflito(mutacao, versaoServidor) {
+        const { tipo, recuperavel } = descreverErro('conflict');
+        return {
+            id: mutacao.id,
+            situacao: 'conflito',
+            entidade: mutacao.entidade,
+            entidadeId: mutacao.entidadeId,
+            versaoBase: mutacao.versaoBase,
+            versaoServidor,
+            erro: {
+                tipo,
+                campo: 'versaoBase',
+                mensagem: 'Este registro foi alterado por outra edição depois que você o baixou. Escolha qual versão manter.',
+                recuperavel,
+            },
+        };
     }
 
     _recusa(mutacao, erro) {

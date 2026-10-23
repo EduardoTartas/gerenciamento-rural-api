@@ -8,6 +8,7 @@ const syncSchemas = {
             acao:       { type: "string", enum: ["CREATE", "UPDATE", "DELETE"], description: "historico_movimentacoes não aceita UPDATE — movimentação é evento, não é editada. saidas_rebanho aceita só CREATE. movimentacoes_insumo:DELETE é sempre recusado (conflict) — corrige-se com UPDATE." },
             entidadeId: { type: "string", format: "uuid", description: "Identificador da entidade afetada. Fonte única do id — não deve ser repetido dentro de `dados`.", example: "22222222-2222-4222-8222-222222222222" },
             dependeDe:  { type: "string", format: "uuid", nullable: true, description: "Id de outra mutação deste mesmo lote que precisa ser aplicada antes desta. Referencia sempre uma mutação, nunca uma entidade do banco." },
+            versaoBase: { type: "integer", minimum: 1, nullable: true, description: "Só em UPDATE: a `versao` do registro no momento em que o app o editou. Se o servidor já estiver em outra versão, a mutação não é aplicada e volta com situacao = conflito. Ausente = aparelho antigo, a última edição vence (comportamento anterior).", example: 3 },
             dados:      { type: "object", additionalProperties: true, description: "Corpo da mutação. Obrigatório em CREATE e UPDATE; ausente em DELETE. Nunca deve conter a chave `id`." },
         },
         required: ["id", "entidade", "acao", "entidadeId"],
@@ -33,13 +34,13 @@ const syncSchemas = {
         type: "object",
         properties: {
             id:          { type: "string", format: "uuid", description: "Mesmo id da mutação enviada." },
-            situacao:    { type: "string", enum: ["aceito", "recusado", "bloqueado"] },
+            situacao:    { type: "string", enum: ["aceito", "recusado", "bloqueado", "conflito"], description: "conflito: o registro foi editado no servidor depois da `versaoBase` informada; a mutação não foi aplicada nem registrada como aplicada." },
             entidade:    { type: "string", example: "pastos" },
             entidadeId:  { type: "string", format: "uuid" },
             dados:       { type: "object", additionalProperties: true, description: "Presente apenas quando situacao = aceito: o registro gravado." },
             erro: {
                 type: "object",
-                description: "Presente apenas quando situacao = recusado.",
+                description: "Presente quando situacao = recusado ou conflito (neste, tipo = conflict, campo = versaoBase, recuperavel = false).",
                 properties: {
                     tipo:       { type: "string", example: "validationError" },
                     campo:      { type: "string", nullable: true },
@@ -47,7 +48,9 @@ const syncSchemas = {
                     recuperavel: { type: "boolean", description: "Indica se reenviar a mesma mutação, sem alteração, pode ter sucesso mais tarde." }
                 }
             },
-            bloqueadoPor: { type: "string", format: "uuid", description: "Presente apenas quando situacao = bloqueado: id da mutação recusada da qual esta dependia (via dependeDe, direta ou indiretamente)." }
+            versaoBase:     { type: "integer", description: "Presente apenas quando situacao = conflito: a versão base enviada pelo app." },
+            versaoServidor: { type: "integer", description: "Presente apenas quando situacao = conflito: a versão atual do registro no servidor. Para manter a edição do aparelho, reenvie a mutação (novo `id`) com `versaoBase` igual a este valor; para aceitar a do servidor, baixe o registro." },
+            bloqueadoPor: { type: "string", format: "uuid", description: "Presente apenas quando situacao = bloqueado: id da mutação recusada (ou em conflito) da qual esta dependia (via dependeDe, direta ou indiretamente)." }
         },
         description: "Resultado de uma mutação após a tentativa de aplicação."
     },

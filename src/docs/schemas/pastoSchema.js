@@ -24,6 +24,7 @@ const pastoSchemas = {
             dataUltimaSaida: { type: "string", format: "date-time", nullable: true, example: "2026-03-15T00:00:00.000Z" },
             ativo: { type: "boolean", example: true },
             createdAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
             propriedade: {
                 type: "object",
@@ -50,6 +51,7 @@ const pastoSchemas = {
             dataUltimaSaida: { type: "string", format: "date-time", nullable: true, example: "2026-03-15T00:00:00.000Z" },
             ativo: { type: "boolean", example: true },
             createdAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
+            versao: { type: "integer", minimum: 1, example: 1, description: "Versão do registro: sobe a cada edição. O app a guarda e a devolve em `versaoBase` ao editar, para o /sync detectar conflito (issue #76)." },
             updatedAt: { type: "string", format: "date-time", example: "2026-04-10T12:00:00.000Z" },
             propriedade: {
                 type: "object",

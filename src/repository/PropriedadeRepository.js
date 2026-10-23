@@ -1,6 +1,7 @@
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 const PROPRIEDADE_SELECT = {
@@ -9,6 +10,7 @@ const PROPRIEDADE_SELECT = {
     localizacao: true,
     areaTotalHa: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     usuario: {
@@ -84,7 +86,7 @@ class PropriedadeRepository {
     async update(id, data, tx) {
         return ondeEscrever(tx, this.prisma).propriedade.update({
             where: { id },
-            data,
+            data: comVersaoNova(data),
             select: { usuarioId: true, ...PROPRIEDADE_SELECT },
         });
     }

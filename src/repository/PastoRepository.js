@@ -1,6 +1,7 @@
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
+import { comVersaoNova } from '../utils/helpers/versao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
 const PASTO_SELECT = {
@@ -14,6 +15,7 @@ const PASTO_SELECT = {
     status: true,
     dataUltimaSaida: true,
     ativo: true,
+    versao: true,
     createdAt: true,
     updatedAt: true,
     propriedade: {
@@ -107,10 +109,10 @@ class PastoRepository {
         });
     }
 
-    async update(id, data, tx) {
+    async update(id, data, tx, { semVersao = false } = {}) {
         return ondeEscrever(tx, this.prisma).pasto.update({
             where: { id },
-            data,
+            data: semVersao ? data : comVersaoNova(data),
             select: PASTO_SELECT,
         });
     }
