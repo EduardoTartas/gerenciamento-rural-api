@@ -1,4 +1,3 @@
-// src/repository/ManejoRebanhoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { comTransacao } from '../utils/helpers/transacao.js';
@@ -13,10 +12,6 @@ const MANEJO_SELECT = {
     pesoRegistrado: true,
     dataAtividade: true,
     observacoes: true,
-    // `ativo` viaja na resposta porque a leitura por diferença devolve o que foi
-    // excluído. Sem este campo o aplicativo recebe a linha apagada igual a uma
-    // viva e a ressuscita — o oposto do que o rastro de exclusão existe para
-    // resolver.
     ativo: true,
     createdAt: true,
     updatedAt: true,
@@ -37,11 +32,6 @@ const MANEJO_SELECT = {
     },
 };
 
-/**
- * A relação `movimentacoesInsumo` viaja no `select` para uma única consulta, mas
- * a resposta expõe os itens do manejo sob a chave `itens` — o nome cru do ledger
- * não vaza para o aplicativo.
- */
 function comItens({ movimentacoesInsumo, ...manejo }) {
     return { ...manejo, itens: movimentacoesInsumo ?? [] };
 }
@@ -89,25 +79,10 @@ class ManejoRebanhoRepository {
         return manejo ? comItens(manejo) : null;
     }
 
-    /**
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async create(data, tx) {
         return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.create({ data, select: MANEJO_SELECT }));
     }
 
-    /**
-     * Cria o manejo e, se for uma pesagem, atualiza rebanho.pesoMedioAtual dentro da
-     * mesma transação — mas só se este manejo for a pesagem mais recente do rebanho.
-     * Evita que uma pesagem retroativa sobrescreva um peso mais atual já registrado.
-     *
-     * Reaproveita a transação recebida em vez de abrir outra: vindo do lote,
-     * abrir aqui daria transação interativa dentro de transação interativa, que
-     * o Prisma não compõe — a de dentro pega outra conexão do pool (issues #34 e
-     * #35).
-     */
     async createComAtualizacaoPeso(data, executor) {
         return comTransacao(this.prisma, executor, async (tx) => {
             const manejo = comItens(await tx.manejoRebanho.create({ data, select: MANEJO_SELECT }));
@@ -131,21 +106,10 @@ class ManejoRebanhoRepository {
         });
     }
 
-    /**
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async update(id, data, tx) {
         return comItens(await ondeEscrever(tx, this.prisma).manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT }));
     }
 
-    /**
-     * Atualiza o manejo e, se a atualização mexer em `pesoRegistrado`, recalcula
-     * `rebanho.pesoMedioAtual` dentro da mesma transação — mesma regra de
-     * `createComAtualizacaoPeso`: só se este manejo for a pesagem mais recente
-     * do rebanho.
-     */
     async updateComAtualizacaoPeso(id, rebanhoId, data, executor) {
         return comTransacao(this.prisma, executor, async (tx) => {
             const manejo = comItens(await tx.manejoRebanho.update({ where: { id }, data, select: MANEJO_SELECT }));
@@ -169,15 +133,6 @@ class ManejoRebanhoRepository {
         });
     }
 
-    /**
-     * Exclusão lógica. A linha precisa continuar existindo para o delta poder
-     * reportá-la: uma linha apagada de verdade não tem `updatedAt` para
-     * informar, e o aplicativo ficaria com um registro fantasma.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async remove(id, tx) {
         return ondeEscrever(tx, this.prisma).manejoRebanho.update({
             where: { id },

@@ -54,9 +54,6 @@ describe('DELETE /v1/rebanhos/movimentacoes/:id', () => {
         expect(r.body.errors[0].message).toContain(mov2.id);
     });
 
-    // Cenário corrigido em relação à linha original do .md — ver seção
-    // Divergências: o pasto de origem sempre GANHA um ocupante na reversão
-    // (o rebanho volta pra lá), nunca fica vazio por causa dela.
     it('MOV-DELETE-ID-03 pasto de origem volta a ficar ocupado após a reversão', async () => {
         const mov = await registrarMovimentacao(a, { rebanhoId: rebanhoA.id, pastoDestinoId: pastoDestinoA.id });
 

@@ -1,10 +1,7 @@
-// src/repository/InsumoRepository.js
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { aplicarAtivoOuDiferenca, contemInsensitive, igualInsensitive } from '../utils/helpers/index.js';
 
-// Campos base do insumo, sem o ledger. Os regimes viajam sempre — são poucos
-// por insumo e a projeção precisa deles (inclusive dos encerrados).
 const INSUMO_SELECT_BASE = {
     id: true,
     propriedadeId: true,
@@ -18,9 +15,6 @@ const INSUMO_SELECT_BASE = {
     updatedAt: true,
     tipoInsumo: { select: { id: true, nome: true } },
     propriedade: { select: { id: true, nome: true } },
-    // Sem filtro por `ativo`: um regime encerrado (`ativo: false`) ainda teve
-    // consumo real antes do `dataFim` que a projeção precisa contar. O filtro
-    // de vigência diária fica em `calcularConsumoDiaTotal` (respeita `ativo`).
     regimesConsumo: {
         select: {
             rebanhoId: true, quantidadeDia: true, dataInicio: true, dataFim: true, ativo: true, lancamentoAutomatico: true,
@@ -28,8 +22,6 @@ const INSUMO_SELECT_BASE = {
     },
 };
 
-// Leitura de um insumo só (findById/create/update): traz o ledger inteiro para o
-// service calcular o saldo a partir das linhas cruas.
 const INSUMO_SELECT = {
     ...INSUMO_SELECT_BASE,
     movimentacoes: {
@@ -74,13 +66,6 @@ class InsumoRepository {
         };
     }
 
-    /**
-     * Anexa `_resumoLedger` a cada insumo da página: a soma do ledger por tipo e
-     * os marcos de consumo, geral e por rebanho (saída `ConsumoRebanho` ou
-     * contagem antiga — mesmo filtro de `ehMarcoDeConsumo`). Dois `groupBy` sobre
-     * `movimentacoes_insumo` em vez de trazer o ledger inteiro por linha (issue
-     * #37). O service usa esse resumo em `calcularSaldosComResumo`.
-     */
     async anexarResumoLedger(docs) {
         if (docs.length === 0) return docs;
         const ids = docs.map((d) => d.id);
@@ -91,8 +76,6 @@ class InsumoRepository {
                 where: { insumoId: { in: ids }, ativo: true },
                 _sum: { quantidade: true },
             }),
-            // Por rebanho e origem: o consumo lançado encerra a estimativa só do
-            // rebanho dele (issue #72 da API, ver `marcoDoRegime`).
             this.prisma.movimentacaoInsumo.groupBy({
                 by: ['insumoId', 'rebanhoId', 'origem'],
                 where: {
@@ -115,8 +98,6 @@ class InsumoRepository {
         }
         for (const linha of marcos) {
             if (!linha._max.data) continue;
-            // O último marco de cada (rebanho, origem); quem decide qual vale
-            // para cada regime é o cálculo (`marcoDoRegime`).
             resumoPorInsumo.get(linha.insumoId).marcos.push({
                 origem: linha.origem,
                 rebanhoId: linha.rebanhoId,
@@ -127,10 +108,6 @@ class InsumoRepository {
         return docs.map((d) => ({ ...d, _resumoLedger: resumoPorInsumo.get(d.id) }));
     }
 
-    /**
-     * Todos os insumos ativos do usuário com o resumo do ledger — para a
-     * verificação de notificações (issue #62), que precisa do saldo de cada um.
-     */
     async listarAtivosComResumo(usuarioId) {
         const docs = await this.prisma.insumo.findMany({
             where: { ativo: true, propriedade: { usuarioId, ativo: true } },

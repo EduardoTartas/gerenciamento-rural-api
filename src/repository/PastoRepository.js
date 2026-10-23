@@ -1,14 +1,8 @@
-// src/repository/PastoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
-/**
- * Campos devolvidos em toda leitura e escrita de pasto. `tipoPastagem` vem junto
- * com `diasDescanso` para o app calcular o descanso efetivo sem outra consulta:
- * `pasto.diasDescanso` (ajuste do produtor) ?? `tipoPastagem.diasDescanso`.
- */
 const PASTO_SELECT = {
     id: true,
     propriedadeId: true,
@@ -35,10 +29,6 @@ class PastoRepository {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista pastos com paginação e filtros opcionais.
-     * Sempre restrito às propriedades do usuário autenticado.
-     */
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             propriedade: { usuarioId },
@@ -75,10 +65,6 @@ class PastoRepository {
         };
     }
 
-    /**
-     * Busca um pasto por ID. Retorna null se não encontrar.
-     * Restrito ao usuário autenticado via propriedade.
-     */
     async findById(id, usuarioId) {
         const pasto = await this.prisma.pasto.findFirst({
             where: {
@@ -91,9 +77,6 @@ class PastoRepository {
         return pasto;
     }
 
-    /**
-     * Tipo de pastagem ativo com este nome (sem diferenciar maiúsculas), ou null.
-     */
     async findTipoPastagemPorNome(nome) {
         return this.prisma.tipoPastagem.findFirst({
             where: { nome: igualInsensitive(nome), ativo: true },
@@ -101,17 +84,10 @@ class PastoRepository {
         });
     }
 
-    /**
-     * Tipo de pastagem ativo do catálogo, ou null.
-     */
     async findTipoPastagemAtivo(id) {
         return this.prisma.tipoPastagem.findFirst({ where: { id, ativo: true }, select: { id: true } });
     }
 
-    /**
-     * Busca um pasto pelo nome dentro de uma propriedade específica.
-     * Usado para validação de nome único por propriedade.
-     */
     async findByNome(nome, propriedadeId, excludeId = null) {
         const where = {
             nome: igualInsensitive(nome),
@@ -124,13 +100,6 @@ class PastoRepository {
         return this.prisma.pasto.findFirst({ where });
     }
 
-    /**
-     * Cria um novo pasto.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async create(data, tx) {
         return ondeEscrever(tx, this.prisma).pasto.create({
             data,
@@ -138,13 +107,6 @@ class PastoRepository {
         });
     }
 
-    /**
-     * Atualiza um pasto por ID.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async update(id, data, tx) {
         return ondeEscrever(tx, this.prisma).pasto.update({
             where: { id },
@@ -154,10 +116,6 @@ class PastoRepository {
     }
 
 
-    /**
-     * Conta a quantidade de rebanhos ativos associados a este pasto.
-     * Útil para validações de regra de negócio (não inativar pasto ocupado, etc).
-     */
     async countRebanhos(id) {
         return this.prisma.rebanho.count({
             where: {

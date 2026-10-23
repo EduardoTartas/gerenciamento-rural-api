@@ -1,4 +1,3 @@
-// src/utils/helpers/messages.js
 
 const messages = {
     info: {

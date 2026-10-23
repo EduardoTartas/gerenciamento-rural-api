@@ -17,8 +17,6 @@ const server = app.listen(port, (error) => {
     }
 });
 
-// Avisos da fazenda (issue #62). Ligado só aqui, e não no `app.js`: os testes
-// importam o app e não podem ligar o agendador.
 const pararAgendador = iniciarAgendadorDeNotificacoes();
 
 const gracefulShutdown = async (signal) => {

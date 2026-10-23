@@ -75,7 +75,7 @@ describe('GET /v1/manejos/fotos', () => {
         const marca = new Date(Date.now() - 60_000);
         const viva = await criarFoto({ manejoPastoId: cenario.manejoPasto.id });
         const excluida = await criarFoto({ manejoPastoId: cenario.manejoPasto.id, ativo: false });
-        // Mexida antes da marca: não volta.
+        // mexida antes da marca: não volta.
         await criarFoto({ manejoPastoId: cenario.manejoPasto.id, updatedAt: new Date('2020-01-01T00:00:00Z') });
 
         const r = await listar(a, { atualizadoDesde: marca.toISOString() });

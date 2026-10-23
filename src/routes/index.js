@@ -1,4 +1,3 @@
-// src/routes/index.js
 
 import express from 'express';
 import logRoutes from '../middlewares/LogRoutesMiddleware.js';
@@ -9,7 +8,7 @@ import getSwaggerOptions from '../docs/config/head.js';
 import DbConnect from '../config/dbConnect.js';
 import { authRateLimit } from '../middlewares/RateLimitMiddleware.js';
 
-// Importação de rotas
+// importação de rotas
 import userRoutes from './userRoutes.js';
 import propriedadeRoutes from './propriedadeRoutes.js';
 import pastoRoutes from './pastoRoutes.js';
@@ -37,7 +36,7 @@ const swaggerMiddlewarePromise = (async () => {
 })();
 
 const routes = (app) => {
-    // Middleware de log para debug
+    // middleware de log para debug
     if (process.env.DEBUGLOG) {
         app.use(logRoutes);
     }
@@ -46,7 +45,6 @@ const routes = (app) => {
         res.redirect('/v1/docs');
     });
 
-    // Middleware para impedir que o Cloudflare faça cache da documentação
     app.use('/v1/docs', (req, res, next) => {
         res.setHeader('Cache-Control', 'no-store, no-cache, must-revalidate, proxy-revalidate');
         res.setHeader('Pragma', 'no-cache');
@@ -58,7 +56,7 @@ const routes = (app) => {
             .catch(next);
     });
 
-    // Endpoint de verificação de saúde (health check)
+    // endpoint de verificação de saúde (health check)
     app.get('/health', async (req, res) => {
         let isConnected = false;
         try {
@@ -76,14 +74,6 @@ const routes = (app) => {
         });
     });
 
-    // Registro de todas as rotas (com rate limiting geral para rotas autenticadas)
-    // Ordem: rotas específicas ANTES de rotas genéricas (/:id), caso contrário
-    // GET /rebanhos/:id captura /rebanhos/manejos e /rebanhos/movimentacoes
-    //
-    // `manejoPastoRoutes` vinha DEPOIS de `pastoRoutes` e caía nessa armadilha:
-    // `/pastagens/:id` engolia `/pastagens/manejos`, que respondia 400 "ID de
-    // pastagem inválido" para toda listagem de manejo de pasto — inclusive a
-    // leitura por diferença.
     app.use('/v1',
         authRateLimit,
         userRoutes,

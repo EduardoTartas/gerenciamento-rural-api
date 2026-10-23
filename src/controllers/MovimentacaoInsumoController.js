@@ -1,4 +1,3 @@
-// src/controllers/MovimentacaoInsumoController.js
 import MovimentacaoInsumoService from '../service/MovimentacaoInsumoService.js';
 import {
     MovimentacaoInsumoCreateSchema,
@@ -58,7 +57,6 @@ class MovimentacaoInsumoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Movimentação atualizada com sucesso.');
     }
 
-    // Sempre 409 desde a issue #68 (ver `MovimentacaoInsumoService.remove`).
     async remove(req, res) {
         const { id } = req.params;
         MovimentacaoInsumoIdSchema.parse(id);

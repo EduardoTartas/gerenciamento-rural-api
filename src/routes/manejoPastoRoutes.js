@@ -1,4 +1,3 @@
-// src/routes/manejoPastoRoutes.js
 
 import express from 'express';
 import ManejoPastoController from '../controllers/ManejoPastoController.js';

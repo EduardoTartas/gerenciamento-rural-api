@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/FotoAtividadeQuerySchema.js
 
 import { z } from 'zod/v4';
 
@@ -7,10 +6,6 @@ export const FotoAtividadeIdSchema = z
     .string()
     .uuid('ID de foto inválido. Deve ser um UUID válido.');
 
-/**
- * Filtros de `GET /manejos/fotos`. Com `atualizadoDesde` a resposta traz também
- * as fotos excluídas (leitura por diferença), como as demais listas.
- */
 export const FotoAtividadeQuerySchema = z.object({
     manejoPastoId:   z.string().uuid('O ID do manejo de pastagem deve ser um UUID válido.').optional(),
     manejoRebanhoId: z.string().uuid('O ID do manejo de rebanho deve ser um UUID válido.').optional(),

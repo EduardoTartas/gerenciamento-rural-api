@@ -1,4 +1,3 @@
-// src/repository/RegimeConsumoInsumoRepository.js
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
@@ -30,9 +29,6 @@ class RegimeConsumoInsumoRepository {
         if (filters.rebanhoId) where.rebanhoId = filters.rebanhoId;
         if (filters.insumoId)  where.insumoId = filters.insumoId;
         if (filters.emAberto)  where.dataFim = null;
-        // Mantém o `usuarioId` no filtro: um `propriedadeId` forjado devolve
-        // lista vazia, nunca dado de outro tenant (mesmo padrão de
-        // MovimentacaoInsumoRepository.list).
         if (filters.propriedadeId) {
             where.rebanho = { propriedade: { usuarioId, id: filters.propriedadeId } };
         }
@@ -54,7 +50,6 @@ class RegimeConsumoInsumoRepository {
         });
     }
 
-    /** O regime vigente (não encerrado) do par, se houver. Respeita a transação. */
     async findAbertoDoPar(rebanhoId, insumoId, tx) {
         return ondeEscrever(tx, this.prisma).regimeConsumoInsumo.findFirst({
             where: { rebanhoId, insumoId, ativo: true, dataFim: null },
@@ -62,11 +57,6 @@ class RegimeConsumoInsumoRepository {
         });
     }
 
-    /**
-     * Regimes com lançamento automático (issue #72), de insumo e propriedade
-     * ativos. Inclui os encerrados: o consumo até o `dataFim` ainda pode faltar
-     * lançar. Sem `usuarioId`, de todos os produtores.
-     */
     async listarAutomaticos(usuarioId = null) {
         const propriedade = { ativo: true, ...(usuarioId ? { usuarioId } : {}) };
         const regimes = await this.prisma.regimeConsumoInsumo.findMany({
@@ -84,13 +74,6 @@ class RegimeConsumoInsumoRepository {
         return ondeEscrever(tx, this.prisma).regimeConsumoInsumo.update({ where: { id }, data, select: REGIME_SELECT });
     }
 
-    /**
-     * Desativa os regimes ativos de um insumo (exclusão do insumo). Mesma regra da
-     * exclusão de um regime: `ativo: false` e `dataFim = max(agora, dataInicio)` —
-     * um regime que ainda não começou encerra na própria `dataInicio`, nunca antes
-     * dela. Regimes já inativos não são tocados. Um `update` por regime (e não
-     * `updateMany`) porque o `dataFim` depende da `dataInicio` de cada um.
-     */
     async desativarPorInsumo(insumoId, tx) {
         const db = ondeEscrever(tx, this.prisma);
         const ativos = await db.regimeConsumoInsumo.findMany({

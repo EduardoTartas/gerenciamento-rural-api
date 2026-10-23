@@ -1,4 +1,3 @@
-// src/docs/paths/auth.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 

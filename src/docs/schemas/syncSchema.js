@@ -1,4 +1,3 @@
-// src/docs/schemas/syncSchema.js
 
 const syncSchemas = {
     Mutacao: {

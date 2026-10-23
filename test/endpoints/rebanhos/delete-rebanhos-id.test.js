@@ -19,9 +19,6 @@ describe('DELETE /v1/rebanhos/:id', () => {
     const del = (usuario, id) =>
         api().delete(`/v1/rebanhos/${id}`).set('Authorization', usuario.bearer);
 
-    // Bug: RebanhoService._inativar usa `executor` fora de escopo
-    // (src/service/RebanhoService.js:187) -> ReferenceError -> 500. Comportamento
-    // correto esperado é 200 com soft-delete efetivo (ver Divergências no .md).
     it('REB-DELETE-ID-01 inativa rebanho ativo de A', async () => {
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
         const r = await del(a, rebanho.id);

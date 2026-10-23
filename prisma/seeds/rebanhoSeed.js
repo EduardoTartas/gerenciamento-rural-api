@@ -1,4 +1,3 @@
-// prisma/seeds/rebanhoSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
@@ -9,14 +8,10 @@ const NOMES_LOTE = [
   'Lote', 'Rebanho', 'Plantel', 'Tropa',
 ];
 
-/**
- * Seed de rebanhos (lotes de gado).
- * Cria N rebanhos por propriedade, vinculando aleatoriamente aos pastos.
- */
 export async function seedRebanhos(prisma, propriedades, pastos, catalogos, quantidadePorPropriedade = 2) {
   console.log('Semeando rebanhos...');
 
-  // Organiza pastos por propriedade
+  // organiza pastos por propriedade
   const pastosPorProp = {};
   for (const p of pastos) {
     if (!pastosPorProp[p.propriedadeId]) pastosPorProp[p.propriedadeId] = [];
@@ -36,7 +31,7 @@ export async function seedRebanhos(prisma, propriedades, pastos, catalogos, quan
       const tipo = faker.helpers.arrayElement(NOMES_LOTE);
       const nomeRebanho = `${tipo} ${racaObj.nome} ${sistemaObj.nome}`;
 
-      // Define peso médio baseado no sistema de produção
+      // define peso médio baseado no sistema de produção
       let pesoMedio;
       switch (sistemaObj.nome) {
         case 'Cria': pesoMedio = faker.number.float({ min: 120, max: 220, fractionDigits: 1 }); break;

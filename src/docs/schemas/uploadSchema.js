@@ -1,4 +1,3 @@
-// src/docs/schemas/uploadSchema.js
 
 const uploadSchemas = {
     UploadResult: {

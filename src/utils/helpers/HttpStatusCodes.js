@@ -1,4 +1,3 @@
-// src/utils/helpers/HttpStatusCodes.js
 
 class HttpStatusCodes {
     static OK = { code: 200, message: 'Requisição bem-sucedida' };

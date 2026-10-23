@@ -1,8 +1,7 @@
-// src/utils/validators/schemas/zod/SyncSchema.js
 
 import { z } from 'zod/v4';
 
-/** Teto alinhado ao limite de paginação que a API já pratica. */
+/** teto alinhado ao limite de paginação que a API já pratica. */
 export const MAXIMO_DE_MUTACOES = 100;
 
 const MutacaoSchema = z

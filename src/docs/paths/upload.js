@@ -1,4 +1,3 @@
-// src/docs/paths/upload.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 

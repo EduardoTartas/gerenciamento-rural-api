@@ -4,8 +4,6 @@ import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import { criarPropriedade, criarPasto, criarRebanho } from '../../apoio/fabricas.js';
 
-// Compra do lote (issue #71): valor, peso, arroba, data e cabeças na compra,
-// todos opcionais e independentes. O custo por cabeça é calculado no app.
 describe('Rebanho — compra do lote', () => {
     let a;
     let propriedade;
@@ -92,7 +90,7 @@ describe('Rebanho — compra do lote', () => {
         expect(r.status).toBe(200);
         expect(r.body.data.valorCompra).toBeNull();
         expect(r.body.data.dataCompra).toBeNull();
-        // O resto da compra fica.
+        // o resto da compra fica.
         expect(r.body.data.cabecasCompra).toBe(120);
     });
 

@@ -1,6 +1,3 @@
-// Fábricas locais da suíte de /insumos. Gravam via Prisma o ledger de
-// movimentações e os regimes de consumo — não existe rota própria para
-// preparar saldo nesta suíte (a rota /insumos/movimentacoes é de outra task).
 import DbConnect from '../../../src/config/dbConnect.js';
 
 const { prisma } = DbConnect;

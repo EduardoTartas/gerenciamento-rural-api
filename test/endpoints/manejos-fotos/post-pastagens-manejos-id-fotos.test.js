@@ -6,8 +6,6 @@ import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import { criarCenario, criarFoto, criarImagem } from './apoio-local.js';
 
-// Mock do client Garage/MinIO, igual à suíte de /uploads: só o client de
-// storage é trocado; `baseUrlPublica`/`ensureGarageEnv` seguem reais.
 const { putObject, removeObject, getGarageClientMock } = vi.hoisted(() => {
     const putObject = vi.fn().mockResolvedValue(undefined);
     const removeObject = vi.fn().mockResolvedValue(undefined);

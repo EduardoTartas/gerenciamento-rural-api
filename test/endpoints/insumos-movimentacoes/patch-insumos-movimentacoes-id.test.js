@@ -152,7 +152,6 @@ describe('PATCH /v1/insumos/movimentacoes/:id', () => {
         expect(r.body.data.observacoes).toBeNull();
         expect((await salva(mov.id)).observacoes).toBeNull();
 
-        // Trocar para "Outro" e limpar no mesmo envio continua recusado.
         const r2 = await patch(a, mov.id, { origem: 'Outro', observacoes: null });
         expect(r2.status).toBe(400);
         expect(r2.body.errors[0].path).toBe('observacoes');

@@ -1,4 +1,3 @@
-// src/routes/insumoRoutes.js
 import express from 'express';
 import InsumoController from '../controllers/InsumoController.js';
 import MovimentacaoInsumoController from '../controllers/MovimentacaoInsumoController.js';
@@ -9,8 +8,6 @@ const router = express.Router();
 const insumoController = new InsumoController();
 const movimentacaoInsumoController = new MovimentacaoInsumoController();
 
-// Rotas de movimentações — registradas antes de `/insumos/:id` para que
-// `GET /insumos/:id` não capture `/insumos/movimentacoes`.
 router
     .get('/insumos/movimentacoes', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.list.bind(movimentacaoInsumoController)))
     .get('/insumos/movimentacoes/:id', AuthMiddleware, asyncWrapper(movimentacaoInsumoController.list.bind(movimentacaoInsumoController)))

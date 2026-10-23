@@ -1,4 +1,3 @@
-// src/service/PastoService.js
 
 import {
     CustomError,
@@ -13,10 +12,6 @@ class PastoService {
         this.propriedadeRepository = propriedadeRepository;
     }
 
-    /**
-     * Lista pastos com paginação e filtragem.
-     * Sempre restrito ao usuário autenticado (via propriedade).
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -43,13 +38,10 @@ class PastoService {
         );
     }
 
-    /**
-     * Cria um novo pasto para uma propriedade do usuário autenticado.
-     */
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
-        // Valida se a propriedade existe e pertence ao usuário
+        // valida se a propriedade existe e pertence ao usuário
         const propriedade = await this.ensurePropriedadeExists(parsedData.propriedadeId, usuarioId);
 
         if (!propriedade.ativo) {
@@ -63,7 +55,7 @@ class PastoService {
         }
 
 
-        // Valida nome único por propriedade
+        // valida nome único por propriedade
         await this.validateUniqueNome(parsedData.nome, parsedData.propriedadeId);
 
         await this.converterTipoPastagemLegado(parsedData);
@@ -74,29 +66,23 @@ class PastoService {
         return this.repository.create(parsedData, tx);
     }
 
-    /**
-     * Atualiza um pasto existente.
-     * Apenas o dono da propriedade pode atualizar.
-     */
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         const pasto = await this.ensurePastoExists(id, usuarioId);
 
-        // Valida nome único se estiver alterando
+        // valida nome único se estiver alterando
         if (parsedData.nome) {
             await this.validateUniqueNome(parsedData.nome, pasto.propriedadeId, id);
         }
 
         await this.converterTipoPastagemLegado(parsedData);
 
-        // Trocar para outro tipo exige que ele exista ativo; manter o atual não,
-        // para um tipo desativado depois não travar a edição de outros campos.
         if (parsedData.tipoPastagemId && parsedData.tipoPastagemId !== pasto.tipoPastagemId) {
             await this.ensureTipoPastagemExists(parsedData.tipoPastagemId);
         }
 
-        // Validação de estado "Ativo" e "Status" usando rebanhos
+        // validação de estado "Ativo" e "Status" usando rebanhos
         if (parsedData.ativo === false || parsedData.status === 'Vazio' || parsedData.status === 'Descanso' || parsedData.status === 'Ocupado') {
             const rebanhosAtivos = await this.repository.countRebanhos(id);
             if (rebanhosAtivos > 0) {
@@ -130,46 +116,16 @@ class PastoService {
         }
 
         // TODO(lotacao): taxa de lotação e capacidade de suporte.
-        //
-        // Hoje nada relaciona `rebanho.quantidadeCabecas` com `pasto.extensaoHa`,
-        // então é possível cadastrar 300 cabeças em 2 ha sem nenhum aviso — e
-        // superlotação é o erro de manejo que mais degrada pastagem.
-        //
-        // Esboço da regra, quando for implementada:
-        //   1. UA (unidade animal) = 450 kg de peso vivo.
-        //      UA do lote = (quantidadeCabecas * pesoMedioAtual) / 450.
-        //   2. Taxa de lotação = UA / extensaoHa.
-        //   3. Capacidade de suporte varia com forrageira, solo e época do ano;
-        //      não dá para fixar um número único no código. Começar com um teto
-        //      configurável por propriedade (padrão de referência: 2 UA/ha em
-        //      pastagem tropical bem manejada).
-        //   4. Ultrapassar o teto deve **avisar**, não bloquear: o produtor pode
-        //      estar em manejo de transição, e travar o cadastro faria ele
-        //      registrar dado errado para contornar o sistema.
-        //
-        // Depende de `pesoMedioAtual` preenchido — hoje é opcional. Sem ele,
-        // cair para um valor por categoria animal ou omitir o cálculo.
 
         return this.repository.update(id, parsedData, tx);
     }
 
-    /**
-     * Arquiva (Soft-Delete) um pasto.
-     * Apenas o dono da propriedade pode arquivar.
-     * O método redireciona para a atualização da flag 'ativo', que já possui validações de integridade
-     * (não permite arquivar se houver rebanhos ativos).
-     */
     async remove(id, req, tx) {
         return this.update(id, { ativo: false }, req, tx);
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
-    /**
-     * Valida se o nome já está em uso na mesma propriedade.
-     */
     async validateUniqueNome(nome, propriedadeId, excludeId = null) {
         const existing = await this.repository.findByNome(nome, propriedadeId, excludeId);
         if (existing) {
@@ -183,9 +139,6 @@ class PastoService {
         }
     }
 
-    /**
-     * Garante que um pasto com o ID fornecido existe e pertence ao usuário.
-     */
     async ensurePastoExists(id, usuarioId) {
         const pasto = await this.repository.findById(id, usuarioId);
         if (!pasto) {
@@ -200,9 +153,6 @@ class PastoService {
         return pasto;
     }
 
-    /**
-     * Garante que a propriedade existe e pertence ao usuário autenticado.
-     */
     async ensurePropriedadeExists(propriedadeId, usuarioId) {
         const propriedade = await this.propriedadeRepository.findById(propriedadeId, usuarioId);
         if (!propriedade) {
@@ -217,12 +167,6 @@ class PastoService {
         return propriedade;
     }
 
-    /**
-     * Troca o texto livre antigo `tipoPastagem` pelo `tipoPastagemId` de mesmo
-     * nome (sem diferenciar maiúsculas). `tipoPastagemId` enviado junto vence.
-     * Sem correspondência, o campo é só descartado: o pasto fica sem tipo, como
-     * na migration que converteu os pastos existentes.
-     */
     async converterTipoPastagemLegado(parsedData) {
         if (!('tipoPastagem' in parsedData)) return;
         const texto = parsedData.tipoPastagem?.trim();
@@ -236,9 +180,6 @@ class PastoService {
         parsedData.tipoPastagemId = tipo?.id ?? null;
     }
 
-    /**
-     * Garante que o tipo de pastagem existe e está ativo no catálogo.
-     */
     async ensureTipoPastagemExists(tipoPastagemId) {
         const tipo = await this.repository.findTipoPastagemAtivo(tipoPastagemId);
         if (!tipo) {

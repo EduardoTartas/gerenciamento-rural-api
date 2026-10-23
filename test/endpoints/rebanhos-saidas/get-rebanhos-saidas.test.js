@@ -18,7 +18,6 @@ describe('GET /v1/rebanhos/saidas', () => {
     const get = (usuario, query = '') =>
         api().get(`/v1/rebanhos/saidas${query}`).set('Authorization', usuario.bearer);
 
-    // Motivo padrão Abate: venda exigiria preço e valor (issue #66).
     const saida = (extra = {}) =>
         registrarSaida(a, { rebanhoId: rebanhoA.id, motivo: 'Abate', quantidadeCabecas: 5, ...extra });
 

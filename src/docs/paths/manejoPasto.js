@@ -1,4 +1,3 @@
-// src/docs/paths/manejoPasto.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import manejoPastoSchemas from "../schemas/manejoPastoSchema.js";

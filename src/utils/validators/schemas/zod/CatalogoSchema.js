@@ -1,11 +1,6 @@
-// src/utils/validators/schemas/zod/CatalogoSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Schema para criar um item de catálogo global.
- * Base comum (`nome`); entidades com campo extra usam `schemaDeCriacao(entidade)`.
- */
 export const CatalogoCreateSchema = z.object({
     nome: z
         .string()
@@ -14,9 +9,6 @@ export const CatalogoCreateSchema = z.object({
         .trim(),
 }).strict();
 
-/**
- * Schema para atualizar um item de catálogo global.
- */
 export const CatalogoUpdateSchema = z.object({
     nome: z
         .string()
@@ -27,20 +19,12 @@ export const CatalogoUpdateSchema = z.object({
     ativo: z.boolean().optional(),
 }).strict();
 
-/**
- * Dias de descanso da forrageira (`tipos-pastagem`): padrão sugerido ao pasto.
- * Teto de um ano, mesmo limite do ajuste em `pasto.diasDescanso`.
- */
 const diasDescanso = z
     .number()
     .int('Os dias de descanso devem ser um número inteiro.')
     .min(1, 'Os dias de descanso devem ser pelo menos 1.')
     .max(365, 'Os dias de descanso devem ser no máximo 365.');
 
-/**
- * Campos extras por entidade (mesma chave de `CATALOGO_ENTITIES`): obrigatórios na
- * criação, opcionais na atualização. Entidade sem entrada aqui usa só a base.
- */
 const CAMPOS_EXTRAS = {
     'tipos-pastagem': { diasDescanso },
 };

@@ -1,9 +1,6 @@
-// src/docs/paths/insumo.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 
-// Envelope paginado no mesmo formato de CommonResponse ({ message, data, errors }),
-// com `data` carregando os documentos e os metadados de paginação.
 const listaPaginada = (itemRef, description = "Lista paginada") => ({
     description,
     content: {

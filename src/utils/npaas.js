@@ -1,12 +1,3 @@
-// src/utils/npaas.js
-//
-// Cliente do NPaaS (plataforma de notificações push sobre o Firebase, issue
-// #62). Mesmo desenho do app de pedidos (`x-api-key`, usuário `<id>_mobile`),
-// com `fetch` nativo em vez de axios — sem dependência nova.
-//
-// Push é complemento, nunca requisito: sem `NPAAS_URL`/`NPAAS_API_KEY` o
-// cliente fica desligado (a notificação continua na caixa do app), e falha ou
-// demora do NPaaS vira `false`/log — nunca exceção para quem chamou.
 
 import logger from './logger.js';
 
@@ -14,7 +5,6 @@ const TIMEOUT_MS = 10_000;
 
 let avisouDesligado = false;
 
-/** Usuário no NPaaS: o mesmo id do Pasto Livre com o sufixo do alvo. */
 export function usuarioNoNpaas(usuarioId) {
     return `${usuarioId}_mobile`;
 }
@@ -32,15 +22,10 @@ function configuracao() {
     return { url: url.replace(/\/+$/, ''), chave };
 }
 
-/** O push está configurado? */
 export function npaasAtivo() {
     return configuracao() !== null;
 }
 
-/**
- * POST no NPaaS. Devolve o corpo da resposta em caso de sucesso e `null` em
- * qualquer falha (desligado, rede, timeout, status de erro) — já com log.
- */
 async function postar(caminho, corpo) {
     const config = configuracao();
     if (!config) return null;
@@ -74,7 +59,7 @@ async function postar(caminho, corpo) {
 }
 
 const npaas = {
-    /** Registra (ou atualiza) o token FCM do aparelho do usuário. */
+    /** registra (ou atualiza) o token FCM do aparelho do usuário. */
     async registrarDispositivo(usuarioId, { tokenFcm, plataforma = 'android', versaoApp }) {
         const resposta = await postar('/dispositivos', {
             tokenFcm,
@@ -85,16 +70,12 @@ const npaas = {
         return resposta !== null;
     },
 
-    /** Desativa um token FCM (logout). */
+    /** desativa um token FCM (logout). */
     async desativarToken(tokenFcm) {
         const resposta = await postar('/dispositivos/desativar-token', { tokenFcm });
         return resposta !== null;
     },
 
-    /**
-     * Envia o push para todos os aparelhos ativos do usuário. `dados` vai como
-     * strings — o FCM só aceita string no payload de dados.
-     */
     async enviar(usuarioId, { titulo, corpo, dados = {}, prioridade = 'alta' }) {
         const dadosEmTexto = Object.fromEntries(
             Object.entries(dados)

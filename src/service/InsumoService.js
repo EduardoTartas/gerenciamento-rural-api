@@ -1,4 +1,3 @@
-// src/service/InsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { insumoRepository, propriedadeRepository, regimeConsumoInsumoRepository } from '../repository/index.js';
 import DbConnect from '../config/dbConnect.js';
@@ -13,13 +12,10 @@ class InsumoService {
         this.prisma = DbConnect.prisma;
     }
 
-    /** Converte Decimal -> Number e anexa o pacote de saldo a um insumo lido. */
     comSaldo(insumo) {
         const regimes = (insumo.regimesConsumo ?? []).map(regimeParaCalculo);
         const agora = new Date();
 
-        // Listagem: o repository já agregou o ledger em `_resumoLedger`.
-        // findById/create/update: o ledger cru vem em `movimentacoes`.
         const saldo = insumo._resumoLedger
             ? calcularSaldosComResumo({ resumo: insumo._resumoLedger, regimes, agora })
             : calcularSaldos({
@@ -85,8 +81,6 @@ class InsumoService {
         if (parsedData.nome && parsedData.nome.toLowerCase() !== atual.nome.toLowerCase()) {
             await this.ensureNomeDisponivel(usuarioId, atual.propriedadeId, parsedData.nome, id);
         }
-        // Reativar um insumo cujo nome foi reutilizado por outro ativo colide com
-        // o índice único parcial `insumos_propriedadeId_nome_ci_key`.
         if (parsedData.ativo === true && atual.ativo === false) {
             await this.ensureNomeDisponivel(usuarioId, atual.propriedadeId, parsedData.nome ?? atual.nome, id);
         }
@@ -97,10 +91,6 @@ class InsumoService {
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureInsumoExists(id, usuarioId);
-        // Os regimes de consumo do insumo saem junto, na mesma transação: sem
-        // isso o rebanho seguiria "consumindo" um insumo que não existe mais e a
-        // projeção de saldo dele ficaria errada. Movimentações e itens de manejo
-        // ficam — são o histórico.
         return comTransacao(this.prisma, tx, async (trx) => {
             const removido = await this.repository.remove(id, trx);
             await this.regimeConsumoInsumoRepository.desativarPorInsumo(id, trx);

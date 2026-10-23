@@ -1,4 +1,3 @@
-// src/service/RebanhoService.js
 
 import { CustomError, HttpStatusCodes, messages, comTransacao } from '../utils/helpers/index.js';
 import { rebanhoRepository, pastoRepository, propriedadeRepository } from '../repository/index.js';
@@ -12,9 +11,6 @@ class RebanhoService {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista rebanhos com paginação e filtragem.
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -36,7 +32,6 @@ class RebanhoService {
         if (racaId)           filters.racaId           = racaId;
         if (sistemaProducaoId) filters.sistemaProducaoId = sistemaProducaoId;
         if (regimeAlimentarId) filters.regimeAlimentarId = regimeAlimentarId;
-        // ativo vem como boolean do Zod (_parsedQuery) ou string do req.query
         if (ativo !== undefined) filters.ativo         = typeof ativo === 'boolean' ? ativo : ativo === 'true';
         if (atualizadoDesde) filters.atualizadoDesde = atualizadoDesde;
 
@@ -48,12 +43,6 @@ class RebanhoService {
         );
     }
 
-    /**
-     * Cria um novo rebanho.
-     * Regras: propriedade ativa, nome único por propriedade (entre ativos),
-     *         pasto ativo (se informado) e pertence à mesma propriedade.
-     * Toda a operação é executada em uma transação atômica.
-     */
     async create(parsedData, req, executor) {
         const usuarioId = req.user.id;
 
@@ -70,7 +59,7 @@ class RebanhoService {
 
         await this.validateUniqueNome(parsedData.nomeRebanho, parsedData.propriedadeId);
 
-        // Validação obrigatória do pasto
+        // validação obrigatória do pasto
         const pasto = await this.ensurePastoExists(parsedData.pastoAtualId, usuarioId);
 
         if (!pasto.ativo) {
@@ -93,9 +82,6 @@ class RebanhoService {
             });
         }
 
-        // Lotação conjunta: por padrão o pasto inicial precisa estar livre.
-        // Conta os rebanhos ativos em vez de confiar no campo `status`, que é
-        // cache e pode estar defasado.
         const { permitirLotacaoConjunta = false, ...dadosRebanho } = parsedData;
 
         if (!permitirLotacaoConjunta) {
@@ -116,7 +102,7 @@ class RebanhoService {
 
         const dataEntradaPastoAtual = parsedData.dataEntradaPastoAtual || new Date();
 
-        // Transação atômica: cria rebanho + atualiza status do pasto
+        // transação atômica: cria rebanho + atualiza status do pasto
         return comTransacao(this.prisma, executor, async (tx) => {
             await this.pastoRepository.update(parsedData.pastoAtualId, { status: 'Ocupado' }, tx);
 
@@ -124,9 +110,6 @@ class RebanhoService {
         });
     }
 
-    /**
-     * Atualiza um rebanho existente.
-     */
     async update(id, parsedData, req, executor) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
@@ -147,13 +130,10 @@ class RebanhoService {
             });
         }
 
-        // Inativação: redireciona para remove(), passando o rebanho já carregado
         if (parsedData.ativo === false) {
             return this._inativar(rebanho, executor);
         }
 
-        // Reativação: exige pasto ativo na mesma propriedade, igual à criação —
-        // impede que um rebanho volte a ficar ativo sem pasto vinculado
         if (isReativacao) {
             return this._reativar(rebanho, parsedData, usuarioId, executor);
         }
@@ -161,26 +141,17 @@ class RebanhoService {
         return this.repository.update(id, parsedData, executor);
     }
 
-    /**
-     * Inativa (Soft-Delete) um rebanho.
-     * Desvincula do pasto atual e atualiza o status do pasto se necessário.
-     * Executado em uma transação atômica.
-     */
     async remove(id, req, executor) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(id, usuarioId);
         return this._inativar(rebanho, executor);
     }
 
-    /**
-     * Lógica interna de inativação, recebe o rebanho já carregado para evitar query duplicada.
-     * Usa transação atômica para garantir consistência.
-     */
     async _inativar(rebanho, executor) {
         const pastoAnteriorId = rebanho.pastoAtualId;
 
         return comTransacao(this.prisma, executor, async (tx) => {
-            // Inativa o rebanho e desvincula do pasto
+            // inativa o rebanho e desvincula do pasto
             const resultado = await tx.rebanho.update({
                 where: { id: rebanho.id },
                 data: {
@@ -190,14 +161,11 @@ class RebanhoService {
                 },
             });
 
-            // Se havia pasto vinculado, verifica se ainda há outros rebanhos
             if (pastoAnteriorId) {
                 const rebanhosRestantes = await tx.rebanho.count({
                     where: { pastoAtualId: pastoAnteriorId, ativo: true },
                 });
                 if (rebanhosRestantes === 0) {
-                    // Esvaziou: entra em Descanso, com `dataUltimaSaida` como
-                    // marco zero da rebrota (mesma regra da movimentação).
                     await tx.pasto.update({
                         where: { id: pastoAnteriorId },
                         data: { status: 'Descanso', dataUltimaSaida: new Date() },
@@ -209,12 +177,6 @@ class RebanhoService {
         });
     }
 
-    /**
-     * Reativa um rebanho inativo. Exige pastoAtualId no corpo — o rebanho fica sem
-     * pasto ao ser inativado, e reativar sem vínculo criaria um lote ativo sem pasto,
-     * estado que create() já proíbe. Valida pasto ativo e da mesma propriedade.
-     * Transação atômica: reativa rebanho + marca pasto como Ocupado.
-     */
     async _reativar(rebanho, parsedData, usuarioId, executor) {
         if (!parsedData.pastoAtualId) {
             throw new CustomError({
@@ -264,9 +226,7 @@ class RebanhoService {
         });
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async validateUniqueNome(nomeRebanho, propriedadeId, excludeId = null) {
         const existing = await this.repository.findByNome(nomeRebanho, propriedadeId, excludeId);

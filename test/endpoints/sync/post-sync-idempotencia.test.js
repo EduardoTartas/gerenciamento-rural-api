@@ -54,7 +54,6 @@ describe('POST /v1/sync — idempotência', () => {
         expect(rA.status).toBe(200);
         expect(rA.body.data.resultados[0].situacao).toBe('aceito');
 
-        // B envia uma mutação com o MESMO id de mutação, mas outro entidadeId/dados.
         const mB = {
             id: mutacaoId, entidade: 'pastos', acao: 'CREATE', entidadeId: idPastoB,
             dados: { propriedadeId: propriedadeB.id, nome: 'Pasto de B' },

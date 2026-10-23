@@ -47,12 +47,12 @@ describe('POST /v1/sync — ordenação, dependência e bloqueio', () => {
             dados: { propriedadeId: propriedade.id, nome: 'Piquete Dependido' },
         };
 
-        // Enviado com o rebanho ANTES do pasto do qual depende.
+        // enviado com o rebanho ANTES do pasto do qual depende.
         const r = await sync(a, [mRebanho, mPasto]);
         expect(r.status).toBe(200);
         expect(resultadoDe(r, mutPasto).situacao).toBe('aceito');
         expect(resultadoDe(r, mutRebanho).situacao).toBe('aceito');
-        // Preserva a ordem de ENVIO, não a de execução.
+        // preserva a ordem de ENVIO, não a de execução.
         expect(r.body.data.resultados.map((res) => res.id)).toEqual([mutRebanho, mutPasto]);
 
         const rebanhoSalvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: idRebanho } });
@@ -83,7 +83,7 @@ describe('POST /v1/sync — ordenação, dependência e bloqueio', () => {
             dados: { propriedadeId: propriedade.id, nome: 'Piquete Cadeia' },
         };
 
-        // Enviados fora de ordem: manejo, rebanho, pasto.
+        // enviados fora de ordem: manejo, rebanho, pasto.
         const r = await sync(a, [mManejo, mRebanho, mPasto]);
         expect(r.status).toBe(200);
         expect(resultadoDe(r, mutPasto).situacao).toBe('aceito');

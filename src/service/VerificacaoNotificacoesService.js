@@ -1,4 +1,3 @@
-// src/service/VerificacaoNotificacoesService.js
 
 import { notificacaoRepository, insumoRepository } from '../repository/index.js';
 import InsumoService from './InsumoService.js';
@@ -7,18 +6,10 @@ import { avaliarSituacoes, TIPOS_DADOS_FALTANDO, TIPOS_SEM_RESOLUCAO } from './n
 import npaas, { npaasAtivo } from '../utils/npaas.js';
 import logger from '../utils/logger.js';
 
-/** Fuso do produtor: o horário de silêncio é o da fazenda, não o do servidor. */
 export const FUSO_DA_FAZENDA = 'America/Cuiaba';
-/** Push só sai entre 6h e 21h; fora disso a notificação espera na caixa. */
 export const HORA_INICIO_PUSH = 6;
 export const HORA_FIM_PUSH = 21;
-/** Tentativas de push antes de desistir (falha do NPaaS ou do Firebase). */
 export const MAXIMO_TENTATIVAS_PUSH = 3;
-/**
- * Mais pushes que isso de uma vez para o mesmo usuário vira um push só de
- * resumo — o primeiro acesso de quem tem muita coisa pendente não pode
- * disparar uma rajada no celular.
- */
 export const LIMITE_PUSH_INDIVIDUAL = 3;
 
 const horaNoFuso = new Intl.DateTimeFormat('pt-BR', {
@@ -27,7 +18,7 @@ const horaNoFuso = new Intl.DateTimeFormat('pt-BR', {
     hourCycle: 'h23',
 });
 
-/** Dentro da janela de envio (6h às 21h no fuso da fazenda)? */
+/** dentro da janela de envio (6h às 21h no fuso da fazenda)? */
 export function dentroDoHorarioDePush(agora = new Date()) {
     const hora = Number(horaNoFuso.format(agora));
     return hora >= HORA_INICIO_PUSH && hora < HORA_FIM_PUSH;
@@ -38,15 +29,10 @@ const dataNoFuso = new Intl.DateTimeFormat('en-CA', {
 });
 const nomeDoMes = new Intl.DateTimeFormat('pt-BR', { timeZone: 'UTC', month: 'long' });
 
-/**
- * Início de um mês no fuso da fazenda. Cuiabá não tem horário de verão desde
- * 2019: UTC−4 o ano inteiro.
- */
 function inicioDoMes(ano, mes) {
     return new Date(`${ano}-${String(mes).padStart(2, '0')}-01T00:00:00-04:00`);
 }
 
-/** Calendário da fazenda em `agora`: dia, mês corrente e mês anterior. */
 export function calendarioDaFazenda(agora = new Date()) {
     const [ano, mes, dia] = dataNoFuso.format(agora).split('-').map(Number);
     const anoAnterior = mes === 1 ? ano - 1 : ano;
@@ -63,15 +49,6 @@ export function calendarioDaFazenda(agora = new Date()) {
     };
 }
 
-/**
- * Verificação dos avisos da fazenda (issue #62): avalia as situações de cada
- * usuário, abre notificação para as novas, encerra as que se resolveram e
- * envia o push das pendentes, respeitando o horário de silêncio.
- *
- * Idempotente: rodar duas vezes seguidas (ou em duas réplicas) não duplica
- * notificação — a `chaveAtiva` é única — nem push — o envio é reservado
- * atomicamente (`pendente` → `enviando`).
- */
 class VerificacaoNotificacoesService {
     constructor() {
         this.repository = notificacaoRepository;
@@ -80,7 +57,6 @@ class VerificacaoNotificacoesService {
         this.lancamentoAutomatico = new LancamentoAutomaticoService();
     }
 
-    /** Roda para todos os usuários com propriedade ativa. Falha de um não para os outros. */
     async verificarTodos({ agora = new Date() } = {}) {
         await this.repository.liberarEnviosTravados();
         const usuarios = await this.repository.listarUsuariosComPropriedade();
@@ -99,13 +75,7 @@ class VerificacaoNotificacoesService {
         return total;
     }
 
-    /**
-     * Verifica um usuário. `ignorarSilencio` serve ao disparo manual: quem pede
-     * a verificação na hora quer ver o push na hora.
-     */
     async verificarUsuario(usuarioId, { agora = new Date(), ignorarSilencio = false } = {}) {
-        // Consumo diário automático antes dos avisos (issue #72): o estoque que
-        // os avisos de insumo leem já desconta o que foi lançado agora.
         let lancamentos = 0;
         try {
             ({ lancamentos } = await this.lancamentoAutomatico.lancarPendentes({ usuarioId, agora }));
@@ -116,7 +86,6 @@ class VerificacaoNotificacoesService {
         const abertas = await this.repository.listarAbertas(usuarioId);
         const chavesAbertas = new Map(abertas.map((n) => [n.chaveAtiva, n.id]));
         const chavesAtuais = new Set(situacoes.map((s) => s.chave));
-        // Dados faltando avisam uma vez por item: resolvido, não reabre.
         const jaAvisadas = await this.repository.listarJaAvisadas(usuarioId, TIPOS_DADOS_FALTANDO);
 
         const resolvidas = await this.repository.resolver(
@@ -154,7 +123,6 @@ class VerificacaoNotificacoesService {
         return { abertas: novas, resolvidas, enviadas, foraDoHorario: !podeEnviar, lancamentos };
     }
 
-    /** Lê a fazenda e os insumos do usuário e devolve as situações que pedem aviso. */
     async avaliar(usuarioId, agora) {
         const calendario = calendarioDaFazenda(agora);
         const [fazendas, insumos, lotesSemValorCompra, insumosSemPreco, saidasDoMes] = await Promise.all([
@@ -162,7 +130,7 @@ class VerificacaoNotificacoesService {
             this.insumoRepository.listarAtivosComResumo(usuarioId),
             this.repository.listarLotesSemValorCompra(usuarioId),
             this.repository.listarInsumosSemPreco(usuarioId, calendario.inicioDoMes, agora),
-            // Resumo do mês só no dia 1 (no fuso da fazenda).
+            // resumo do mês só no dia 1 (no fuso da fazenda).
             calendario.dia === 1
                 ? this.repository.listarSaidasDoPeriodo(usuarioId, calendario.mesAnterior.inicio, calendario.mesAnterior.fim)
                 : null,
@@ -196,7 +164,6 @@ class VerificacaoNotificacoesService {
         });
     }
 
-    /** Soma as saídas do mês por fazenda: cabeças vendidas, receita das vendas e total de cabeças que saíram. */
     resumirSaidas(saidas, mes) {
         const porFazenda = new Map();
         for (const s of saidas) {
@@ -214,12 +181,6 @@ class VerificacaoNotificacoesService {
         return { referencia: mes.referencia, nomeMes: mes.nome, fazendas: [...porFazenda.values()] };
     }
 
-    /**
-     * Envia os pushes pendentes do usuário. Até `LIMITE_PUSH_INDIVIDUAL`, um
-     * push por notificação; acima disso, um push só de resumo (as notificações
-     * continuam todas na caixa). Falha do NPaaS volta para `pendente` até
-     * `MAXIMO_TENTATIVAS_PUSH`.
-     */
     async enviarPendentes(usuarioId) {
         if (!npaasAtivo()) return 0;
         const pendentes = await this.repository.listarPushPendentes(usuarioId);

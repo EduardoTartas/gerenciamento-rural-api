@@ -1,22 +1,3 @@
-// prisma/seeds/index.js
-
-/**
- * Orquestrador de seeds do banco de dados.
- *
- * Executa todos os seeds na ordem correta de dependência:
- * 1. Usuários (base de autenticação)
- * 2. Propriedades (dependem de usuários)
- * 3. Pastos (dependem de propriedades)
- * 4. Rebanhos (dependem de propriedades e pastos)
- * 5. Histórico de Movimentações (dependem de rebanhos e pastos)
- * 6. Manejos de Rebanho (dependem de rebanhos)
- * 7. Manejos de Pasto (dependem de pastos)
- *
- * Configuração de quantidades: prisma/seeds/config.js
- *
- * Uso: npm run prisma:seed
- *   ou: node prisma/seeds/index.js
- */
 
 import pkg from '@prisma/client';
 const { PrismaClient } = pkg;
@@ -93,7 +74,7 @@ async function main() {
     await seedManejoPastos(prisma, pastos, catalogos, SEED_CONFIG.MANEJOS_POR_PASTO);
     console.log('');
 
-    // Contagem final
+    // contagem final
     const totais = {
       usuarios: await prisma.user.count(),
       propriedades: await prisma.propriedade.count(),

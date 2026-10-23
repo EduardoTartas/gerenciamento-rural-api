@@ -1,4 +1,3 @@
-// src/routes/fotoAtividadeRoutes.js
 
 import express from 'express';
 import FotoAtividadeController from '../controllers/FotoAtividadeController.js';

@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/SaidaRebanhoQuerySchema.js
 
 import { z } from 'zod/v4';
 import { MOTIVOS_SAIDA } from '../SaidaRebanhoSchema.js';

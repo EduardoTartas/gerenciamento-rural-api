@@ -1,4 +1,3 @@
-// src/controllers/ManejoPastoController.js
 
 import ManejoPastoService from '../service/ManejoPastoService.js';
 import { ManejoPastoCreateSchema, ManejoPastoUpdateSchema } from '../utils/validators/schemas/zod/ManejoPastoSchema.js';
@@ -17,11 +16,6 @@ class ManejoPastoController {
         this.service = new ManejoPastoService();
     }
 
-    /**
-     * Lista os manejos de pasto (Geral ou por ID).
-     * GET /pastagens/manejos
-     * GET /pastagens/manejos/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -67,10 +61,6 @@ class ManejoPastoController {
         );
     }
 
-    /**
-     * Cria um novo manejo de pasto.
-     * POST /pastagens/manejos
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -97,10 +87,6 @@ class ManejoPastoController {
         );
     }
 
-    /**
-     * Atualiza um manejo de pasto existente.
-     * PATCH /pastagens/manejos/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         ManejoPastoIdSchema.parse(id);
@@ -131,10 +117,6 @@ class ManejoPastoController {
         );
     }
 
-    /**
-     * Remove um manejo de pasto.
-     * DELETE /pastagens/manejos/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         ManejoPastoIdSchema.parse(id);

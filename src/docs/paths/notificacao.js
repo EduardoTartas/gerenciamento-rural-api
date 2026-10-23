@@ -1,4 +1,3 @@
-// src/docs/paths/notificacao.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 

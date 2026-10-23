@@ -42,7 +42,7 @@ describe('Caixa de notificações — /v1/notificacoes', () => {
                 'propriedadeId', 'rota', 'createdAt', 'updatedAt']) {
                 expect(item).toHaveProperty(campo);
             }
-            // Campos internos do push e da deduplicação não vazam.
+            // campos internos do push e da deduplicação não vazam.
             expect(item).not.toHaveProperty('chaveAtiva');
             expect(item).not.toHaveProperty('pushStatus');
             expect(item).not.toHaveProperty('usuarioId');

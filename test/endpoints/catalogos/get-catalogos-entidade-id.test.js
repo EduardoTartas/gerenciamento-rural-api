@@ -23,8 +23,6 @@ describe('GET /v1/catalogos/:entidade/:id', () => {
         expect(r.body.message).toBe('Nelore encontrado(a) com sucesso.');
     });
 
-    // CAT-GET-ID-02: CatalogoRepository.findById não filtra por `ativo` — divergência
-    // registrada no .md. GET por ID encontra itens arquivados normalmente.
     it('CAT-GET-ID-02 item inativo também é encontrado por ID', async () => {
         const raca = await criarRaca({ nome: 'Nelore Inativa', ativo: false });
         const r = await get(a, 'racas', raca.id);

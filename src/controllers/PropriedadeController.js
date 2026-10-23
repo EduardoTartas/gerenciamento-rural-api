@@ -1,4 +1,3 @@
-// src/controllers/PropriedadeController.js
 
 import PropriedadeService from '../service/PropriedadeService.js';
 import { PropriedadeCreateSchema, PropriedadeUpdateSchema } from '../utils/validators/schemas/zod/PropriedadeSchema.js';
@@ -17,11 +16,6 @@ class PropriedadeController {
         this.service = new PropriedadeService();
     }
 
-    /**
-     * Lista as propriedades (Geral ou por ID).
-     * GET /propriedades
-     * GET /propriedades/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -67,10 +61,6 @@ class PropriedadeController {
         );
     }
 
-    /**
-     * Cria uma nova propriedade.
-     * POST /propriedades
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -97,10 +87,6 @@ class PropriedadeController {
         );
     }
 
-    /**
-     * Atualiza uma propriedade existente.
-     * PATCH /propriedades/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         PropriedadeIdSchema.parse(id);
@@ -131,10 +117,6 @@ class PropriedadeController {
         );
     }
 
-    /**
-     * Remove uma propriedade.
-     * DELETE /propriedades/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         PropriedadeIdSchema.parse(id);

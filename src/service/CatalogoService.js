@@ -1,4 +1,3 @@
-// src/service/CatalogoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { catalogoRepository } from '../repository/index.js';
@@ -9,10 +8,6 @@ class CatalogoService {
         this.repository = catalogoRepository;
     }
 
-    /**
-     * Resolve e valida a entidade de catálogo pelo segmento da URL.
-     * Lança 404 se a entidade não for reconhecida.
-     */
     resolveEntidade(entidade) {
         const config = CATALOGO_ENTITIES[entidade];
         if (!config) {
@@ -27,9 +22,6 @@ class CatalogoService {
         return config;
     }
 
-    /**
-     * Lista itens de catálogo com paginação.
-     */
     async list(req, parsedQuery = {}) {
         const { entidade } = req.params;
         const { id } = req.params;
@@ -52,10 +44,6 @@ class CatalogoService {
         );
     }
 
-    /**
-     * Cria novo item de catálogo.
-     * Valida unicidade do nome (case-insensitive global).
-     */
     async create(parsedData, req) {
         const { entidade } = req.params;
         const config = this.resolveEntidade(entidade);
@@ -65,9 +53,6 @@ class CatalogoService {
         return this.repository.create(config.model, parsedData);
     }
 
-    /**
-     * Atualiza item de catálogo.
-     */
     async update(id, parsedData, req) {
         const { entidade } = req.params;
         const config = this.resolveEntidade(entidade);
@@ -81,10 +66,6 @@ class CatalogoService {
         return this.repository.update(config.model, id, parsedData);
     }
 
-    /**
-     * Remove item de catálogo.
-     * Impede exclusão se houver registros dependentes (rebanhos, manejos, etc).
-     */
     async remove(id, req) {
         const { entidade } = req.params;
         const config = this.resolveEntidade(entidade);
@@ -110,9 +91,7 @@ class CatalogoService {
         return this.repository.update(config.model, id, { ativo: false });
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async validateUniqueNome(config, nome, excludeId = null) {
         const existing = await this.repository.findByNome(config.model, nome, excludeId);

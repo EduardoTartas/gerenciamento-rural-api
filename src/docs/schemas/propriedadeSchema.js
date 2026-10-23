@@ -1,4 +1,3 @@
-// src/docs/schemas/propriedadeSchema.js
 
 const propriedadeSchemas = {
     PropriedadeFilter: {

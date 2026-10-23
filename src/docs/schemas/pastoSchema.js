@@ -1,4 +1,3 @@
-// src/docs/schemas/pastoSchema.js
 
 const pastoSchemas = {
     PastoFilter: {

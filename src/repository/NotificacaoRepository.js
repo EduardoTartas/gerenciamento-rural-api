@@ -1,4 +1,3 @@
-// src/repository/NotificacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
@@ -17,11 +16,9 @@ const NOTIFICACAO_SELECT = {
     rota: true,
     ativo: true,
     createdAt: true,
-    // Relógio da sincronização: o app lê por diferença (`atualizadoDesde`).
     updatedAt: true,
 };
 
-/** Push ainda pode sair: os que já saíram, falharam de vez ou foram descartados ficam fora. */
 const PUSH_A_ENVIAR = ['pendente'];
 
 class NotificacaoRepository {
@@ -75,9 +72,6 @@ class NotificacaoRepository {
         return count;
     }
 
-    // ── Verificação periódica ────────────────────────────────────────────────
-
-    /** Usuários com ao menos uma propriedade ativa — os únicos com o que verificar. */
     async listarUsuariosComPropriedade() {
         const linhas = await this.prisma.propriedade.findMany({
             where: { ativo: true },
@@ -87,10 +81,6 @@ class NotificacaoRepository {
         return linhas.map((l) => l.usuarioId);
     }
 
-    /**
-     * Propriedades ativas do usuário com os pastos e lotes ativos — o que as
-     * regras de pasto pronto, ocupação e lotação precisam, numa consulta só.
-     */
     async carregarFazendas(usuarioId) {
         return this.prisma.propriedade.findMany({
             where: { usuarioId, ativo: true },
@@ -117,11 +107,6 @@ class NotificacaoRepository {
         });
     }
 
-    /**
-     * Lotes vendidos ou finalizados sem valor de compra — o resultado do lote
-     * fica sem custo. Inclui os já finalizados (inativos), que é justamente
-     * quando o resultado é lido.
-     */
     async listarLotesSemValorCompra(usuarioId) {
         return this.prisma.rebanho.findMany({
             where: {
@@ -133,11 +118,6 @@ class NotificacaoRepository {
         });
     }
 
-    /**
-     * Insumos ativos com consumo no mês (saída de consumo desde `inicioDoMes`
-     * ou regime vigente) e nenhuma entrada com valor pago: o custo do consumo
-     * sai "sem preço" no relatório.
-     */
     async listarInsumosSemPreco(usuarioId, inicioDoMes, agora) {
         return this.prisma.insumo.findMany({
             where: {
@@ -170,7 +150,6 @@ class NotificacaoRepository {
         });
     }
 
-    /** Saídas de animais do usuário no intervalo `[inicio, fim)`, para o resumo do mês. */
     async listarSaidasDoPeriodo(usuarioId, inicio, fim) {
         return this.prisma.saidaRebanho.findMany({
             where: {
@@ -187,7 +166,7 @@ class NotificacaoRepository {
         });
     }
 
-    /** Situações em aberto do usuário: `chaveAtiva` → id. */
+    /** situações em aberto do usuário: `chaveAtiva` → id. */
     async listarAbertas(usuarioId) {
         return this.prisma.notificacao.findMany({
             where: { usuarioId, chaveAtiva: { not: null } },
@@ -195,7 +174,6 @@ class NotificacaoRepository {
         });
     }
 
-    /** `tipo:entidadeId` de tudo que o usuário já recebeu destes tipos, aberto ou resolvido. */
     async listarJaAvisadas(usuarioId, tipos) {
         const linhas = await this.prisma.notificacao.findMany({
             where: { usuarioId, tipo: { in: tipos } },
@@ -204,11 +182,6 @@ class NotificacaoRepository {
         return new Set(linhas.map((l) => `${l.tipo}:${l.entidadeId}`));
     }
 
-    /**
-     * Cria a notificação de uma situação nova. A `chaveAtiva` é única: se outra
-     * execução já abriu a mesma situação, o banco recusa (P2002) e devolve
-     * `null` — nunca duplica.
-     */
     async abrir(dados) {
         try {
             return await this.prisma.notificacao.create({ data: dados, select: { id: true } });
@@ -218,11 +191,6 @@ class NotificacaoRepository {
         }
     }
 
-    /**
-     * Encerra situações que deixaram de valer: a notificação fica na caixa (é
-     * histórico), mas a chave é liberada para a situação poder reabrir, e o
-     * push que ainda não saiu não sai mais.
-     */
     async resolver(ids) {
         if (ids.length === 0) return 0;
         const agora = new Date();
@@ -239,7 +207,6 @@ class NotificacaoRepository {
         return count;
     }
 
-    /** Push pendente de situações ainda abertas, do mais antigo para o mais novo. */
     async listarPushPendentes(usuarioId) {
         const where = { pushStatus: { in: PUSH_A_ENVIAR }, ativo: true, chaveAtiva: { not: null } };
         if (usuarioId) where.usuarioId = usuarioId;
@@ -253,11 +220,6 @@ class NotificacaoRepository {
         });
     }
 
-    /**
-     * Reserva o envio de um push: só uma execução consegue (`pendente` →
-     * `enviando` numa única instrução). Protege contra duas réplicas, ou duas
-     * verificações seguidas, mandarem o mesmo push.
-     */
     async reservarPush(id) {
         const { count } = await this.prisma.notificacao.updateMany({
             where: { id, pushStatus: 'pendente' },
@@ -266,10 +228,6 @@ class NotificacaoRepository {
         return count === 1;
     }
 
-    /**
-     * Push que ficou em `enviando` porque o processo caiu no meio do envio
-     * volta para a fila depois de alguns minutos.
-     */
     async liberarEnviosTravados(minutos = 15) {
         const limite = new Date(Date.now() - minutos * 60 * 1000);
         const { count } = await this.prisma.notificacao.updateMany({

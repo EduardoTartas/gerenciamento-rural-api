@@ -1,11 +1,6 @@
-// src/utils/validators/schemas/zod/UserSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Schema para atualizar o perfil de um usuário.
- * Todos os campos são opcionais — o controller valida se pelo menos um campo está presente.
- */
 export const UserUpdateSchema = z.object({
     name: z
         .string()
@@ -22,9 +17,6 @@ export const UserUpdateSchema = z.object({
         .nullable(),
 }).strict();
 
-/**
- * Schema para registrar a foto de perfil após upload via /uploads/imagens.
- */
 export const UserFotoSchema = z.object({
     url: z.string().url('A URL da imagem é inválida.'),
 }).strict();

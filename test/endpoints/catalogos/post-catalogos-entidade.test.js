@@ -59,7 +59,6 @@ describe('POST /v1/catalogos/:entidade', () => {
         const r = await post(admin, 'racas', { nome: 'Nelore', extra: 1 });
         expect(r.status).toBe(400);
         expect(r.body.tipo).toBe('validationError');
-        // Zod v4: issue `unrecognized_keys` chega com path: [] — o campo aparece na mensagem.
         expect(r.body.errors.some((e) => e.message.includes('extra'))).toBe(true);
     });
 

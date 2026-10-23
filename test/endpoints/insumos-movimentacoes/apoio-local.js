@@ -1,6 +1,3 @@
-// Fábrica local da suíte de /insumos/movimentacoes. Grava direto via Prisma
-// para preparar movimentações pré-existentes nos cenários de leitura e
-// exclusão (a criação em si é exercitada pelos testes de POST).
 import DbConnect from '../../../src/config/dbConnect.js';
 
 const { prisma } = DbConnect;

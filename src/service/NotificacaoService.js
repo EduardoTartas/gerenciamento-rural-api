@@ -1,15 +1,8 @@
-// src/service/NotificacaoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { notificacaoRepository } from '../repository/index.js';
 import npaas, { npaasAtivo } from '../utils/npaas.js';
 
-/**
- * Caixa de notificações do produtor e registro do aparelho para o push (issue
- * #62). As notificações nascem na verificação periódica
- * (`VerificacaoNotificacoesService`); aqui o app lê, marca como lida e
- * registra o token FCM do aparelho no NPaaS.
- */
 class NotificacaoService {
     constructor() {
         this.repository = notificacaoRepository;
@@ -30,7 +23,6 @@ class NotificacaoService {
         return this.repository.list(usuarioId, filters, parseInt(page, 10), parseInt(limit, 10) || 10);
     }
 
-    /** Marca uma notificação como lida (ou não lida). Usado pelo PATCH e pelo `/sync`. */
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureExists(id, usuarioId);
