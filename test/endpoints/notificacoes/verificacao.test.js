@@ -17,7 +17,6 @@ vi.mock('../../../src/utils/npaas.js', async () => {
 
 const { prisma } = DbConnect;
 
-/** Hoje às 23h e às 10h em Cuiabá (UTC-4): fora e dentro da janela de push. */
 function hojeAs(horaUtc) {
     const d = new Date();
     d.setUTCHours(horaUtc, 0, 0, 0);

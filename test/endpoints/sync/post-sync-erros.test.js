@@ -46,10 +46,6 @@ describe('POST /v1/sync — contrato de erro tipado e transação por item', () 
         const pasto = await criarPasto(propriedade.id);
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
 
-        // racaId não existe em `raca`: RebanhoUpdateSchema aceita o campo (é um
-        // FK opcional, não validado pelo service), então o Prisma lança uma
-        // violação de chave estrangeira crua (sem `errorType`) — exatamente o
-        // caso "erro sem CustomError" que o lote precisa reclassificar.
         const m = {
             id: randomUUID(), entidade: 'rebanhos', acao: 'UPDATE', entidadeId: rebanho.id,
             dados: { racaId: randomUUID() },

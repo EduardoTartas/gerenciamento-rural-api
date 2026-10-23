@@ -1,4 +1,3 @@
-// src/docs/paths/catalogo.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import catalogoSchemas from "../schemas/catalogoSchema.js";

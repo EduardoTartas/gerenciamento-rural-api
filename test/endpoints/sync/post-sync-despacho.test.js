@@ -134,10 +134,6 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         expect(salvo.nomeRebanho).toBe('Lote Renomeado');
     });
 
-    // Bug: `rebanhos:DELETE` chama `RebanhoService.remove` -> `_inativar`, que usa
-    // `executor` fora de escopo (src/service/RebanhoService.js:187) -> ReferenceError.
-    // O lote captura por item e devolve `recusado`. Comportamento correto esperado é
-    // `aceito` com soft-delete efetivo (ver ## Divergências).
     it('SYNC-POST-46 rebanhos:DELETE', async () => {
         const pasto = await criarPasto(propriedade.id);
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
@@ -183,8 +179,6 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
             id: randomUUID(), entidade: 'manejo_pastos', acao: 'DELETE', entidadeId: manejo.id,
         });
         expect(res.situacao).toBe('aceito');
-        // Exclusão lógica (ver Divergências no .md): ManejoPastoRepository.remove
-        // faz update ativo:false, não delete físico.
         const salvo = await DbConnect.prisma.manejoPasto.findUnique({ where: { id: manejo.id } });
         expect(salvo).not.toBeNull();
         expect(salvo.ativo).toBe(false);
@@ -227,8 +221,6 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
             id: randomUUID(), entidade: 'manejo_rebanhos', acao: 'DELETE', entidadeId: manejo.id,
         });
         expect(res.situacao).toBe('aceito');
-        // Exclusão lógica (ver Divergências no .md): ManejoRebanhoRepository.remove
-        // faz update ativo:false, não delete físico.
         const salvo = await DbConnect.prisma.manejoRebanho.findUnique({ where: { id: manejo.id } });
         expect(salvo).not.toBeNull();
         expect(salvo.ativo).toBe(false);
@@ -629,7 +621,6 @@ describe('POST /v1/sync — despacho por entidade/ação', () => {
         const primeira = await enviarUma(mutacao);
         expect(primeira.res.situacao).toBe('aceito');
 
-        // Outra correção chega depois; o reenvio da primeira não pode desfazê-la.
         await DbConnect.prisma.movimentacaoInsumo.update({ where: { id: mov.id }, data: { quantidade: 9 } });
         const segunda = await enviarUma(mutacao);
         expect(segunda.res).toEqual(primeira.res);

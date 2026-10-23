@@ -1,4 +1,3 @@
-// src/controllers/RegimeConsumoInsumoController.js
 import RegimeConsumoInsumoService from '../service/RegimeConsumoInsumoService.js';
 import {
     RegimeConsumoInsumoCreateSchema,

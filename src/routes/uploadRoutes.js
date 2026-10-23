@@ -1,4 +1,3 @@
-// src/routes/uploadRoutes.js
 
 import express from 'express';
 import UploadController from '../controllers/UploadController.js';

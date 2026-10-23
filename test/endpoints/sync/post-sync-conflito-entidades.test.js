@@ -18,7 +18,6 @@ import {
     criarRegimeConsumo,
 } from './apoio-local.js';
 
-// Toda entidade que aceita UPDATE no lote tem `versao` e passa pela mesma checagem.
 describe('POST /v1/sync — conflito de edição em cada entidade', () => {
     let a, propriedade, pasto, rebanho, insumo;
 
@@ -58,7 +57,7 @@ describe('POST /v1/sync — conflito de edição em cada entidade', () => {
             id: randomUUID(), entidade, acao: 'UPDATE', entidadeId, dados, versaoBase,
         });
 
-        // Outra edição entrou no servidor: a versão passa para 2.
+        // outra edição entrou no servidor: a versão passa para 2.
         await DbConnect.prisma[modelo].update({ where: { id: entidadeId }, data: { versao: 2 } });
 
         const conflito = await sync([mutacao(1)]);

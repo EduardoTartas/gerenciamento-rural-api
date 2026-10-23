@@ -5,11 +5,6 @@ import { userRepository } from '../../../src/repository/index.js';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 
-// Mock do Garage/MinIO — a suíte não sobe storage real. Mantém `ensureGarageEnv`
-// (chamado no boot da API) e troca só o client (default export) por um dublê
-// com `putObject`/`removeObject` espiáveis, conforme uploads.md. `vi.mock` é
-// hoisted para o topo do arquivo, então as variáveis usadas na factory
-// precisam vir de `vi.hoisted`.
 const { removeObject, putObject } = vi.hoisted(() => ({
     removeObject: vi.fn().mockResolvedValue(undefined),
     putObject: vi.fn().mockResolvedValue(undefined),

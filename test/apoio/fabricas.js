@@ -1,5 +1,3 @@
-// Fábricas de dados de teste. Gravam via Prisma e aceitam `dados` parciais
-// sobrescrevendo os defaults. Campos obrigatórios conforme prisma/schema.prisma.
 import { randomUUID } from 'node:crypto';
 import DbConnect from '../../src/config/dbConnect.js';
 

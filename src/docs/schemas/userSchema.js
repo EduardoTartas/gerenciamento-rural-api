@@ -1,4 +1,3 @@
-// src/docs/schemas/userSchema.js
 
 const userSchemas = {
     UserFilter: {

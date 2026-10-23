@@ -1,4 +1,3 @@
-// src/service/UploadService.js
 
 import { v4 as uuidv4 } from 'uuid';
 import path from 'path';
@@ -10,12 +9,6 @@ const EXTENSOES_VALIDAS = ['jpg', 'jpeg', 'png'];
 const MIME_TYPES_VALIDOS = ['image/jpeg', 'image/png'];
 const MB = 1024 * 1024;
 
-/**
- * Como cada tipo de imagem é recomprimida. O avatar é quadrado e pequeno; a foto
- * de atividade (issue #74) preserva o enquadramento e só limita o lado maior,
- * porque é registro de campo — cortar tiraria justamente o que se quis mostrar.
- * Nenhum dos dois precisa dos 50MB globais do express-fileupload.
- */
 export const PERFIS_DE_IMAGEM = {
     avatar: {
         maxBytes: 5 * MB,
@@ -34,14 +27,6 @@ class UploadService {
         this.repository = uploadRepository;
     }
 
-    /**
-     * Valida, recomprime (Sharp) e envia uma imagem para o Garage.
-     * @param {Object} file - Arquivo do express-fileupload (req.files.file).
-     * @param {Object} [opcoes]
-     * @param {'avatar'|'atividade'} [opcoes.perfil='avatar'] - Regra de tamanho e recompressão.
-     * @param {string} [opcoes.fileName] - Chave no bucket; padrão `<uuid>.jpeg`.
-     * @returns {Promise<{url: string, fileName: string}>}
-     */
     async processarImagem(file, { perfil = 'avatar', fileName = `${uuidv4()}.jpeg` } = {}) {
         const regra = PERFIS_DE_IMAGEM[perfil];
 
@@ -94,9 +79,6 @@ class UploadService {
 
         let buffer;
         try {
-            // `.rotate()` sem argumento aplica a orientação do EXIF. Câmera de
-            // celular grava os pixels deitados e só a tag diz como girar — e o
-            // sharp descarta a tag ao gerar o JPEG, então sem isso a foto sai torta.
             buffer = await sharp(file.data)
                 .rotate()
                 .resize(...regra.resize)
@@ -116,10 +98,6 @@ class UploadService {
         return { url, fileName };
     }
 
-    /**
-     * Remove uma imagem do Garage a partir da URL. Usado tanto para rollback
-     * (upload sem cadastro concluído) quanto para descartar avatar antigo.
-     */
     async deletarImagem(url) {
         if (!url) return;
         await this.repository.deleteFile(url);

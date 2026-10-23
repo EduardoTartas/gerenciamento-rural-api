@@ -1,4 +1,3 @@
-// src/docs/schemas/movimentacaoSchema.js
 
 const movimentacaoSchemas = {
     MovimentacaoFilter: {

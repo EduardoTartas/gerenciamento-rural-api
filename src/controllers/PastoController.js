@@ -1,4 +1,3 @@
-// src/controllers/PastoController.js
 
 import PastoService from '../service/PastoService.js';
 import { PastoCreateSchema, PastoUpdateSchema } from '../utils/validators/schemas/zod/PastoSchema.js';
@@ -17,11 +16,6 @@ class PastoController {
         this.service = new PastoService();
     }
 
-    /**
-     * Lista os pastos (Geral ou por ID).
-     * GET /pastagens
-     * GET /pastagens/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -67,10 +61,6 @@ class PastoController {
         );
     }
 
-    /**
-     * Cria uma nova pastagem.
-     * POST /pastagens
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -97,10 +87,6 @@ class PastoController {
         );
     }
 
-    /**
-     * Atualiza uma pastagem existente.
-     * PATCH /pastagens/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         PastoIdSchema.parse(id);
@@ -131,10 +117,6 @@ class PastoController {
         );
     }
 
-    /**
-     * Remove uma pastagem.
-     * DELETE /pastagens/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         PastoIdSchema.parse(id);

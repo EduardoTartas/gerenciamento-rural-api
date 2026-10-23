@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/InsumoQuerySchema.js
 import { z } from 'zod/v4';
 
 export const InsumoIdSchema = z.string().uuid('ID de insumo inválido. Deve ser um UUID válido.');

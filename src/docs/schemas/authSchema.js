@@ -1,4 +1,3 @@
-// src/docs/schemas/authSchema.js
 
 const authSchemas = {
     SignUpRequest: {

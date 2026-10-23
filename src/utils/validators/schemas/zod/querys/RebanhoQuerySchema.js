@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/RebanhoQuerySchema.js
 
 import { z } from 'zod/v4';
 

@@ -1,4 +1,3 @@
-// src/controllers/MovimentacaoController.js
 
 import MovimentacaoService from '../service/MovimentacaoService.js';
 import { MovimentacaoCreateSchema } from '../utils/validators/schemas/zod/MovimentacaoSchema.js';
@@ -10,11 +9,6 @@ class MovimentacaoController {
         this.service = new MovimentacaoService();
     }
 
-    /**
-     * Lista histórico de movimentações (geral ou por ID).
-     * GET /rebanhos/movimentacoes
-     * GET /rebanhos/movimentacoes/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -43,10 +37,6 @@ class MovimentacaoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, `${totalDocs} movimentação(ões) encontrada(s).`);
     }
 
-    /**
-     * Registra uma nova movimentação de rebanho entre pastos.
-     * POST /rebanhos/movimentacoes
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -64,10 +54,6 @@ class MovimentacaoController {
         return CommonResponse.created(res, data, 'Movimentação registrada com sucesso.');
     }
 
-    /**
-     * Desfaz a última movimentação de um rebanho.
-     * DELETE /rebanhos/movimentacoes/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         MovimentacaoIdSchema.parse(id);

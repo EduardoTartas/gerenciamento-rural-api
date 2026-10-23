@@ -81,7 +81,6 @@ describe('GET /v1/catalogos/:entidade', () => {
         const r = await get(a, 'racas', '?foo=bar');
         expect(r.status).toBe(400);
         expect(r.body.tipo).toBe('validationError');
-        // Zod v4: issue `unrecognized_keys` chega com path: [] — o campo aparece na mensagem.
         expect(r.body.errors[0].path).toBe('');
         expect(r.body.errors[0].message).toContain('foo');
     });

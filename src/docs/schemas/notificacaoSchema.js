@@ -1,9 +1,8 @@
-// src/docs/schemas/notificacaoSchema.js
 
 const TIPOS = [
     "PASTO_PRONTO", "PASTO_PRONTO_AMANHA", "LOTACAO_ALTA", "LOTE_SEM_PASTO",
     "INSUMO_ACABANDO", "INSUMO_ABAIXO_MINIMO", "INSUMO_ESGOTADO", "RESUMO_MES",
-    // Dados faltando: só caixa, sem push.
+    // dados faltando: só caixa, sem push.
     "PASTO_SEM_AREA", "LOTE_SEM_VALOR_COMPRA", "INSUMO_SEM_PRECO",
 ];
 

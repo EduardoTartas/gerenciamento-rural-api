@@ -1,9 +1,3 @@
-// Fábricas locais à suíte de /sync — gravam direto via Prisma para montar
-// pré-condições (manejo já existente, movimentação de insumo já existente,
-// regime já existente, registro de idempotência expirado) que o próprio
-// endpoint de lote não precisa cobrir para existir. Não editar
-// test/apoio/fabricas.js (outros agentes rodam em paralelo); o controller de
-// tasks consolida depois.
 import { randomUUID } from 'node:crypto';
 import DbConnect from '../../../src/config/dbConnect.js';
 
@@ -56,11 +50,6 @@ export async function criarRegimeConsumo(rebanhoId, insumoId, dados = {}) {
     });
 }
 
-/**
- * Insere um registro de idempotência diretamente no banco, simulando uma
- * mutação aplicada há `diasAtras` dias — usado para testar a expiração da
- * janela de retenção (`limparAntigas`, 30 dias) sem esperar o tempo real.
- */
 export async function criarMutacaoAplicada(usuarioId, dados = {}) {
     const { diasAtras, ...resto } = dados;
     const aplicadaEm = diasAtras != null

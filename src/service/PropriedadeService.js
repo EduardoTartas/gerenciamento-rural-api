@@ -1,4 +1,3 @@
-// src/service/PropriedadeService.js
 
 import {
     CustomError,
@@ -12,10 +11,6 @@ class PropriedadeService {
         this.repository = propriedadeRepository;
     }
 
-    /**
-     * Lista propriedades com paginação e filtragem.
-     * Sempre restrito ao usuário autenticado.
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -40,13 +35,10 @@ class PropriedadeService {
         );
     }
 
-    /**
-     * Cria uma nova propriedade para o usuário autenticado.
-     */
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
-        // Validate unique name per user
+        // validate unique name per user
         await this.validateUniqueNome(parsedData.nome, usuarioId);
 
         return this.repository.create({
@@ -55,21 +47,17 @@ class PropriedadeService {
         }, tx);
     }
 
-    /**
-     * Atualiza uma propriedade existente.
-     * Apenas o dono pode atualizar sua propriedade.
-     */
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
 
         await this.ensurePropriedadeExists(id, usuarioId);
 
-        // Validate unique name if changing it
+        // validate unique name if changing it
         if (parsedData.nome) {
             await this.validateUniqueNome(parsedData.nome, usuarioId, id);
         }
 
-        // Validate deactivation against active herds
+        // validate deactivation against active herds
         if (parsedData.ativo === false) {
             const rebanhosAtivos = await this.repository.countRebanhosAtivos(id);
             if (rebanhosAtivos > 0) {
@@ -86,23 +74,12 @@ class PropriedadeService {
         return this.repository.update(id, parsedData, tx);
     }
 
-    /**
-     * Arquiva (Soft-Delete) uma propriedade.
-     * Apenas o dono pode arquivar sua propriedade.
-     * O método redireciona para a atualização da flag 'ativo', que não permite arquivar
-     * caso haja rebanhos ativos registrados na propriedade.
-     */
     async remove(id, req, tx) {
         return this.update(id, { ativo: false }, req, tx);
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
-    /**
-     * Valida se o nome já está em uso pelo mesmo usuário.
-     */
     async validateUniqueNome(nome, usuarioId, excludeId = null) {
         const existing = await this.repository.findByNome(nome, usuarioId, excludeId);
         if (existing) {
@@ -116,9 +93,6 @@ class PropriedadeService {
         }
     }
 
-    /**
-     * Garante que uma propriedade com o ID fornecido existe e pertence ao usuário.
-     */
     async ensurePropriedadeExists(id, usuarioId) {
         const propriedade = await this.repository.findById(id, usuarioId);
         if (!propriedade) {

@@ -1,4 +1,3 @@
-// src/service/RegimeConsumoInsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { regimeConsumoInsumoRepository, rebanhoRepository, insumoRepository } from '../repository/index.js';
 import { comTransacao } from '../utils/helpers/transacao.js';
@@ -51,9 +50,6 @@ class RegimeConsumoInsumoService {
         const dados = { ...parsedData };
         if (dados.dataFim) dados.ativo = false; // encerrar
 
-        // Reabertura explícita (`dataFim: null`): reativa e, como só pode haver um
-        // regime em aberto por par (rebanho, insumo), encerra qualquer outro
-        // aberto do par antes de aplicar — senão bate no índice único parcial.
         const reabrindo = Object.prototype.hasOwnProperty.call(parsedData, 'dataFim') && parsedData.dataFim === null;
         if (reabrindo) {
             dados.ativo = true;
@@ -72,8 +68,6 @@ class RegimeConsumoInsumoService {
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         const regime = await this.ensureExists(id, usuarioId);
-        // exclusão lógica: encerra e desativa. `dataFim` nunca antes de `dataInicio`
-        // (um regime futuro excluído hoje encerraria antes de começar).
         const dataFim = new Date(Math.max(Date.now(), new Date(regime.dataInicio).getTime()));
         return this.repository.update(id, { ativo: false, dataFim }, tx);
     }

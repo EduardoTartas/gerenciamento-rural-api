@@ -1,4 +1,3 @@
-// src/controllers/InsumoController.js
 import InsumoService from '../service/InsumoService.js';
 import { InsumoCreateSchema, InsumoUpdateSchema } from '../utils/validators/schemas/zod/InsumoSchema.js';
 import { InsumoQuerySchema, InsumoIdSchema } from '../utils/validators/schemas/zod/querys/InsumoQuerySchema.js';

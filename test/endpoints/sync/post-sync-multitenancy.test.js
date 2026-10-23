@@ -71,7 +71,6 @@ describe('POST /v1/sync — multi-tenancy dentro das mutações e autenticação
         const rA = await sync(a, [mA]);
         expect(rA.body.data.resultados[0].situacao).toBe('aceito');
 
-        // B, num lote separado, tenta mexer no pasto de A e também cria o seu.
         const mInvasao = {
             id: randomUUID(), entidade: 'pastos', acao: 'UPDATE', entidadeId: pastoA.id,
             dados: { nome: 'Tentativa de B' },

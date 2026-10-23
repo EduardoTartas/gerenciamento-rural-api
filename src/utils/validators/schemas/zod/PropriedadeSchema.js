@@ -1,12 +1,6 @@
-// src/utils/validators/schemas/zod/PropriedadeSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Formata a string de localização para o padrão "Cidade,UF".
- * Ex: "vilhena,ro" -> "Vilhena,RO"
- * Ex: "são paulo, sp" -> "São Paulo,SP"
- */
 const formatLocalizacao = (val) => {
   if (!val) return val;
   const parts = val.split(',');
@@ -22,24 +16,11 @@ const formatLocalizacao = (val) => {
   return `${cidade},${uf}`;
 };
 
-/**
- * Regex para validar o formato "Cidade,UF".
- **/
 const localizacaoRegex = /^[A-Za-zÀ-ÿ\s'-]{2,100},\s?[A-Za-z]{2}$/;
 const localizacaoErrorMessage = 'A localização deve seguir o formato "Cidade,UF". Exemplo: "Vilhena,RO".';
 
-/**
- * Schema para criar uma nova propriedade.
- */
 export const PropriedadeCreateSchema = z
   .object({
-    /**
-     * ID opcional gerado pelo cliente (Offline-First).
-     * Quando o app mobile cria uma propriedade sem internet, ele gera um UUID v4
-     * localmente para uso imediato. Ao sincronizar, este ID é enviado ao servidor
-     * para que o registro tenha o mesmo identificador em ambas as camadas.
-     * Se não for fornecido, o servidor gera automaticamente via Prisma.
-     */
     id: z
       .string()
       .uuid('O id deve ser um UUID válido.')
@@ -63,9 +44,6 @@ export const PropriedadeCreateSchema = z
   })
   .strict();
 
-/**
- * Schema para atualizar propriedade.
- */
 export const PropriedadeUpdateSchema = z
   .object({
     nome: z

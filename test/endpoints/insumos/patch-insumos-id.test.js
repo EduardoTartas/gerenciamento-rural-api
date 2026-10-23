@@ -34,7 +34,6 @@ describe('PATCH /v1/insumos/:id', () => {
         expect(r.status).toBe(200);
         expect(r.body.data.destino).toBe('Rebanho');
         expect(r.body.data.unidadeMedida).toBe('saco');
-        // Decimal do Prisma serializa como string no JSON (sem conversão global p/ Number).
         expect(Number(r.body.data.estoqueMinimo)).toBe(25);
     });
 

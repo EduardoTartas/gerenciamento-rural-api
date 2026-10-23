@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/InsumoSchema.js
 import { z } from 'zod/v4';
 
 export const DESTINOS_INSUMO = ['Pasto', 'Rebanho', 'Ambos'];

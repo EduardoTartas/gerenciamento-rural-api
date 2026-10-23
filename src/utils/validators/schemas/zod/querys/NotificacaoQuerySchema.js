@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/NotificacaoQuerySchema.js
 
 import { z } from 'zod/v4';
 

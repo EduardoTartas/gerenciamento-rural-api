@@ -1,4 +1,3 @@
-// src/service/UserService.js
 
 import {
     CustomError,
@@ -19,11 +18,6 @@ class UserService {
         this.uploadService = new UploadService();
     }
 
-    /**
-     * GET /usuarios/:id — admin pode consultar qualquer usuário; usuário comum,
-     * só a si mesmo. GET /usuarios (sem id, listagem geral) é restrito a admin
-     * pela rota (AdminMiddleware); aqui listamos com os filtros informados.
-     */
     async list(req) {
         const { id } = req.params;
 
@@ -43,24 +37,19 @@ class UserService {
         return this.repository.list(filters, parseInt(page, 10), parseInt(limit, 10) || 10);
     }
 
-    /**
-     * Atualiza os dados do perfil de um usuário.
-     * Somente o próprio usuário pode atualizar seus dados.
-     */
     async update(id, parsedData, req) {
         const user = await this.ensureUserExists(id);
         if (!req.user.admin) {
             this.ensureSelfAction(req.user.id, id, 'atualizar o perfil de outro usuário');
         }
 
-        // Valida e-mail único caso seja alterado
+        // valida e-mail único caso seja alterado
         if (parsedData.email) {
             await this.validateUniqueEmail(parsedData.email, id);
         }
 
         const updated = await this.repository.update(id, parsedData);
 
-        // `image: null` ("remover foto") ou outra URL: a foto anterior sai do bucket.
         if ('image' in parsedData && parsedData.image !== user.image) {
             this.descartarFoto(user.image);
         }
@@ -68,11 +57,6 @@ class UserService {
         return updated;
     }
 
-    /**
-     * Registra no perfil a URL de uma imagem já enviada via /uploads/imagens.
-     * Se o cadastro falhar, desfaz o upload (deleta a imagem órfã do bucket).
-     * Se o cadastro der certo e havia um avatar anterior, descarta o antigo.
-     */
     async registrarFoto(id, url, req) {
         const user = await this.ensureUserExists(id);
         if (!req.user.admin) {
@@ -97,18 +81,13 @@ class UserService {
         return updated;
     }
 
-    /**
-     * Exclui uma conta de usuário.
-     * Somente o próprio usuário pode excluir sua conta.
-     * Revoga todas as sessões ativas antes de excluir.
-     */
     async remove(id, req) {
         const user = await this.ensureUserExists(id);
         if (!req.user.admin) {
             this.ensureSelfAction(req.user.id, id, 'excluir a conta de outro usuário');
         }
 
-        // Revoga todas as sessões ativas do usuário antes de deletar
+        // revoga todas as sessões ativas do usuário antes de deletar
         const sessions = await this.prisma.session.findMany({
             where: { userId: id },
             select: { token: true },
@@ -117,24 +96,18 @@ class UserService {
             try {
                 await auth.api.revokeSession({ body: { token: session.token } });
             } catch {
-                // Se a sessão já expirou ou não existe, ignora
+                // se a sessão já expirou ou não existe, ignora
             }
         }
 
-        // Lidas antes: a cascata apaga as linhas e leva junto o endereço dos arquivos.
         const fotosAtividade = await this.repository.urlsFotosAtividade(id);
 
         const removido = await this.repository.remove(id);
-        // Só depois de apagar o usuário: se a exclusão falhar, as fotos continuam valendo.
         this.descartarFoto(user.image);
         fotosAtividade.forEach((url) => this.descartarFoto(url));
         return removido;
     }
 
-    /**
-     * Exporta todos os dados da conta (direito de acesso e portabilidade, LGPD
-     * art. 18). Só o próprio titular: nem o admin baixa os dados de outra pessoa.
-     */
     async exportar(id, req) {
         await this.ensureUserExists(id);
         this.ensureSelfAction(req.user.id, id, 'exportar os dados de outro usuário');
@@ -143,18 +116,8 @@ class UserService {
         return { exportadoEm: new Date().toISOString(), ...dados };
     }
 
-    // ================================
     // MÉTODOS ÚTEIS
-    // ================================
 
-    /**
-     * Apaga do bucket uma foto que deixou de ser usada, em segundo plano.
-     *
-     * Só mexe em URL do próprio bucket: foto externa (a do Google, gravada no
-     * primeiro login social) não é nossa, e usar o fim da URL dela como nome de
-     * objeto poderia apagar outro arquivo. Falha no storage não desfaz a operação
-     * que já foi concluída no banco — fica registrada no log.
-     */
     descartarFoto(url) {
         if (!url || !url.startsWith(`${baseUrlPublica()}/`)) return;
         this.uploadService.deletarImagem(url).catch((err) => {
@@ -162,9 +125,6 @@ class UserService {
         });
     }
 
-    /**
-     * Valida que o e-mail não está em uso por outro usuário.
-     */
     async validateUniqueEmail(email, excludeId = null) {
         const existing = await this.repository.findByEmail(email, excludeId);
         if (existing) {
@@ -178,9 +138,6 @@ class UserService {
         }
     }
 
-    /**
-     * Garante que um usuário com o ID informado existe. Retorna os dados do usuário.
-     */
     async ensureUserExists(id) {
         const user = await this.repository.findById(id);
         if (!user) {
@@ -195,10 +152,6 @@ class UserService {
         return user;
     }
 
-    /**
-     * Garante que a URL informada é de um arquivo hospedado no bucket configurado,
-     * e não uma URL externa arbitrária enviada pelo cliente.
-     */
     ensureUrlPertenceAoBucket(url) {
         const baseUrl = baseUrlPublica();
         if (!url.startsWith(`${baseUrl}/`)) {
@@ -211,9 +164,6 @@ class UserService {
         }
     }
 
-    /**
-     * Garante que o usuário logado está realizando a ação em seu próprio recurso.
-     */
     ensureSelfAction(loggedUserId, targetId, actionDescription) {
         if (loggedUserId !== targetId) {
             throw new CustomError({

@@ -1,4 +1,3 @@
-// src/controllers/ManejoRebanhoController.js
 
 import ManejoRebanhoService from '../service/ManejoRebanhoService.js';
 import { ManejoRebanhoCreateSchema, ManejoRebanhoUpdateSchema } from '../utils/validators/schemas/zod/ManejoRebanhoSchema.js';

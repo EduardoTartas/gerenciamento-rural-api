@@ -1,4 +1,3 @@
-// src/repository/UserRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { contemInsensitive } from '../utils/helpers/index.js';
@@ -18,9 +17,6 @@ class UserRepository {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista usuários com paginação e filtros opcionais.
-     */
     async list(filters = {}, page = 1, limit = 10) {
         const where = {};
 
@@ -47,9 +43,6 @@ class UserRepository {
         };
     }
 
-    /**
-     * Busca um usuário pelo ID. Retorna null se não encontrado.
-     */
     async findById(id) {
         return this.prisma.user.findUnique({
             where: { id },
@@ -57,9 +50,6 @@ class UserRepository {
         });
     }
 
-    /**
-     * Busca um usuário por e-mail, opcionalmente excluindo um ID.
-     */
     async findByEmail(email, excludeId = null) {
         const where = { email };
         if (excludeId) {
@@ -68,9 +58,6 @@ class UserRepository {
         return this.prisma.user.findFirst({ where });
     }
 
-    /**
-     * Atualiza um usuário pelo ID. Lança erro se não encontrado.
-     */
     async update(id, data) {
         const user = await this.prisma.user.update({
             where: { id },
@@ -81,13 +68,6 @@ class UserRepository {
         return user;
     }
 
-    /**
-     * Deleta um usuário pelo ID. Lança erro se não encontrado.
-     *
-     * As mutações do sync não têm relação com o usuário (ver `mutacaoAplicada`
-     * no schema) e guardam o resultado das gravações dele, então saem junto na
-     * mesma transação — senão sobrariam dados da conta já excluída.
-     */
     async remove(id) {
         const [, user] = await this.prisma.$transaction([
             this.prisma.mutacaoAplicada.deleteMany({ where: { usuarioId: id } }),
@@ -104,11 +84,6 @@ class UserRepository {
         return user;
     }
 
-    /**
-     * URLs das fotos de atividade do usuário (ativas ou não). Lidas antes da
-     * exclusão da conta: a cascata apaga as linhas, e sem as URLs os arquivos
-     * ficariam órfãos no bucket.
-     */
     async urlsFotosAtividade(id) {
         const fotos = await this.prisma.fotoAtividade.findMany({
             where: {
@@ -122,12 +97,6 @@ class UserRepository {
         return fotos.map((foto) => foto.url);
     }
 
-    /**
-     * Tudo o que a conta guarda, para a exportação a pedido do titular (LGPD,
-     * art. 18). Inclui o que está com exclusão lógica (`ativo: false`), porque
-     * continua armazenado. Fica de fora o que é segredo da autenticação: senha,
-     * tokens e sessões.
-     */
     async exportarDados(id) {
         const [titular, propriedades, notificacoes] = await Promise.all([
             this.prisma.user.findUnique({

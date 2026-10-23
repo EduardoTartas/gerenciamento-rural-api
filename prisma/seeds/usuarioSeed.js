@@ -1,12 +1,7 @@
-// prisma/seeds/usuarioSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 import { hashPassword } from 'better-auth/crypto';
 
-/**
- * Cria um usuário e sua conta de autenticação no BetterAuth.
- * Usa o hashPassword nativo do BetterAuth para garantir compatibilidade.
- */
 async function criarUsuario(prisma, { name, email, password, admin = false }) {
   const existing = await prisma.user.findUnique({ where: { email } });
   if (existing) {
@@ -27,7 +22,6 @@ async function criarUsuario(prisma, { name, email, password, admin = false }) {
     },
   });
 
-  // Cria a conta de credenciais (mesma estrutura que o BetterAuth usa)
   await prisma.account.create({
     data: {
       accountId: user.id,
@@ -43,10 +37,6 @@ async function criarUsuario(prisma, { name, email, password, admin = false }) {
   return user;
 }
 
-/**
- * Seed de usuários.
- * Cria o admin, 2 usuários fixos e N aleatórios via Faker.
- */
 export async function seedUsuarios(prisma, quantidadeAleatorios = 3) {
   console.log('🌱 Semeando usuários...');
 

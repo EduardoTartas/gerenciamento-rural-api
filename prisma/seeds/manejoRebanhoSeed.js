@@ -1,4 +1,3 @@
-// prisma/seeds/manejoRebanhoSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
@@ -37,10 +36,6 @@ const OBSERVACOES = {
   ],
 };
 
-/**
- * Seed de manejos de rebanho (vacinações, pesagens, vermifugações).
- * Cria N manejos por rebanho com dados aleatórios.
- */
 export async function seedManejoRebanhos(prisma, rebanhos, catalogos, quantidadePorRebanho = 3) {
   console.log('Semeando manejos de rebanho...');
 
@@ -50,7 +45,6 @@ export async function seedManejoRebanhos(prisma, rebanhos, catalogos, quantidade
     for (let i = 0; i < quantidadePorRebanho; i++) {
       const tipoManejoObj = faker.helpers.arrayElement(catalogos.manejosRebanho);
       const dataAtividade = faker.date.recent({ days: 120 });
-      // Fallback pra observacoes caso não tenha mapeado pelo nome exatamente
       const observacoes = OBSERVACOES[tipoManejoObj.nome] ? faker.helpers.arrayElement(OBSERVACOES[tipoManejoObj.nome]) : 'Manejo de rotina.';
 
       let medicamentoVacina = null;

@@ -5,12 +5,6 @@ import { criarUsuario } from '../../apoio/auth.js';
 import { criarPropriedade, criarTipoInsumo, criarInsumo } from '../../apoio/fabricas.js';
 import { criarMovimentacaoInsumo } from './apoio-local.js';
 
-/**
- * O banco de teste já nasce migrado, então a conversão da migration
- * `estoque_sem_contagem` (issue #67) é exercitada assim: grava linhas no
- * formato antigo (a coluna é texto, o Prisma aceita) e roda o SQL da própria
- * migration sobre elas.
- */
 const SQL = readFileSync(
     new URL('../../../prisma/migrations/20261005120000_estoque_sem_contagem/migration.sql', import.meta.url),
     'utf8',
@@ -56,8 +50,6 @@ describe('migration estoque_sem_contagem', () => {
 
         await rodarMigration();
 
-        // A origem continua AjusteContagem (legado que vale como marco) e a
-        // observação original é mantida.
         const cima = await ler(paraCima.id);
         expect(cima.tipo).toBe('Entrada');
         expect(Number(cima.quantidade)).toBe(5);
@@ -76,18 +68,17 @@ describe('migration estoque_sem_contagem', () => {
         expect(zero.tipo).toBe('Entrada');
         expect(zero.updatedAt.getTime()).toBeGreaterThan(antiga.getTime());
 
-        // Já era saída: fica como está.
+        // já era saída: fica como está.
         const saida = await ler(contagemComoSaida.id);
         expect(saida.tipo).toBe('Saida');
         expect(saida.origem).toBe('AjusteContagem');
         expect(saida.updatedAt.getTime()).toBe(antiga.getTime());
 
-        // Compra não é contagem: fica intocada.
+        // compra não é contagem: fica intocada.
         const intocada = await ler(compra.id);
         expect(intocada.origem).toBe('Compra');
         expect(intocada.updatedAt.getTime()).toBe(antiga.getTime());
 
-        // Saldo antes: 100 + 5 - 12 + 0 - 3 = 90. Depois, entradas - saídas ativas.
         const ativas = await DbConnect.prisma.movimentacaoInsumo.findMany({ where: { insumoId: insumo.id, ativo: true } });
         const saldo = ativas.reduce((t, m) => t + (m.tipo === 'Entrada' ? 1 : -1) * Number(m.quantidade), 0);
         expect(saldo).toBe(90);

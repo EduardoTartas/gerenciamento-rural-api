@@ -5,7 +5,7 @@ import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 import { criarCenario, criarFoto } from './apoio-local.js';
 
-// Mock do client Garage/MinIO, igual à suíte de /uploads.
+// mock do client Garage/MinIO, igual à suíte de /uploads.
 const { putObject, removeObject, getGarageClientMock } = vi.hoisted(() => {
     const putObject = vi.fn().mockResolvedValue(undefined);
     const removeObject = vi.fn().mockResolvedValue(undefined);
@@ -30,7 +30,6 @@ beforeEach(async () => {
     getGarageClientMock.mockReset().mockResolvedValue({ putObject, removeObject });
 });
 
-/** A remoção do arquivo não é aguardada pela resposta; espera ela acontecer. */
 const removeuArquivo = (chave) =>
     vi.waitFor(() => expect(removeObject).toHaveBeenCalledWith(process.env.GARAGE_BUCKET_FOTOS, chave));
 

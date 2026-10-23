@@ -18,7 +18,7 @@ describe('POST /v1/rebanhos/saidas', () => {
     const post = (usuario, corpo) =>
         api().post('/v1/rebanhos/saidas').set('Authorization', usuario.bearer).send(corpo);
 
-    // Venda exige preço da arroba e valor total (issue #66).
+    // venda exige preço da arroba e valor total (issue #66).
     const corpoBase = (extra = {}) => ({
         rebanhoId: rebanhoA.id,
         motivo: 'Venda',
@@ -28,7 +28,7 @@ describe('POST /v1/rebanhos/saidas', () => {
         ...extra,
     });
 
-    /** Corpo de saída que não é venda: sem os campos de valor. */
+    /** corpo de saída que não é venda: sem os campos de valor. */
     const corpoSemVenda = (motivo, extra = {}) => {
         const { precoArroba, valorTotal, ...corpo } = corpoBase({ motivo });
         return { ...corpo, ...extra };

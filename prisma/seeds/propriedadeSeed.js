@@ -1,8 +1,7 @@
-// prisma/seeds/propriedadeSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
-// Cidades e UFs de Rondônia para gerar localizações realistas
+// cidades e UFs de Rondônia para gerar localizações realistas
 const LOCALIDADES = [
   'Vilhena,RO', 'Cacoal,RO', 'Ji-Paraná,RO', 'Porto Velho,RO',
   'Ariquemes,RO', 'Rolim de Moura,RO', 'Ouro Preto do Oeste,RO',
@@ -21,9 +20,6 @@ const COMPLEMENTOS = [
   'Primavera', 'Recanto Feliz', 'Monte Alegre', 'Terra Firme',
 ];
 
-/**
- * Gera um nome de fazenda único.
- */
 function gerarNomeFazenda(usados) {
   let nome;
   let tentativas = 0;
@@ -33,7 +29,7 @@ function gerarNomeFazenda(usados) {
     nome = `${tipo} ${complemento}`;
     tentativas++;
     if (tentativas > 50) {
-      // Se esgotou combinações, adiciona um número
+      // se esgotou combinações, adiciona um número
       nome = `${tipo} ${complemento} ${faker.number.int({ min: 1, max: 99 })}`;
     }
   } while (usados.has(nome));
@@ -41,10 +37,6 @@ function gerarNomeFazenda(usados) {
   return nome;
 }
 
-/**
- * Seed de propriedades rurais.
- * Cria N propriedades para cada usuário.
- */
 export async function seedPropriedades(prisma, usuarios, quantidadePorUsuario = 2) {
   console.log('Semeando propriedades...');
 

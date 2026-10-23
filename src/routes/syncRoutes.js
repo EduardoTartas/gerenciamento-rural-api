@@ -1,4 +1,3 @@
-// src/routes/syncRoutes.js
 
 import express from 'express';
 import SyncController from '../controllers/SyncController.js';

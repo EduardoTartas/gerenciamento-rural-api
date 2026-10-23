@@ -1,4 +1,3 @@
-// src/controllers/SyncController.js
 
 import SyncService from '../service/SyncService.js';
 import { CommonResponse, HttpStatusCodes } from '../utils/helpers/index.js';
@@ -9,14 +8,6 @@ class SyncController {
         this.service = new SyncService();
     }
 
-    /**
-     * Aplica um lote de mutações.
-     * POST /sync
-     *
-     * Responde 200 mesmo havendo recusas: o status HTTP fala do lote, não das
-     * mutações. Se voltasse 4xx, o interceptor do cliente trataria como falha de
-     * transporte e descartaria o resultado dos itens que entraram.
-     */
     async aplicar(req, res) {
         const { mutacoes } = SyncLoteSchema.parse(req.body);
 

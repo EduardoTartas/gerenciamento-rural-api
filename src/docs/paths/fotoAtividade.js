@@ -1,4 +1,3 @@
-// src/docs/paths/fotoAtividade.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 

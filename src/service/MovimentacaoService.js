@@ -1,4 +1,3 @@
-// src/service/MovimentacaoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { movimentacaoRepository, rebanhoRepository, pastoRepository } from '../repository/index.js';
@@ -10,9 +9,6 @@ class MovimentacaoService {
         this.pastoRepository = pastoRepository;
     }
 
-    /**
-     * Lista o histórico de movimentações do usuário autenticado.
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -41,19 +37,10 @@ class MovimentacaoService {
         );
     }
 
-    /**
-     * Registra uma movimentação de rebanho entre pastos.
-     *
-     * Regras de negócio:
-     * 1. Rebanho deve existir, estar ativo e pertencer ao usuário.
-     * 2. Pasto de destino deve existir, estar ativo e pertencer ao usuário.
-     * 3. O pasto de destino não pode ser o mesmo que o pasto atual.
-     * 4. Toda a operação é executada em uma transação atômica (count incluso).
-     */
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
 
-        // Valida o rebanho
+        // valida o rebanho
         const rebanho = await this.ensureRebanhoExists(parsedData.rebanhoId, usuarioId);
 
         if (!rebanho.ativo) {
@@ -66,7 +53,7 @@ class MovimentacaoService {
             });
         }
 
-        // Valida o pasto de destino
+        // valida o pasto de destino
         const pastoDestino = await this.ensurePastoExists(parsedData.pastoDestinoId, usuarioId);
 
         if (!pastoDestino.ativo) {
@@ -79,7 +66,7 @@ class MovimentacaoService {
             });
         }
 
-        // Valida que destino ≠ origem
+        // valida que destino ≠ origem
         if (rebanho.pastoAtualId && rebanho.pastoAtualId === parsedData.pastoDestinoId) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
@@ -100,9 +87,6 @@ class MovimentacaoService {
             });
         }
 
-        // Lotação conjunta: por padrão o destino precisa estar livre.
-        // A contagem real de rebanhos ativos é usada em vez do campo `status`,
-        // que é um cache e pode estar defasado após falhas de sincronização.
         if (!parsedData.permitirLotacaoConjunta) {
             const ocupantes = await this.rebanhoRepository.countAtivosNoPasto(
                 parsedData.pastoDestinoId,
@@ -125,8 +109,6 @@ class MovimentacaoService {
         const pastoOrigemId = rebanho.pastoAtualId ?? null;
         const dataMovimentacao = parsedData.dataMovimentacao ?? new Date();
 
-        // Campo a campo de propósito: `permitirLotacaoConjunta` é regra de
-        // negócio, não coluna — não pode vazar para o Prisma.
         return this.repository.createComTransacao({
             id: parsedData.id,
             rebanhoId: parsedData.rebanhoId,
@@ -137,12 +119,6 @@ class MovimentacaoService {
         }, tx);
     }
 
-    /**
-     * Desfaz a última movimentação de um rebanho.
-     *
-     * Só a última: desfazer uma do meio deixaria o histórico dizendo que o lote
-     * saiu de A para B e depois apareceu em C sem nunca ter ido para lá.
-     */
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         const movimentacao = await this.ensureMovimentacaoExists(id, usuarioId);
@@ -164,9 +140,7 @@ class MovimentacaoService {
         return this.repository.desfazerComTransacao(movimentacao, tx);
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async ensureMovimentacaoExists(id, usuarioId) {
         const mov = await this.repository.findById(id, usuarioId);

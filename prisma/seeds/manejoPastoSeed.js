@@ -1,4 +1,3 @@
-// prisma/seeds/manejoPastoSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
@@ -54,10 +53,6 @@ const OBSERVACOES = {
   ],
 };
 
-/**
- * Seed de manejos de pasto.
- * Cria N manejos por pasto com dados aleatórios.
- */
 export async function seedManejoPastos(prisma, pastos, catalogos, quantidadePorPasto = 2) {
   console.log('Semeando manejos de pasto...');
 

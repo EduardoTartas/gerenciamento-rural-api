@@ -1,6 +1,3 @@
-// src/repository/index.js
-// Barrel file — exporta instâncias singleton de cada Repository.
-// Evita instâncias duplicadas quando múltiplos Services compartilham o mesmo Repository.
 
 import UserRepository from './UserRepository.js';
 import PropriedadeRepository from './PropriedadeRepository.js';

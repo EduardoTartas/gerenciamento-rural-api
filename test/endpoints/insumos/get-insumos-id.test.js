@@ -41,7 +41,6 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-02 saldo esgotado (saldoProjetado <= 0)', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        // Entrada antes do regime: o consumo desde janeiro é descontado inteiro.
         await criarMovimentacaoInsumo(insumo.id, {
             tipo: 'Entrada', quantidade: 5, data: new Date('2025-12-01T00:00:00Z'),
         });
@@ -67,7 +66,6 @@ describe('GET /v1/insumos/:id', () => {
 
     it('INS-GET-ID-04 regime encerrado soma no consumoProjetado, mas não no consumoDiaTotal', async () => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
-        // Entrada antes do regime: nenhum marco corta o regime encerrado.
         await criarMovimentacaoInsumo(insumo.id, {
             tipo: 'Entrada', quantidade: 500, data: new Date('2025-12-01T00:00:00Z'),
         });
@@ -76,8 +74,6 @@ describe('GET /v1/insumos/:id', () => {
             quantidadeDia: 2, ativo: false,
             dataInicio: new Date('2026-01-01T00:00:00Z'), dataFim: new Date('2026-01-11T00:00:00Z'),
         });
-        // O regime aberto começa agora: sua própria contribuição à projeção é
-        // desprezível, então o valor projetado isola os 20 do regime encerrado.
         await criarRegimeConsumoInsumo(rebanho.id, insumo.id, {
             quantidadeDia: 3, ativo: true,
             dataInicio: new Date(), dataFim: null,
@@ -87,14 +83,10 @@ describe('GET /v1/insumos/:id', () => {
         expect(r.status).toBe(200);
         // taxa diária conta só o regime aberto (3/dia)
         expect(r.body.data.saldo.consumoDiaTotal).toBe(3);
-        // o regime encerrado contribuiu com seus 10 dias * 2/dia = 20 para a projeção
         expect(r.body.data.saldo.consumoProjetado).toBeGreaterThanOrEqual(20);
         expect(r.body.data.saldo.consumoProjetado).toBeLessThan(26);
     });
 
-    // Regime de 2/dia de 01/01 a 11/01 (10 dias = 20 se contado inteiro) e
-    // estoque inicial em dezembro. O que muda entre os três é o lançamento de
-    // 05/01: só consumo lançado e contagem antiga encerram a estimativa.
     const prepararMarco = async (lancamento05) => {
         const insumo = await criarInsumo(propriedade.id, { tipoInsumoId: tipoInsumo.id });
         const rebanho = await criarRebanhoDeA();
@@ -120,7 +112,7 @@ describe('GET /v1/insumos/:id', () => {
         const insumo = await prepararMarco({ tipo: 'Saida', origem: 'ConsumoRebanho', quantidade: 8 });
         const r = await get(a, insumo.id);
         expect(r.body.data.saldo.saldoReal).toBe(92);
-        // Só os 6 dias depois de 05/01.
+        // só os 6 dias depois de 05/01.
         expect(r.body.data.saldo.consumoProjetado).toBe(12);
         expect(r.body.data.saldo.saldoProjetado).toBe(80);
     });

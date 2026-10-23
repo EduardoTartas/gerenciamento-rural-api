@@ -1,6 +1,3 @@
-// Avisos adicionais validados pelo produtor: véspera do pasto pronto, lote sem
-// pasto, lote sem pesagem, resumo do mês e dados faltando (só caixa, uma vez
-// por item).
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import DbConnect from '../../../src/config/dbConnect.js';
 import { api } from '../../apoio/cliente.js';
@@ -118,7 +115,6 @@ describe('Verificação — avisos adicionais', () => {
             });
             const comCompra = await criarRebanho(fazenda.id, pasto.id, { valorCompra: 20000 });
             await prisma.saidaRebanho.create({ data: { rebanhoId: comCompra.id, motivo: 'Venda', quantidadeCabecas: 1 } });
-            // Saída que não é venda nem finalizou: ainda não é hora de cobrar o custo.
             const morte = await criarRebanho(fazenda.id, pasto.id, { quantidadeCabecas: 10 });
             await prisma.saidaRebanho.create({ data: { rebanhoId: morte.id, motivo: 'Morte', quantidadeCabecas: 1 } });
 
@@ -142,7 +138,7 @@ describe('Verificação — avisos adicionais', () => {
             const comPreco = await criarInsumo(fazenda.id);
             await criarMovimentacaoInsumo(comPreco.id, { quantidade: 100, valorTotal: 300, data: diasAtras(40) });
             await criarMovimentacaoInsumo(comPreco.id, { tipo: 'Saida', origem: 'ConsumoRebanho', quantidade: 5 });
-            // Sem consumo no mês (só perda): nada a custear.
+            // sem consumo no mês (só perda): nada a custear.
             const parado = await criarInsumo(fazenda.id);
             await criarMovimentacaoInsumo(parado.id, { quantidade: 100, data: diasAtras(40) });
             await criarMovimentacaoInsumo(parado.id, { tipo: 'Saida', origem: 'Perda', quantidade: 5 });
@@ -173,7 +169,7 @@ describe('Verificação — avisos adicionais', () => {
             await saida(lote.id, { motivo: 'Morte', quantidadeCabecas: 2, dataSaida: new Date('2026-11-01T03:00:00Z') });
             // 30/09 às 23h em Cuiabá: setembro, fora do resumo.
             await saida(lote.id, { quantidadeCabecas: 7, valorTotal: 9999, dataSaida: new Date('2026-10-01T03:00:00Z') });
-            // Outra fazenda sem saídas no mês: sem resumo.
+            // outra fazenda sem saídas no mês: sem resumo.
             await criarPropriedade(a.id);
 
             await servico.verificarUsuario(a.id, { agora: PRIMEIRO_DE_NOVEMBRO });

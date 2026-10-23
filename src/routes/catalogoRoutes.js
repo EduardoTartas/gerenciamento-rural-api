@@ -1,4 +1,3 @@
-// src/routes/catalogoRoutes.js
 
 import express from 'express';
 import CatalogoController from '../controllers/CatalogoController.js';
@@ -9,16 +8,6 @@ import AdminMiddleware from '../middlewares/AdminMiddleware.js';
 const router = express.Router();
 const catalogoController = new CatalogoController();
 
-/**
- * Rotas de Catálogos Globais.
- *
- * Entidades disponíveis em :entidade:
- *   racas, sistemas-producao,
- *   regimes-alimentares, tipos-manejo-rebanho, tipos-manejo-pasto, tipos-insumo
- *
- * Leitura liberada a qualquer autenticado. Escrita (criar/editar/arquivar) restrita a
- * admin — catálogos são compartilhados entre todos os usuários.
- */
 router
     .get('/catalogos/:entidade',        AuthMiddleware, asyncWrapper(catalogoController.list.bind(catalogoController)))
     .get('/catalogos/:entidade/:id',    AuthMiddleware, asyncWrapper(catalogoController.list.bind(catalogoController)))

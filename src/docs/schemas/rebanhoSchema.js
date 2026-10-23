@@ -1,4 +1,3 @@
-// src/docs/schemas/rebanhoSchema.js
 
 const rebanhoSchemas = {
     RebanhoFilter: {

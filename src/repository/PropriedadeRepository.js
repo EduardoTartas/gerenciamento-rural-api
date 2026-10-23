@@ -1,15 +1,9 @@
-// src/repository/PropriedadeRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { comVersaoNova } from '../utils/helpers/versao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
-/**
- * Select comum a todos os métodos. `findById`/`create`/`update` acrescentam
- * `usuarioId` — a listagem não expõe, pois já é implícito no filtro do usuário
- * autenticado.
- */
 const PROPRIEDADE_SELECT = {
     id: true,
     nome: true,
@@ -33,10 +27,6 @@ class PropriedadeRepository {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista propriedades com paginação e filtros opcionais.
-     * Sempre restrito ao usuarioId fornecido.
-     */
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             usuarioId,
@@ -67,10 +57,6 @@ class PropriedadeRepository {
         };
     }
 
-    /**
-     * Busca uma propriedade por ID. Retorna null se não encontrar.
-     * Restrito ao usuarioId para garantir a propriedade do recurso.
-     */
     async findById(id, usuarioId) {
         return this.prisma.propriedade.findFirst({
             where: { id, usuarioId },
@@ -78,10 +64,6 @@ class PropriedadeRepository {
         });
     }
 
-    /**
-     * Busca uma propriedade pelo nome para um usuário específico, opcionalmente excluindo um ID.
-     * Usado para validação de nome único.
-     */
     async findByNome(nome, usuarioId, excludeId = null) {
         const where = {
             nome: igualInsensitive(nome),
@@ -94,13 +76,6 @@ class PropriedadeRepository {
         return this.prisma.propriedade.findFirst({ where });
     }
 
-    /**
-     * Cria uma nova propriedade.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async create(data, tx) {
         return ondeEscrever(tx, this.prisma).propriedade.create({
             data,
@@ -108,13 +83,6 @@ class PropriedadeRepository {
         });
     }
 
-    /**
-     * Atualiza uma propriedade por ID.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async update(id, data, tx) {
         return ondeEscrever(tx, this.prisma).propriedade.update({
             where: { id },
@@ -124,10 +92,6 @@ class PropriedadeRepository {
     }
 
 
-    /**
-     * Conta a quantidade de rebanhos ativos associados a esta propriedade.
-     * Útil para validações de regra de negócio (não inativar caso haja rebanhos).
-     */
     async countRebanhosAtivos(id) {
         return this.prisma.rebanho.count({
             where: {

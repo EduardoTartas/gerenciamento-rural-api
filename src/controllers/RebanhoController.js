@@ -1,4 +1,3 @@
-// src/controllers/RebanhoController.js
 
 import RebanhoService from '../service/RebanhoService.js';
 import { RebanhoCreateSchema, RebanhoUpdateSchema } from '../utils/validators/schemas/zod/RebanhoSchema.js';
@@ -10,11 +9,6 @@ class RebanhoController {
         this.service = new RebanhoService();
     }
 
-    /**
-     * Lista rebanhos (geral ou por ID).
-     * GET /rebanhos
-     * GET /rebanhos/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -45,10 +39,6 @@ class RebanhoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, `${totalDocs} rebanho(s) encontrado(s).`);
     }
 
-    /**
-     * Cria um novo rebanho.
-     * POST /rebanhos
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -66,10 +56,6 @@ class RebanhoController {
         return CommonResponse.created(res, data, 'Rebanho criado com sucesso.');
     }
 
-    /**
-     * Atualiza um rebanho existente.
-     * PATCH /rebanhos/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         RebanhoIdSchema.parse(id);
@@ -90,10 +76,6 @@ class RebanhoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Rebanho atualizado com sucesso.');
     }
 
-    /**
-     * Inativa (soft-delete) um rebanho.
-     * DELETE /rebanhos/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         RebanhoIdSchema.parse(id);

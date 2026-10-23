@@ -1,11 +1,6 @@
-// src/utils/validators/schemas/zod/ManejoPastoSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Schema para criar um novo manejo de pasto.
- * tipoManejoId referencia a tabela global 'tipoManejoPasto' via catálogo.
- */
 export const ManejoPastoCreateSchema = z
     .object({
         id: z
@@ -41,12 +36,6 @@ export const ManejoPastoCreateSchema = z
     })
     .strict();
 
-/**
- * Schema para atualizar um manejo de pasto existente.
- *
- * `itens`: ausente preserva o consumo de insumo já registrado; presente
- * (mesmo `[]`) troca por completo — mesma semântica de `ManejoPastoCreateSchema.itens`.
- */
 export const ManejoPastoUpdateSchema = z
     .object({
         tipoManejoId: z

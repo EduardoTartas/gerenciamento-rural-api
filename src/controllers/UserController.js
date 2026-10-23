@@ -1,4 +1,3 @@
-// src/controllers/UserController.js
 
 import UserService from '../service/UserService.js';
 import { UserUpdateSchema, UserFotoSchema } from '../utils/validators/schemas/zod/UserSchema.js';
@@ -17,10 +16,6 @@ class UserController {
         this.service = new UserService();
     }
 
-    /**
-     * GET /usuarios (somente admin)
-     * GET /usuarios/:id (admin vê qualquer um; usuário comum só a si mesmo)
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -52,9 +47,6 @@ class UserController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, message);
     }
 
-    /**
-     * PATCH /users/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         UserIdSchema.parse(id);
@@ -85,10 +77,6 @@ class UserController {
         );
     }
 
-    /**
-     * PATCH /users/:id/foto
-     * Registra a URL de uma imagem já enviada via POST /uploads/imagens.
-     */
     async registrarFoto(req, res) {
         const { id } = req.params;
         UserIdSchema.parse(id);
@@ -104,10 +92,6 @@ class UserController {
         );
     }
 
-    /**
-     * GET /usuarios/:id/exportacao
-     * Entrega todos os dados da conta ao titular (LGPD, art. 18).
-     */
     async exportar(req, res) {
         const { id } = req.params;
         UserIdSchema.parse(id);
@@ -121,9 +105,6 @@ class UserController {
         );
     }
 
-    /**
-     * DELETE /users/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         UserIdSchema.parse(id);

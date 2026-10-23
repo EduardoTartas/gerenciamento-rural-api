@@ -1,4 +1,3 @@
-// src/docs/paths/propriedade.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import propriedadeSchemas from "../schemas/propriedadeSchema.js";

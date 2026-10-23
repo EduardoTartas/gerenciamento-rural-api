@@ -1,6 +1,4 @@
-// src/docs/config/head.js
 
-// Obtém as URLs do servidor para a documentação de acordo com o ambiente atual
 const getServersInCorrectOrder = () => {
     const defaultDevUrl = "http://localhost:6060";
     const defaultProdUrl = "https://pastolivre.eduardotartas.dpdns.org";
@@ -21,7 +19,7 @@ const getServersInCorrectOrder = () => {
 const getSwaggerOptions = async () => {
     const t = process.env.NODE_ENV === 'development' ? `?t=${Date.now()}` : '';
 
-    // Paths
+    // paths
     const authPaths = (await import(new URL("../paths/auth.js",
         import.meta.url).href + t)).default;
     const userPaths = (await import(new URL("../paths/user.js",
@@ -53,7 +51,7 @@ const getSwaggerOptions = async () => {
     const fotoAtividadePaths = (await import(new URL("../paths/fotoAtividade.js",
         import.meta.url).href + t)).default;
 
-    // Schemas
+    // schemas
     const authSchemas = (await import(new URL("../schemas/authSchema.js",
         import.meta.url).href + t)).default;
     const userSchemas = (await import(new URL("../schemas/userSchema.js",

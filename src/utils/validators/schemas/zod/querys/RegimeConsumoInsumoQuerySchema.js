@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/RegimeConsumoInsumoQuerySchema.js
 import { z } from 'zod/v4';
 
 export const RegimeConsumoInsumoIdSchema = z.string().uuid('ID de regime inválido. Deve ser um UUID válido.');

@@ -1,4 +1,3 @@
-// src/repository/UploadRepository.js
 
 import getGarageClient, { baseUrlPublica } from '../config/garageConnect.js';
 import logger from '../utils/logger.js';
@@ -9,9 +8,6 @@ class UploadRepository {
         this.bucket = process.env.GARAGE_BUCKET_FOTOS;
     }
 
-    /**
-     * Faz upload de um arquivo para o Garage e retorna a URL pública.
-     */
     async uploadFile(buffer, fileName, contentType) {
         try {
             const client = await getGarageClient();
@@ -31,9 +27,6 @@ class UploadRepository {
         }
     }
 
-    /**
-     * Deleta um arquivo do Garage a partir do nome ou da URL pública completa.
-     */
     async deleteFile(fileNameOrUrl) {
         try {
             const fileName = this.extractFileName(fileNameOrUrl);
@@ -54,13 +47,6 @@ class UploadRepository {
         return `${baseUrlPublica(this.bucket)}/${fileName}`;
     }
 
-    /**
-     * Chave do objeto no bucket. A URL pública vira chave tirando a base do
-     * bucket — e não pegando só o último segmento, que perderia o prefixo das
-     * fotos de atividade (`atividades/<id>.jpeg`). Fora isso, uma URL de outra
-     * base cai no último segmento (avatares antigos ficam na raiz) e o resto já é
-     * a própria chave.
-     */
     extractFileName(fileNameOrUrl) {
         const base = `${baseUrlPublica(this.bucket)}/`;
         if (fileNameOrUrl.startsWith(base)) return fileNameOrUrl.slice(base.length);

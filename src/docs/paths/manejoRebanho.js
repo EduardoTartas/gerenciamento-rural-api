@@ -1,4 +1,3 @@
-// src/docs/paths/manejoRebanho.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import manejoRebanhoSchemas from "../schemas/manejoRebanhoSchema.js";

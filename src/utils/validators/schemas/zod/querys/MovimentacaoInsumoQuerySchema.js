@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/querys/MovimentacaoInsumoQuerySchema.js
 import { z } from 'zod/v4';
 
 export const MovimentacaoInsumoIdSchema = z.string().uuid('ID de movimentação inválido. Deve ser um UUID válido.');

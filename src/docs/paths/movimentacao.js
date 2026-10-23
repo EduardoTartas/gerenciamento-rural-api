@@ -1,4 +1,3 @@
-// src/docs/paths/movimentacao.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import movimentacaoSchemas from "../schemas/movimentacaoSchema.js";

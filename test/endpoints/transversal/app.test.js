@@ -66,10 +66,6 @@ describe('transversal', () => {
         expect(r.body.data.docs).toBeDefined();
     });
 
-    // MovimentacaoInsumoService exige `insumoId` ou `atualizadoDesde` na listagem
-    // (leitura por diferença é a exceção) — sem isso o /insumos/:id genérico
-    // também daria 400, então `atualizadoDesde` prova que a rota fixa foi
-    // capturada (schema aceito) sem depender de um insumo existir.
     it('APP-GET-08 /insumos/movimentacoes não é capturada por /insumos/:id', async () => {
         const a = await criarUsuario();
         const r = await api()

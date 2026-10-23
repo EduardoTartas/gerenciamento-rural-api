@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/ManejoRebanhoSchema.js
 
 import { z } from 'zod/v4';
 

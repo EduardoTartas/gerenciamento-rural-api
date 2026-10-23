@@ -1,4 +1,3 @@
-// src/service/FotoAtividadeService.js
 
 import { v4 as uuidv4 } from 'uuid';
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
@@ -10,19 +9,14 @@ import {
 import UploadService from './UploadService.js';
 import logger from '../utils/logger.js';
 
-/** Fotos ativas que uma atividade pode ter ao mesmo tempo. */
+/** fotos ativas que uma atividade pode ter ao mesmo tempo. */
 export const LIMITE_FOTOS_POR_ATIVIDADE = 3;
 
-/**
- * As duas atividades que aceitam foto. A regra é a mesma para as duas; muda só
- * o FK, o repository que confere o dono e o nome que aparece no 404.
- */
 const ATIVIDADES = {
     pasto:   { campo: 'manejoPastoId',   repositorio: manejoPastoRepository,   nome: 'Manejo de Pasto' },
     rebanho: { campo: 'manejoRebanhoId', repositorio: manejoRebanhoRepository, nome: 'Manejo de Rebanho' },
 };
 
-/** Chave do arquivo no bucket: derivada do id, então o reenvio cai no mesmo objeto. */
 const chaveDoArquivo = (id) => `atividades/${id}.jpeg`;
 
 class FotoAtividadeService {
@@ -31,9 +25,6 @@ class FotoAtividadeService {
         this.uploadService = new UploadService();
     }
 
-    /**
-     * Lista fotos de atividade do usuário (leitura por diferença do app).
-     */
     async list(req) {
         const usuarioId = req.user.id;
         const {
@@ -58,17 +49,6 @@ class FotoAtividadeService {
         );
     }
 
-    /**
-     * Anexa uma foto a um manejo de pastagem ou de rebanho.
-     *
-     * O reenvio do mesmo `id` para o mesmo manejo devolve a foto já gravada
-     * (`criada: false`) sem tocar no armazenamento: o app reenvia quando a
-     * resposta se perde no caminho, e isso não pode virar foto duplicada nem
-     * estourar o limite de 3.
-     *
-     * @param {'pasto'|'rebanho'} tipo
-     * @returns {Promise<{foto: object, criada: boolean}>}
-     */
     async create(tipo, manejoId, parsedData, file, req) {
         const usuarioId = req.user.id;
         const { campo, repositorio, nome } = ATIVIDADES[tipo];
@@ -109,8 +89,6 @@ class FotoAtividadeService {
             }
         }
 
-        // Checagem antecipada: evita processar e subir uma imagem que vai ser
-        // recusada. A decisão definitiva é a contagem dentro da transação.
         const ativas = await this.repository.contarAtivas(campo, manejoId);
         if (ativas >= LIMITE_FOTOS_POR_ATIVIDADE) throw this._erroLimite();
 
@@ -126,7 +104,6 @@ class FotoAtividadeService {
                 campo, manejoId, { ...parsedData, id, url }, LIMITE_FOTOS_POR_ATIVIDADE,
             );
         } catch (erro) {
-            // P2002 = outro envio do mesmo id gravou primeiro; o arquivo é dele.
             if (erro?.code !== 'P2002') this._removerArquivo(id);
             throw erro;
         }
@@ -139,14 +116,6 @@ class FotoAtividadeService {
         return { foto: resultado.foto, criada: true };
     }
 
-    /**
-     * Exclusão lógica de uma foto e remoção do arquivo em melhor esforço.
-     *
-     * Foto já excluída devolve o registro como está, sem erro: excluir de novo
-     * é o mesmo pedido. `tolerarAusente` é do lote (`fotos_atividade:DELETE`),
-     * onde a foto inexistente também é aceita — o aparelho pode estar
-     * repetindo uma exclusão cuja foto nunca chegou a subir.
-     */
     async remove(id, req, tx, { tolerarAusente = false } = {}) {
         const usuarioId = req.user.id;
         const foto = await this.repository.findById(id, usuarioId, tx);
@@ -168,9 +137,7 @@ class FotoAtividadeService {
         return removida;
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     _erroLimite() {
         return new CustomError({
@@ -182,11 +149,6 @@ class FotoAtividadeService {
         });
     }
 
-    /**
-     * Apaga o arquivo do bucket sem esperar nem falhar a operação: a linha já
-     * está excluída (ou nunca existiu), e um arquivo que sobra no bucket não
-     * aparece para ninguém. Fica no log para limpeza manual.
-     */
     _removerArquivo(id) {
         this.uploadService.deletarImagem(chaveDoArquivo(id)).catch((erro) => {
             logger.warn('Foto de atividade não removida do armazenamento.', { id, error: erro?.message });

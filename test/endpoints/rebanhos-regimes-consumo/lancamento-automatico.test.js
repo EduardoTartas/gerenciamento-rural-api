@@ -8,8 +8,6 @@ import { criarRegimeConsumo } from './apoio-local.js';
 import { criarMovimentacaoInsumo } from '../sync/apoio-local.js';
 import { reiniciarNpaasFalso } from '../notificacoes/apoio-local.js';
 
-// O disparo manual da verificação também envia push: nenhum teste fala com o
-// NPaaS de verdade.
 const npaasFalso = vi.hoisted(() => ({
     ativo: false, enviar: vi.fn(), registrarDispositivo: vi.fn(), desativarToken: vi.fn(),
 }));
@@ -22,11 +20,6 @@ const { prisma } = DbConnect;
 const DIA = 24 * 60 * 60 * 1000;
 const diasAtras = (n) => new Date(Date.now() - n * DIA);
 
-/**
- * Lançamento automático do consumo diário (issue #72): o servidor grava uma
- * saída `ConsumoRebanho` a cada 24 h para o regime com `lancamentoAutomatico`,
- * a partir do último consumo lançado daquele rebanho, sem passar do estoque.
- */
 describe('Lançamento automático do consumo diário', () => {
     let a, propriedade, pasto, rebanho, insumo;
 

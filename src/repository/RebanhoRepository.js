@@ -1,14 +1,9 @@
-// src/repository/RebanhoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { comVersaoNova } from '../utils/helpers/versao.js';
 import { contemInsensitive, igualInsensitive, aplicarAtivoOuDiferenca } from '../utils/helpers/index.js';
 
-/**
- * Select padrão para listas e buscas individuais de rebanho.
- * Inclui todos os relacionamentos relevantes para o frontend.
- */
 const REBANHO_SELECT = {
     id: true,
     propriedadeId: true,
@@ -41,10 +36,6 @@ class RebanhoRepository {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista rebanhos com paginação e filtros.
-     * Restrito às propriedades do usuário autenticado.
-     */
     async list(usuarioId, filters = {}, page = 1, limit = 10) {
         const where = {
             propriedade: { usuarioId },
@@ -73,9 +64,6 @@ class RebanhoRepository {
         return { docs, totalDocs, page, limit, totalPages: Math.ceil(totalDocs / limit) };
     }
 
-    /**
-     * Busca um rebanho por ID. Restrito ao usuário autenticado.
-     */
     async findById(id, usuarioId) {
         return this.prisma.rebanho.findFirst({
             where: { id, propriedade: { usuarioId } },
@@ -83,10 +71,6 @@ class RebanhoRepository {
         });
     }
 
-    /**
-     * Busca rebanho ativo pelo nome dentro de uma propriedade.
-     * Usado para validação de nome único (case-insensitive, apenas ativos).
-     */
     async findByNome(nomeRebanho, propriedadeId, excludeId = null) {
         const where = {
             nomeRebanho: igualInsensitive(nomeRebanho),
@@ -97,35 +81,14 @@ class RebanhoRepository {
         return this.prisma.rebanho.findFirst({ where });
     }
 
-    /**
-     * Cria um novo rebanho.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async create(data, tx) {
         return ondeEscrever(tx, this.prisma).rebanho.create({ data, select: REBANHO_SELECT });
     }
 
-    /**
-     * Atualiza um rebanho por ID.
-     *
-     * `tx` opcional: o lote (`POST /v1/sync`) passa a transação em vigor para
-     * que a escrita entre junto com a lápide de idempotência; o REST não passa
-     * nada e escreve pelo pool. Issue #34.
-     */
     async update(id, data, tx) {
         return ondeEscrever(tx, this.prisma).rebanho.update({ where: { id }, data: comVersaoNova(data), select: REBANHO_SELECT });
     }
 
-    /**
-     * Conta rebanhos ativos em um pasto.
-     *
-     * Usado para atualizar o status do pasto após movimentação/inativação e para
-     * checar lotação conjunta. Em `excluirRebanhoId` informe o lote que está
-     * sendo movido, para que ele não conte como ocupante de si mesmo.
-     */
     async countAtivosNoPasto(pastoId, { excluirRebanhoId = null } = {}) {
         const where = { pastoAtualId: pastoId, ativo: true };
         if (excluirRebanhoId) where.id = { not: excluirRebanhoId };
