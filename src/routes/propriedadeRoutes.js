@@ -1,4 +1,3 @@
-// src/routes/propriedadeRoutes.js
 
 import express from 'express';
 import PropriedadeController from '../controllers/PropriedadeController.js';

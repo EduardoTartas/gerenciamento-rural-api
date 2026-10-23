@@ -1,10 +1,4 @@
-// src/utils/templates/resetPassword.js
 
-/**
- * Gera o HTML do e-mail com código OTP de redefinição de senha.
- * @param {string} otp - Código de verificação de 6 dígitos.
- * @returns {string} HTML formatado.
- */
 export function resetPasswordOTPTemplate(otp) {
     return `
 <!DOCTYPE html>

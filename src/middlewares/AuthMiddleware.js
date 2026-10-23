@@ -1,14 +1,9 @@
-// src/middlewares/AuthMiddleware.js
 
 import { fromNodeHeaders } from 'better-auth/node';
 import { auth } from '../config/auth.js';
 import CustomError from '../utils/helpers/CustomError.js';
 import HttpStatusCodes from '../utils/helpers/HttpStatusCodes.js';
 
-/**
- * Middleware que protege rotas verificando a sessão do usuário via BetterAuth.
- * Anexa `req.user` e `req.session` em caso de sucesso.
- */
 const AuthMiddleware = async (req, res, next) => {
     try {
         const session = await auth.api.getSession({
@@ -25,7 +20,6 @@ const AuthMiddleware = async (req, res, next) => {
             });
         }
 
-        // Anexa os dados do usuário e da sessão no objeto de requisição
         req.user = session.user;
         req.session = session.session;
 

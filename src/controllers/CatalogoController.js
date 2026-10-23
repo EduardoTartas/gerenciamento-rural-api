@@ -1,4 +1,3 @@
-// src/controllers/CatalogoController.js
 
 import CatalogoService from '../service/CatalogoService.js';
 import { schemaDeCriacao, schemaDeAtualizacao } from '../utils/validators/schemas/zod/CatalogoSchema.js';
@@ -10,11 +9,6 @@ class CatalogoController {
         this.service = new CatalogoService();
     }
 
-    /**
-     * Lista itens de catálogo (geral ou por ID).
-     * GET /catalogos/:entidade
-     * GET /catalogos/:entidade/:id
-     */
     async list(req, res) {
         const { id } = req.params;
 
@@ -42,10 +36,6 @@ class CatalogoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, message);
     }
 
-    /**
-     * Cria novo item de catálogo.
-     * POST /catalogos/:entidade
-     */
     async create(req, res) {
         if (!req.body || Object.keys(req.body).length === 0) {
             throw new CustomError({
@@ -63,10 +53,6 @@ class CatalogoController {
         return CommonResponse.created(res, data, 'Item de catálogo criado com sucesso.');
     }
 
-    /**
-     * Atualiza item de catálogo.
-     * PATCH /catalogos/:entidade/:id
-     */
     async update(req, res) {
         const { id } = req.params;
         CatalogoIdSchema.parse(id);
@@ -87,10 +73,6 @@ class CatalogoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Item de catálogo atualizado com sucesso.');
     }
 
-    /**
-     * Remove (soft-delete) item de catálogo.
-     * DELETE /catalogos/:entidade/:id
-     */
     async remove(req, res) {
         const { id } = req.params;
         CatalogoIdSchema.parse(id);

@@ -1,4 +1,3 @@
-// src/service/MovimentacaoInsumoService.js
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { problemasDoMotivo, problemasDoValor } from '../utils/validators/schemas/zod/MovimentacaoInsumoSchema.js';
 import {
@@ -23,11 +22,6 @@ class MovimentacaoInsumoService {
 
         const q = req._parsedQuery ?? req.query;
 
-        // Sem `insumoId` só é permitido para a leitura por diferença: com
-        // `atualizadoDesde`, o app avança a marca d'água de todas as
-        // movimentações da propriedade num único request, em vez de iterar
-        // insumo a insumo. O `where` do repository continua escopado ao
-        // usuário via `insumo.propriedade.usuarioId` — nada vaza.
         if (!q.insumoId && !q.atualizadoDesde) {
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
@@ -80,11 +74,6 @@ class MovimentacaoInsumoService {
         return this.repository.create(parsedData, tx);
     }
 
-    /**
-     * Garante que o rebanho/pasto informado pertence ao usuário e à mesma
-     * propriedade do insumo movimentado. Sem isso, o produtor poderia gravar
-     * linhas de ledger referenciando FK de outro tenant.
-     */
     async ensureVinculoDaPropriedade(repository, id, usuarioId, propriedadeIdInsumo, campo, msgNaoEncontrado, msgOutraPropriedade) {
         const registro = await repository.findById(id, usuarioId);
         if (!registro) {
@@ -108,12 +97,6 @@ class MovimentacaoInsumoService {
         return registro;
     }
 
-    /**
-     * Corrige um lançamento já sincronizado (issue #68). Só quantidade, data,
-     * motivo, observações e valor pago (#70) — `insumoId` e `tipo` o schema já recusou. A regra
-     * do motivo é conferida aqui, com o `tipo` gravado e o resultado do merge:
-     * trocar só a observação de um "Outro" para vazio também é recusado.
-     */
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
         const atual = await this.ensureExists(id, usuarioId);
@@ -123,8 +106,6 @@ class MovimentacaoInsumoService {
             || atual.origem === 'ManejoRebanho' || atual.origem === 'ManejoPasto') {
             this.edicaoRecusada('origem', 'Lançamento gerado por manejo: edite pelo manejo.');
         }
-        // Contagem antiga convertida (#67) é marco da projeção de consumo e
-        // não tem motivo de entrada/saída: fica só leitura.
         if (atual.origem === 'AjusteContagem') {
             this.edicaoRecusada('origem', 'Contagem antiga não pode ser editada.');
         }
@@ -136,7 +117,6 @@ class MovimentacaoInsumoService {
         };
         const [problema] = [
             ...problemasDoMotivo(resultado),
-            // Valor pago só em entrada (issue #70): confere contra o `tipo` gravado.
             ...problemasDoValor({ tipo: atual.tipo, valorTotal: parsedData.valorTotal }),
         ];
         if (problema) this.edicaoRecusada(problema.path[0], problema.message);
@@ -144,14 +124,6 @@ class MovimentacaoInsumoService {
         return this.repository.update(id, parsedData, tx);
     }
 
-    /**
-     * Desfazer só existe enquanto o lançamento está na fila do aparelho —
-     * pendente, ele nunca chegou aqui (issue #68). O que chega é lançamento
-     * sincronizado: 409, e a correção é pela edição. A rota e a entrada do
-     * `/sync` continuam para que um aparelho antigo com `DELETE` na fila
-     * receba a recusa (`conflict`, não recuperável) em vez de travar a fila.
-     * A exclusão em cascata de manejo usa `desativarPorManejo`, não isto.
-     */
     async remove(id, req) {
         const usuarioId = req.user.id;
         const atual = await this.ensureExists(id, usuarioId);

@@ -1,9 +1,3 @@
-// src/service/notificacao/regras.js
-//
-// Regras puras dos avisos da fazenda (issue #62). As mesmas que o app já
-// calcula localmente na Home e nas fichas — aqui elas rodam no servidor para o
-// produtor ser avisado com o app fechado. Recebem os dados já lidos e
-// convertidos (Decimal → Number); não tocam no banco.
 
 export const TIPOS = Object.freeze({
     PASTO_PRONTO: 'PASTO_PRONTO',
@@ -14,38 +8,27 @@ export const TIPOS = Object.freeze({
     PASTO_PRONTO_AMANHA: 'PASTO_PRONTO_AMANHA',
     LOTE_SEM_PASTO: 'LOTE_SEM_PASTO',
     RESUMO_MES: 'RESUMO_MES',
-    // Dados faltando: avisam uma vez por item e só na caixa.
+    // dados faltando: avisam uma vez por item e só na caixa.
     PASTO_SEM_AREA: 'PASTO_SEM_AREA',
     LOTE_SEM_VALOR_COMPRA: 'LOTE_SEM_VALOR_COMPRA',
     INSUMO_SEM_PRECO: 'INSUMO_SEM_PRECO',
 });
 
-/**
- * Dados faltando: não são urgência, então não geram push (só caixa) e avisam
- * uma vez por item — resolvido, não reabre, para não insistir com quem
- * decidiu não preencher.
- */
 export const TIPOS_DADOS_FALTANDO = Object.freeze([
     TIPOS.PASTO_SEM_AREA,
     TIPOS.LOTE_SEM_VALOR_COMPRA,
     TIPOS.INSUMO_SEM_PRECO,
 ]);
 
-/**
- * O resumo do mês é um evento, não uma situação que persiste: a chave já leva
- * o mês, e ele não se "resolve" no dia seguinte.
- */
 export const TIPOS_SEM_RESOLUCAO = Object.freeze([TIPOS.RESUMO_MES]);
 
 const MS_POR_DIA = 24 * 60 * 60 * 1000;
 
-/** Descanso de referência quando nem o pasto nem a forrageira informam (app: `diasDescansoAlvo`). */
 export const DIAS_DESCANSO_PADRAO = 30;
-/** Insumo "acabando": previsão de término em até tantos dias. */
+/** insumo "acabando": previsão de término em até tantos dias. */
 export const DIAS_ALERTA_INSUMO = 7;
-/** Lotação de referência da fazenda, em UA/ha (app: `Lotacao.tetoDeReferencia`). */
 export const TETO_LOTACAO_UA_HA = 2.0;
-/** Uma unidade animal = 450 kg de peso vivo. */
+/** uma unidade animal = 450 kg de peso vivo. */
 export const KG_POR_UA = 450;
 
 const numero = new Intl.NumberFormat('pt-BR', { maximumFractionDigits: 1 });
@@ -60,10 +43,6 @@ function cabecas(n) {
     return n === 1 ? '1 cabeça' : `${numero.format(n)} cabeças`;
 }
 
-/**
- * Peso médio estimado de um lote sem peso informado, pelo sistema de produção
- * — a mesma tabela de `Lotacao.pesoEstimadoKg` do app.
- */
 export function pesoEstimadoKg(sistemaProducao) {
     const nome = (sistemaProducao ?? '').trim().toLowerCase();
     if (nome === 'cria') return 400;
@@ -74,7 +53,6 @@ export function pesoEstimadoKg(sistemaProducao) {
     return KG_POR_UA;
 }
 
-/** UA de um lote: cabeças × peso médio (ou estimado) ÷ 450. Lote sem cabeças não conta. */
 export function unidadesAnimais(lote) {
     const cabecas = lote.quantidadeCabecas ?? 0;
     if (cabecas <= 0) return 0;
@@ -84,20 +62,6 @@ export function unidadesAnimais(lote) {
     return (cabecas * peso) / KG_POR_UA;
 }
 
-/**
- * Situações da fazenda que pedem aviso agora. Cada item tem a `chave` da
- * situação (`<usuario>:<tipo>:<entidade>`) — a mesma enquanto ela persistir,
- * que é o que impede notificar de novo a cada verificação.
- *
- * @param {object} p
- * @param {string} p.usuarioId
- * @param {Array} p.fazendas  propriedades com `pastos` e `rebanhos`
- * @param {Array} p.insumos   `{ id, nome, unidadeMedida, propriedadeId, estoqueMinimo, teveEntrada, saldo }`
- * @param {Array} p.lotesSemValorCompra  lotes vendidos/finalizados sem `valorCompra`: `{ id, nomeRebanho, propriedadeId }`
- * @param {Array} p.insumosSemPreco      insumos com consumo no mês e nenhuma entrada com valor: `{ id, nome, propriedadeId }`
- * @param {object|null} p.resumoMes      só no dia 1: `{ referencia: 'AAAA-MM', nomeMes, fazendas: [{ propriedadeId, nome, cabecasVendidas, receita, cabecasSaidas }] }`
- * @param {Date}  p.agora
- */
 export function avaliarSituacoes({
     usuarioId, fazendas = [], insumos = [], lotesSemValorCompra = [], insumosSemPreco = [],
     resumoMes = null, agora = new Date(),
@@ -111,9 +75,6 @@ export function avaliarSituacoes({
         });
 
     for (const fazenda of fazendas) {
-        // Descanso do pasto acabou: em descanso há pelo menos os dias dele (ajuste
-        // do pasto, senão da forrageira, senão a referência) — `descansoConcluido`
-        // do app. Sem data de saída não dá para afirmar há quanto tempo descansa.
         for (const pasto of fazenda.pastos) {
             if (pasto.status !== 'Descanso' || !pasto.dataUltimaSaida) continue;
             const alvo = pasto.diasDescanso ?? pasto.tipoPastagem?.diasDescanso ?? DIAS_DESCANSO_PADRAO;
@@ -123,15 +84,13 @@ export function avaliarSituacoes({
                     `${pasto.nome} pronto para receber gado`,
                     `O descanso de ${dias(alvo)} terminou. O pasto já pode receber um lote.`);
             } else if (alvo - emDescanso <= 1) {
-                // Último dia de descanso: aviso de véspera, que se encerra
-                // sozinho quando o PASTO_PRONTO nasce.
                 nova(TIPOS.PASTO_PRONTO_AMANHA, 'pasto', pasto.id, fazenda.id, `/pastos/${pasto.id}`,
                     `${pasto.nome} termina o descanso amanhã`,
                     'Planeje a mudança do lote.');
             }
         }
 
-        // Pasto sem área fica fora da lotação da fazenda.
+        // pasto sem área fica fora da lotação da fazenda.
         for (const pasto of fazenda.pastos) {
             if (pasto.extensaoHa > 0) continue;
             nova(TIPOS.PASTO_SEM_AREA, 'pasto', pasto.id, fazenda.id, `/pastos/${pasto.id}`,
@@ -139,7 +98,7 @@ export function avaliarSituacoes({
                 'Sem a área, o pasto fica fora do cálculo de lotação. Informe os hectares.');
         }
 
-        // Lote sem pasto.
+        // lote sem pasto.
         for (const lote of fazenda.rebanhos) {
             if (!lote.pastoAtualId) {
                 nova(TIPOS.LOTE_SEM_PASTO, 'rebanho', lote.id, fazenda.id, `/rebanhos/${lote.id}`,
@@ -148,7 +107,6 @@ export function avaliarSituacoes({
             }
         }
 
-        // Lotação da fazenda: UA de todos os lotes ativos ÷ área dos pastos com área.
         const hectares = fazenda.pastos.reduce((soma, p) => soma + (p.extensaoHa > 0 ? p.extensaoHa : 0), 0);
         const ua = fazenda.rebanhos.reduce((soma, l) => soma + unidadesAnimais(l), 0);
         if (hectares > 0 && ua / hectares > TETO_LOTACAO_UA_HA) {
@@ -158,9 +116,6 @@ export function avaliarSituacoes({
         }
     }
 
-    // Estoque: um aviso por insumo, o mais grave (esgotado > abaixo do mínimo >
-    // acabando). Trocar de gravidade troca a chave: o aviso antigo se encerra e
-    // nasce o novo. Insumo sem nenhuma entrada ainda não tem estoque a acabar.
     for (const insumo of insumos) {
         if (!insumo.teveEntrada) continue;
         const { saldoProjetado, consumoDiaTotal, diasRestantes } = insumo.saldo;
@@ -195,7 +150,6 @@ export function avaliarSituacoes({
             'O consumo deste mês fica sem custo no relatório. Informe o valor pago numa entrada.');
     }
 
-    // Resumo do mês anterior, por fazenda que teve saída de animais.
     for (const f of resumoMes?.fazendas ?? []) {
         if (f.cabecasSaidas <= 0) continue;
         let mensagem;

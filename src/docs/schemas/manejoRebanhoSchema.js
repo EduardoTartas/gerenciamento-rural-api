@@ -1,4 +1,3 @@
-// src/docs/schemas/manejoRebanhoSchema.js
 
 const manejoRebanhoSchemas = {
     ManejoRebanhoFilter: {

@@ -1,15 +1,8 @@
-// src/utils/validators/schemas/zod/SaidaRebanhoSchema.js
 
 import { z } from 'zod/v4';
 
-/** Motivos aceitos para a saída de animais. Validados aqui, gravados como texto. */
 export const MOTIVOS_SAIDA = ['Venda', 'Morte', 'Abate', 'Outro'];
 
-/**
- * Schema para registrar a saída de animais de um rebanho.
- *
- * Saída é evento imutável, como a movimentação: não há schema de update.
- */
 export const SaidaRebanhoCreateSchema = z.object({
     id:                z.string().uuid('O ID deve ser um UUID válido.').optional(),
     rebanhoId:         z.string().uuid('O ID do rebanho deve ser um UUID válido.'),
@@ -21,10 +14,7 @@ export const SaidaRebanhoCreateSchema = z.object({
                         .refine(d => d <= new Date(), { message: 'A data da saída não pode ser no futuro.' })
                         .optional(),
     observacoes:       z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
-    // Encerra o ciclo do rebanho mesmo que sobrem cabeças no cadastro. Saída
-    // da quantidade inteira finaliza sozinha, sem precisar deste campo.
     finalizar:         z.boolean().optional().default(false),
-    // Dados da venda (issue #66). Só existem quando o motivo é Venda.
     precoArroba:       z.number({ error: 'O preço da arroba deve ser um número.' })
                         .positive('O preço da arroba deve ser maior que zero.').optional().nullable(),
     pesoTotalKg:       z.number({ error: 'O peso total deve ser um número.' })
@@ -35,8 +25,6 @@ export const SaidaRebanhoCreateSchema = z.object({
     const campos = ['precoArroba', 'pesoTotalKg', 'valorTotal'];
 
     if (dados.motivo === 'Venda') {
-        // O valor é sempre o digitado: peso/15 * arroba é só a sugestão do
-        // aplicativo, e o negócio real pode ter desconto ou ágio.
         if (dados.precoArroba == null) {
             ctx.addIssue({ code: 'custom', path: ['precoArroba'], message: 'Informe o preço da arroba da venda.' });
         }

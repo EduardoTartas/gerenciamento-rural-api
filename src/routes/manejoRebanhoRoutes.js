@@ -1,4 +1,3 @@
-// src/routes/manejoRebanhoRoutes.js
 
 import express from 'express';
 import ManejoRebanhoController from '../controllers/ManejoRebanhoController.js';

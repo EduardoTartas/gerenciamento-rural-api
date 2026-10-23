@@ -25,7 +25,6 @@ describe('POST /v1/rebanhos', () => {
         expect(r.body.errors).toEqual([]);
         expect(r.body.data.id).toBeDefined();
         expect(r.body.data.propriedadeId).toBe(propriedade.id);
-        // POST devolve o mesmo formato de GET/PATCH, com relações aninhadas via REBANHO_SELECT.
         expect(r.body.data.propriedade).toMatchObject({ id: propriedade.id });
         expect(r.body.data.pastoAtual).toMatchObject({ id: pasto.id });
         const salvo = await DbConnect.prisma.rebanho.findUnique({ where: { id: r.body.data.id } });
@@ -177,8 +176,6 @@ describe('POST /v1/rebanhos', () => {
     });
 
     it('REB-POST-23 pasto já ocupado por outro rebanho ativo, sem permitirLotacaoConjunta', async () => {
-        // status deliberadamente defasado ('Vazio'): a checagem conta rebanhos
-        // ativos, não confia no campo status (cache) — ver RebanhoService.create.
         const pastoDefasado = await criarPasto(propriedade.id, { status: 'Vazio' });
         await criarRebanho(propriedade.id, pastoDefasado.id);
         const r = await post(a, { propriedadeId: propriedade.id, nomeRebanho: 'Lote 2', pastoAtualId: pastoDefasado.id });

@@ -79,9 +79,6 @@ describe('PATCH /v1/rebanhos/:id', () => {
         expect(r.body.errors[0].message).toContain('rota de movimentação');
     });
 
-    // Bug: RebanhoService._inativar usa `executor` fora de escopo
-    // (src/service/RebanhoService.js:187) -> ReferenceError -> 500. Comportamento
-    // correto esperado é 200 com soft-delete efetivo (ver Divergências no .md).
     it('REB-PATCH-ID-09 envia ativo: false (inativação)', async () => {
         const rebanho = await criarRebanho(propriedade.id, pasto.id);
         const r = await patch(a, rebanho.id, { ativo: false });
@@ -101,9 +98,6 @@ describe('PATCH /v1/rebanhos/:id', () => {
         expect(r.body.errors[0].message).toContain('Informe o pasto atual para reativar');
     });
 
-    // Bug: RebanhoService._reativar usa `executor` fora de escopo
-    // (src/service/RebanhoService.js:259) -> ReferenceError -> 500. Comportamento
-    // correto esperado é 200 com reativação efetiva (ver Divergências no .md).
     it('REB-PATCH-ID-11 reativa com pastoAtualId válido', async () => {
         const rebanho = await criarRebanho(propriedade.id, pasto.id, { ativo: false, pastoAtualId: null });
         const r = await patch(a, rebanho.id, { ativo: true, pastoAtualId: pasto.id });

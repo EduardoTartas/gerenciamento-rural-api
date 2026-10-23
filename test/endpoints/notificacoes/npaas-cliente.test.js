@@ -1,6 +1,3 @@
-// O cliente real do NPaaS, com `fetch` falso: nenhum teste sai para a rede.
-// Exercita o que os endpoints não enxergam através do mock — o contrato do
-// corpo enviado, o desligamento sem configuração e a falha virando `false`.
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import npaas, { npaasAtivo } from '../../../src/utils/npaas.js';
 

@@ -1,4 +1,3 @@
-// src/utils/helpers/index.js
 
 export { default as CommonResponse } from './CommonResponse.js';
 export { default as CustomError } from './CustomError.js';

@@ -1,4 +1,3 @@
-// src/service/ManejoPastoService.js
 
 import {
     CustomError,
@@ -26,10 +25,6 @@ class ManejoPastoService {
         this.prisma = DbConnect.prisma;
     }
 
-    /**
-     * Lista manejos de pasto com paginação e filtragem.
-     * Sempre restrito ao usuário autenticado (via pasto -> propriedade).
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -57,10 +52,6 @@ class ManejoPastoService {
         );
     }
 
-    /**
-     * Cria um novo manejo de pasto.
-     * Valida que o pasto e o tipo de manejo pertencem/existem.
-     */
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
         const { itens = [], ...dadosManejo } = parsedData;
@@ -79,8 +70,6 @@ class ManejoPastoService {
 
         await this.ensureTipoManejoExists(dadosManejo.tipoManejoId);
 
-        // Valida os insumos ANTES de abrir a transação: um item inválido é erro 400,
-        // não pode chegar a criar o manejo.
         const itensFundidos = this._fundirItensPorInsumo(itens);
         const insumosPorId = await this._validarItensDeManejo(itensFundidos, pasto.propriedadeId, usuarioId);
 
@@ -96,14 +85,6 @@ class ManejoPastoService {
         });
     }
 
-    /**
-     * Atualiza um manejo de pasto existente.
-     *
-     * `itens` ausente preserva o consumo de insumo já registrado. `itens`
-     * presente (mesmo `[]`) troca por completo: desativa as `Saida`s antigas
-     * do manejo e grava as informadas — mais simples que diferenciar o que
-     * mudou, e o resultado final é o que o produtor deixou na tela.
-     */
     async update(id, parsedData, req, tx) {
         const usuarioId = req.user.id;
         const { itens, ...dadosManejo } = parsedData;
@@ -136,10 +117,6 @@ class ManejoPastoService {
         });
     }
 
-    /**
-     * Funde itens repetidos (mesmo insumoId) num só, somando a quantidade —
-     * evita duas movimentações de saída pro mesmo insumo no mesmo manejo.
-     */
     _fundirItensPorInsumo(itens) {
         const itensFundidos = [];
         const fundidoPorInsumoId = new Map();
@@ -161,7 +138,6 @@ class ManejoPastoService {
         return itensFundidos;
     }
 
-    /** Confere propriedade e destino de cada item; devolve o insumo por id. */
     async _validarItensDeManejo(itensFundidos, propriedadeId, usuarioId) {
         const insumosPorId = new Map();
         for (const item of itensFundidos) {
@@ -189,16 +165,12 @@ class ManejoPastoService {
         return insumosPorId;
     }
 
-    /** Grava uma `Saida` por item, dentro da transação do manejo, e reúne avisos de estoque. */
     async _criarMovimentacoesDosItens(itensFundidos, insumosPorId, { manejoId, pastoId, dataAtividade }, trx) {
         const avisos = [];
         const movimentacoes = [];
         for (const item of itensFundidos) {
             const insumo = insumosPorId.get(item.insumoId);
             const mov = await this.movimentacaoInsumoRepository.create({
-                // Preserva o id gerado no cliente (offline-first): o app grava a
-                // linha local com o mesmo id que a API vai persistir, então o
-                // pull seguinte reconhece a movimentação em vez de duplicá-la.
                 ...(item.id ? { id: item.id } : {}),
                 insumoId: item.insumoId,
                 tipo: 'Saida',
@@ -223,27 +195,18 @@ class ManejoPastoService {
         return { movimentacoes, avisos };
     }
 
-    /**
-     * Exclui um manejo de pasto.
-     */
     async remove(id, req, tx) {
         const usuarioId = req.user.id;
         await this.ensureManejoExists(id, usuarioId);
         return comTransacao(this.prisma, tx, async (trx) => {
             const removido = await this.repository.remove(id, trx);
-            // Sem isto, as Saídas de insumo do manejo continuam debitando o saldo
-            // enquanto o manejo já não aparece em nenhuma leitura.
             await this.movimentacaoInsumoRepository.desativarPorManejo('manejoPastoId', id, trx);
-            // Foto de atividade excluída não pode continuar aparecendo na leitura
-            // por diferença como viva (issue #74).
             await this.fotoAtividadeRepository.desativarPorManejo('manejoPastoId', id, trx);
             return removido;
         });
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async ensureManejoExists(id, usuarioId) {
         const manejo = await this.repository.findById(id, usuarioId);

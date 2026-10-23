@@ -3,8 +3,6 @@ import sharp from 'sharp';
 import { api } from '../../apoio/cliente.js';
 import { criarUsuario } from '../../apoio/auth.js';
 
-// Mock do client Garage/MinIO (único mock permitido nesta rota). `ensureGarageEnv` é
-// preservado via `importOriginal` — só o client de storage é trocado por um espião.
 const { putObject, removeObject, getGarageClientMock } = vi.hoisted(() => {
     const putObject = vi.fn().mockResolvedValue(undefined);
     const removeObject = vi.fn().mockResolvedValue(undefined);
@@ -74,8 +72,6 @@ describe('POST /v1/uploads/imagens', () => {
     });
 
     it('UPL-POST-02b aplica a orientação do EXIF (foto de câmera não sai torta)', async () => {
-        // Metade esquerda vermelha, direita azul, com a tag "girar 90° horário"
-        // (Orientation 6) — como a câmera do Android grava foto em retrato.
         const azul = await sharp({
             create: { width: 400, height: 400, channels: 3, background: { r: 0, g: 0, b: 255 } },
         }).png().toBuffer();
@@ -96,7 +92,7 @@ describe('POST /v1/uploads/imagens', () => {
             const i = (y * info.width + x) * info.channels;
             return { r: data[i], b: data[i + 2] };
         };
-        // Girada, a metade esquerda (vermelha) vira a de cima.
+        // girada, a metade esquerda (vermelha) vira a de cima.
         const topo = pixel(5, 5);
         const base = pixel(5, info.height - 6);
         expect(topo.r).toBeGreaterThan(200);

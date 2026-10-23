@@ -51,7 +51,6 @@ describe('POST /v1/insumos', () => {
     it('INS-POST-03 aceita estoqueMinimo', async () => {
         const r = await post(a, corpoValido({ estoqueMinimo: 15 }));
         expect(r.status).toBe(201);
-        // Decimal do Prisma serializa como string no JSON (sem conversão global p/ Number).
         expect(Number(r.body.data.estoqueMinimo)).toBe(15);
     });
 

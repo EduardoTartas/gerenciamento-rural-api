@@ -1,4 +1,3 @@
-// prisma/seeds/historicoMovimentacaoSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
@@ -13,14 +12,10 @@ const OBSERVACOES_MOVIMENTACAO = [
   'Pasto anterior com sinais de degradação, necessita descanso.',
 ];
 
-/**
- * Seed de histórico de movimentações entre pastos.
- * Cria N movimentações por rebanho usando pastos da mesma propriedade.
- */
 export async function seedHistoricoMovimentacoes(prisma, rebanhos, pastos, quantidadePorRebanho = 2) {
   console.log('Semeando historico de movimentacoes...');
 
-  // Organiza pastos por propriedade
+  // organiza pastos por propriedade
   const pastosPorProp = {};
   for (const p of pastos) {
     if (!pastosPorProp[p.propriedadeId]) pastosPorProp[p.propriedadeId] = [];
@@ -32,11 +27,11 @@ export async function seedHistoricoMovimentacoes(prisma, rebanhos, pastos, quant
   for (const rebanho of rebanhos) {
     const pastosDisponiveis = pastosPorProp[rebanho.propriedadeId] || [];
 
-    // Precisa de pelo menos 2 pastos para fazer movimentação
+    // precisa de pelo menos 2 pastos para fazer movimentação
     if (pastosDisponiveis.length < 2) continue;
 
     for (let i = 0; i < quantidadePorRebanho; i++) {
-      // Seleciona origem e destino diferentes
+      // seleciona origem e destino diferentes
       const origem = faker.helpers.arrayElement(pastosDisponiveis);
       let destino;
       do {

@@ -1,4 +1,3 @@
-// prisma/seeds/catalogoSeed.js
 
 export async function seedCatalogos(prisma) {
   console.log('Semeando catalogos globais...');
@@ -12,7 +11,7 @@ export async function seedCatalogos(prisma) {
 
   const catalogos = {};
 
-  // Raças
+  // raças
   catalogos.racas = [];
   for (const raca of racas) {
     const item = await prisma.raca.upsert({
@@ -23,7 +22,7 @@ export async function seedCatalogos(prisma) {
     catalogos.racas.push(item);
   }
 
-  // Sistemas de Produção
+  // sistemas de Produção
   catalogos.sistemasProducao = [];
   for (const sistema of sistemas) {
     const item = await prisma.sistemaProducao.upsert({
@@ -34,7 +33,7 @@ export async function seedCatalogos(prisma) {
     catalogos.sistemasProducao.push(item);
   }
 
-  // Regimes Alimentares
+  // regimes Alimentares
   catalogos.regimesAlimentares = [];
   for (const regime of regimes) {
     const item = await prisma.regimeAlimentar.upsert({
@@ -45,7 +44,7 @@ export async function seedCatalogos(prisma) {
     catalogos.regimesAlimentares.push(item);
   }
 
-  // Manejos Rebanho
+  // manejos Rebanho
   catalogos.manejosRebanho = [];
   for (const manejo of manejosRebanho) {
     const item = await prisma.tipoManejoRebanho.upsert({
@@ -56,7 +55,7 @@ export async function seedCatalogos(prisma) {
     catalogos.manejosRebanho.push(item);
   }
 
-  // Manejos Pasto
+  // manejos Pasto
   catalogos.manejosPasto = [];
   for (const manejo of manejosPasto) {
     const item = await prisma.tipoManejoPasto.upsert({
@@ -67,7 +66,7 @@ export async function seedCatalogos(prisma) {
     catalogos.manejosPasto.push(item);
   }
 
-  // Tipos de Insumo
+  // tipos de Insumo
   catalogos.tiposInsumo = [];
   for (const tipo of tiposInsumo) {
     const item = await prisma.tipoInsumo.upsert({

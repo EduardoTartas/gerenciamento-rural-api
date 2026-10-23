@@ -1,4 +1,3 @@
-// src/repository/MovimentacaoRepository.js
 
 import DbConnect from '../config/dbConnect.js';
 import { comTransacao } from '../utils/helpers/transacao.js';
@@ -11,14 +10,8 @@ const MOVIMENTACAO_SELECT = {
     pastoDestinoId: true,
     dataMovimentacao: true,
     observacoes: true,
-    // `ativo` viaja na resposta porque a leitura por diferença devolve o que foi
-    // desfeito. Sem este campo o aplicativo recebe a movimentação desfeita igual
-    // a uma válida e a ressuscita.
     ativo: true,
     createdAt: true,
-    // `updatedAt` é o relógio da sincronização: é dele que o cliente tira o
-    // próximo `atualizadoDesde`. Sem ele na resposta o aplicativo não consegue
-    // avançar a marca d'água e repete a mesma janela para sempre.
     updatedAt: true,
     rebanho: {
         select: {
@@ -75,20 +68,11 @@ class MovimentacaoRepository {
         });
     }
 
-    /**
-     * Cria a movimentação e atualiza rebanho e pastos em uma única transação.
-     * O count de rebanhos restantes no pasto de origem é feito DENTRO da transação
-     * para evitar race conditions.
-     */
     async createComTransacao(
         { id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
         executor,
     ) {
-        // Reaproveita a transação recebida em vez de abrir outra — vindo do
-        // lote, abrir aqui daria transação dentro de transação, que o Prisma não
-        // compõe (issues #34 e #35).
         return comTransacao(this.prisma, executor, async (tx) => {
-            // 1. Cria o registro histórico, preservando o id gerado pelo cliente (offline-first)
             const movimentacao = await tx.historicoMovimentacao.create({
                 data: { id, rebanhoId, pastoOrigemId, pastoDestinoId, dataMovimentacao, observacoes },
                 select: MOVIMENTACAO_SELECT,
@@ -106,10 +90,6 @@ class MovimentacaoRepository {
                 data: { status: 'Ocupado' },
             });
 
-            // 4. Pasto de origem → conta rebanhos restantes dentro da transação.
-            //    Ao esvaziar, o pasto entra em Descanso e `dataUltimaSaida` passa
-            //    a ser o marco zero da rebrota. `Vazio` fica reservado ao pasto
-            //    recém-cadastrado, que nunca recebeu lote.
             if (pastoOrigemId) {
                 const rebanhosRestantes = await tx.rebanho.count({
                     where: { pastoAtualId: pastoOrigemId, ativo: true },
@@ -126,7 +106,7 @@ class MovimentacaoRepository {
         });
     }
 
-    /** Movimentação ativa mais recente de um rebanho, ou `null`. */
+    /** movimentação ativa mais recente de um rebanho, ou `null`. */
     async ultimaDoRebanho(rebanhoId) {
         return this.prisma.historicoMovimentacao.findFirst({
             where: { rebanhoId, ativo: true },
@@ -134,24 +114,9 @@ class MovimentacaoRepository {
         });
     }
 
-    /**
-     * Reverte o efeito de uma movimentação, em transação.
-     *
-     * O `status` dos pastos é recalculado contando rebanhos ativos, nunca lendo
-     * o campo `status` — ele é cache e já esteve comprovadamente defasado.
-     *
-     * A checagem "isso ainda é a última movimentação do rebanho?" é refeita
-     * AQUI, com o cliente transacional (`tx`), e não apenas confiando no read
-     * que o service fez antes de abrir a transação. Entre aquele read e este
-     * ponto outra movimentação pode ter sido criada para o mesmo rebanho —
-     * sem reconferir dentro da transação, a reversão aplicaria efeitos sobre
-     * um estado que já mudou.
-     */
     async desfazerComTransacao(movimentacao, executor) {
         const { id, rebanhoId, pastoOrigemId, pastoDestinoId } = movimentacao;
 
-        // Reaproveita a transação do lote quando houver — ver
-        // `createComTransacao` acima (issues #34 e #35).
         return comTransacao(this.prisma, executor, async (tx) => {
             const ultima = await tx.historicoMovimentacao.findFirst({
                 where: { rebanhoId, ativo: true },

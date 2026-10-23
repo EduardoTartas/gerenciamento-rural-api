@@ -1,13 +1,7 @@
-// src/docs/schemas/insumoSchema.js
 
 const destinosInsumo = ["Pasto", "Rebanho", "Ambos"];
 const unidadesMedida = ["kg", "g", "L", "mL", "dose", "saco", "unidade"];
-// Sem `Ajuste` desde a issue #67: o estoque só muda por entrada ou saída.
 const tiposMovimentacao = ["Entrada", "Saida"];
-// Conjunto completo do ledger. O POST avulso de /v1/insumos/movimentacoes não
-// aceita ManejoRebanho/ManejoPasto (nascem apenas pelo fluxo de manejo), e
-// cada tipo só aceita os seus motivos (ver MovimentacaoInsumoCreate).
-// `AjusteContagem` é legado: contagem antiga convertida, só aparece na leitura.
 const origensMovimentacao = ["Compra", "CadastroInicial", "Devolucao", "ManejoRebanho", "ManejoPasto", "ConsumoRebanho", "Perda", "Outro", "AjusteContagem"];
 const origensMovimentacaoAvulsa = ["Compra", "CadastroInicial", "Devolucao", "ConsumoRebanho", "Perda", "Outro"];
 

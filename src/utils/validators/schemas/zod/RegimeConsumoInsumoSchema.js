@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/RegimeConsumoInsumoSchema.js
 import { z } from 'zod/v4';
 
 export const RegimeConsumoInsumoCreateSchema = z.object({
@@ -9,7 +8,6 @@ export const RegimeConsumoInsumoCreateSchema = z.object({
                      .positive('A quantidade diária deve ser maior que zero.'),
     dataInicio:    z.coerce.date({ error: 'A data de início deve ser uma data válida.' }),
     dataFim:       z.coerce.date({ error: 'A data de fim deve ser uma data válida.' }).optional().nullable(),
-    // Lançar o consumo sozinho, uma saída por dia (issue #72). Ausente = manual.
     lancamentoAutomatico: z.boolean({ error: 'Informe se o consumo é lançado automaticamente.' }).optional(),
 })
     .strict()

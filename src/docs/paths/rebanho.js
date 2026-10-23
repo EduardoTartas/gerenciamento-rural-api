@@ -1,4 +1,3 @@
-// src/docs/paths/rebanho.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import rebanhoSchemas from "../schemas/rebanhoSchema.js";

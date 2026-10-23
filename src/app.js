@@ -1,4 +1,3 @@
-// src/app.js
 
 import cors from "cors";
 import helmet from "helmet";
@@ -20,8 +19,6 @@ const app = express();
 await DbConnect.connect();
 ensureGarageEnv();
 
-// Middlewares de segurança
-// CSP restritiva em todas as rotas menos /v1/docs (Swagger precisa de scripts/styles inline)
 app.use((req, res, next) => {
     if (req.path.startsWith('/v1/docs') || req.path.startsWith('/docs')) {
         return helmet({ contentSecurityPolicy: false })(req, res, next);
@@ -39,8 +36,6 @@ app.use((req, res, next) => {
     })(req, res, next);
 });
 
-// Habilitando CORS — aceita requests sem Origin (mobile apps, Postman)
-// e whitelist de origens para ambientes web (Swagger UI, admin panel)
 const allowedOrigins = (process.env.CORS_ORIGIN || '')
     .split(',')
     .map(o => o.trim())
@@ -48,11 +43,10 @@ const allowedOrigins = (process.env.CORS_ORIGIN || '')
 
 app.use(cors({
     origin: (origin, cb) => {
-        // Permite requests sem Origin (apps mobile nativos, curl, Postman)
         if (!origin) return cb(null, true);
-        // Permite wildcard (*)
+        // permite wildcard (*)
         if (allowedOrigins.includes('*')) return cb(null, true);
-        // Permite origens na whitelist
+        // permite origens na whitelist
         if (allowedOrigins.includes(origin)) return cb(null, true);
         cb(new Error('Bloqueado pelo CORS'));
     },
@@ -60,38 +54,30 @@ app.use(cors({
     credentials: true,
 }));
 
-// Habilitando a compressão de respostas
+// habilitando a compressão de respostas
 app.use(compression());
 
-// Configuração de proxy para Cloudflare Tunnel
-// Confia em proxies locais (loopback) para ler corretamente X-Forwarded-For / CF-Connecting-IP
 app.set('trust proxy', ['loopback', 'linklocal', 'uniquelocal']);
 
-// =============================================
-// BetterAuth handler — DEVE vir ANTES de express.json()
-// O BetterAuth faz seu próprio parsing do body
-// =============================================
 app.all('/api/auth/{*any}', strictRateLimit, toNodeHandler(auth));
 
-// Habilitando o uso de json pelo express (APÓS BetterAuth handler)
 app.use(express.json());
 
-// Habilitando o uso de arquivos pelo express, com limite de segurança em memória de 50MB
 app.use(expressFileUpload({
-    limits: { fileSize: 50 * 1024 * 1024 }, // Trava em 50MB para não esgotar a RAM
-    abortOnLimit: false // Não corta a conexão: deixa o controller checar `truncated` e responder no envelope padrão
+    limits: { fileSize: 50 * 1024 * 1024 }, // trava em 50MB para não esgotar a RAM
+    abortOnLimit: false
 }));
 
-// Habilitando o uso de urlencoded pelo express
+// habilitando o uso de urlencoded pelo express
 app.use(express.urlencoded({ extended: true }));
 
-// Servindo arquivos estáticos da pasta public
+// servindo arquivos estáticos da pasta public
 app.use('/public', express.static('public'));
 
-// Passando para o arquivo de rotas o app
+// passando para o arquivo de rotas o app
 routes(app);
 
-// Middleware para lidar com rotas não encontradas (404)
+// middleware para lidar com rotas não encontradas (404)
 app.use((req, res, next) => {
     return CommonResponse.error(
         res,
@@ -105,7 +91,7 @@ app.use((req, res, next) => {
     );
 });
 
-// Listener para erros não tratados
+// listener para erros não tratados
 process.on('unhandledRejection', (reason, promise) => {
     logger.error('Unhandled Rejection at:', promise, 'reason:', reason);
 });
@@ -114,8 +100,7 @@ process.on('uncaughtException', (error) => {
     logger.error('Uncaught Exception thrown:', error);
 });
 
-// Middleware de Tratamento de Erros (deve ser adicionado após as rotas)
 app.use(errorHandler);
 
-// Exportando para o server.js fazer uso
+// exportando para o server.js fazer uso
 export default app;

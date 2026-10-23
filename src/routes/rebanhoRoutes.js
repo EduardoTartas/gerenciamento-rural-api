@@ -1,4 +1,3 @@
-// src/routes/rebanhoRoutes.js
 
 import express from 'express';
 import RebanhoController from '../controllers/RebanhoController.js';

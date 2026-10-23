@@ -1,4 +1,3 @@
-// src/middlewares/asyncWrapper.js
 
 const asyncWrapper = (handler) => {
     return (req, res, next) => {

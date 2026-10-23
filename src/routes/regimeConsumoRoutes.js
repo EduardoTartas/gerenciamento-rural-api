@@ -1,4 +1,3 @@
-// src/routes/regimeConsumoRoutes.js
 import express from 'express';
 import RegimeConsumoInsumoController from '../controllers/RegimeConsumoInsumoController.js';
 import { asyncWrapper } from '../utils/helpers/index.js';

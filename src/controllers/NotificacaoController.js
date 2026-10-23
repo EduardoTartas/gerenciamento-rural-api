@@ -1,4 +1,3 @@
-// src/controllers/NotificacaoController.js
 import NotificacaoService from '../service/NotificacaoService.js';
 import VerificacaoNotificacoesService from '../service/VerificacaoNotificacoesService.js';
 import {
@@ -64,7 +63,6 @@ class NotificacaoController {
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, `${data.marcadas} notificação(ões) marcada(s) como lida(s).`);
     }
 
-    /** Disparo manual da verificação, só para o usuário autenticado. Ignora o horário de silêncio. */
     async verificar(req, res) {
         const data = await this.verificacao.verificarUsuario(req.user.id, { ignorarSilencio: true });
         return CommonResponse.success(res, data, HttpStatusCodes.OK.code, 'Verificação concluída.');

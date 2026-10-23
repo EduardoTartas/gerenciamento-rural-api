@@ -1,4 +1,3 @@
-// src/service/ManejoRebanhoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import {
@@ -64,11 +63,9 @@ class ManejoRebanhoService {
             });
         }
 
-        // Valida que o tipo de manejo existe e está ativo
+        // valida que o tipo de manejo existe e está ativo
         await this.ensureTipoManejoExists(dadosManejo.tipoManejoId);
 
-        // Valida os insumos ANTES de abrir a transação: um item inválido é erro 400,
-        // não pode chegar a criar o manejo.
         const insumosPorId = new Map();
         for (const item of itens) {
             if (insumosPorId.has(item.insumoId)) continue;
@@ -95,9 +92,6 @@ class ManejoRebanhoService {
         }
 
         return comTransacao(this.prisma, tx, async (trx) => {
-            // Regra especial: Pesagem → atualiza pesoMedioAtual do rebanho dentro
-            // da mesma transação e só quando esta pesagem é a mais recente (evita
-            // que um lançamento retroativo sobrescreva um peso mais atual).
             const manejo = await this.repository.createComAtualizacaoPeso(dadosManejo, trx);
 
             const avisos = [];
@@ -105,9 +99,6 @@ class ManejoRebanhoService {
             for (const item of itens) {
                 const insumo = insumosPorId.get(item.insumoId);
                 const mov = await this.movimentacaoInsumoRepository.create({
-                    // Preserva o id gerado no cliente (offline-first): o app grava a
-                    // linha local com o mesmo id que a API vai persistir, então o
-                    // pull seguinte reconhece a movimentação em vez de duplicá-la.
                     ...(item.id ? { id: item.id } : {}),
                     insumoId: item.insumoId,
                     tipo: 'Saida',
@@ -154,19 +145,13 @@ class ManejoRebanhoService {
         await this.ensureManejoExists(id, usuarioId);
         return comTransacao(this.prisma, tx, async (trx) => {
             const removido = await this.repository.remove(id, trx);
-            // Sem isto, as Saídas de insumo do manejo continuam debitando o saldo
-            // enquanto o manejo já não aparece em nenhuma leitura.
             await this.movimentacaoInsumoRepository.desativarPorManejo('manejoRebanhoId', id, trx);
-            // Foto de atividade excluída não pode continuar aparecendo na leitura
-            // por diferença como viva (issue #74).
             await this.fotoAtividadeRepository.desativarPorManejo('manejoRebanhoId', id, trx);
             return removido;
         });
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async ensureManejoExists(id, usuarioId) {
         const manejo = await this.repository.findById(id, usuarioId);

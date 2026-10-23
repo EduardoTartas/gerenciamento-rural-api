@@ -1,4 +1,3 @@
-// src/repository/MovimentacaoInsumoRepository.js
 import DbConnect from '../config/dbConnect.js';
 import { ondeEscrever } from '../utils/helpers/transacao.js';
 import { comVersaoNova } from '../utils/helpers/versao.js';
@@ -35,8 +34,6 @@ class MovimentacaoInsumoRepository {
         aplicarAtivoOuDiferenca(where, filters);
 
         if (filters.insumoId) where.insumoId = filters.insumoId;
-        // Mantém o `usuarioId` no filtro: um `propriedadeId` forjado devolve
-        // lista vazia, nunca dado de outro tenant.
         if (filters.propriedadeId) {
             where.insumo = { propriedade: { usuarioId, id: filters.propriedadeId } };
         }
@@ -67,7 +64,6 @@ class MovimentacaoInsumoRepository {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.create({ data, select: MOV_SELECT });
     }
 
-    /** Ledger ativo do insumo no formato do cálculo de saldo (Decimal → Number). */
     async ledgerDoInsumo(insumoId, tx) {
         const linhas = await ondeEscrever(tx, this.prisma).movimentacaoInsumo.findMany({
             where: { insumoId, ativo: true },
@@ -76,11 +72,6 @@ class MovimentacaoInsumoRepository {
         return linhas.map((m) => ({ ...m, quantidade: Number(m.quantidade) }));
     }
 
-    /**
-     * Grava os lançamentos automáticos do consumo diário (issue #72). O índice
-     * único `(regimeConsumoId, data)` descarta o dia já lançado — duas execuções
-     * ao mesmo tempo não duplicam.
-     */
     async criarLancamentosAutomaticos(lancamentos, tx) {
         if (lancamentos.length === 0) return 0;
         const { count } = await ondeEscrever(tx, this.prisma).movimentacaoInsumo.createMany({
@@ -94,11 +85,6 @@ class MovimentacaoInsumoRepository {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.update({ where: { id }, data: comVersaoNova(data), select: MOV_SELECT });
     }
 
-    /**
-     * Soft-delete em lote das movimentações de um manejo excluído. Sem isto, o
-     * manejo some das leituras mas suas Saídas continuam debitando o saldo.
-     * `campo` é `'manejoPastoId'` ou `'manejoRebanhoId'`.
-     */
     async desativarPorManejo(campo, manejoId, tx) {
         return ondeEscrever(tx, this.prisma).movimentacaoInsumo.updateMany({
             where: { [campo]: manejoId, ativo: true },

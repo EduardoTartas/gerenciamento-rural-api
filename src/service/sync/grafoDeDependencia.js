@@ -1,12 +1,4 @@
-// src/service/sync/grafoDeDependencia.js
 
-/**
- * Ordenação topológica das mutações de um lote.
- *
- * `dependeDe` referencia outra mutação do **mesmo lote**, nunca uma entidade
- * qualquer. Isso deixa o grafo inteiro contido no payload: o servidor não
- * consulta o banco nem adivinha relação a partir dos dados.
- */
 export function ordenarPorDependencia(mutacoes) {
     const porId = new Map(mutacoes.map((m) => [m.id, m]));
 
@@ -48,13 +40,6 @@ export function ordenarPorDependencia(mutacoes) {
     return { ordem, erro: null };
 }
 
-/**
- * Todas as mutações que dependem de [idRaiz], direta ou indiretamente.
- *
- * É o que faz a cascata de bloqueio: recusado o pasto, o rebanho que aponta
- * para ele e o manejo que aponta para o rebanho saem como `bloqueado`, não como
- * recusados por 404.
- */
 export function descendentes(mutacoes, idRaiz) {
     const filhos = new Map();
     for (const mutacao of mutacoes) {

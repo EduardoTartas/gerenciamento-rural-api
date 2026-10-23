@@ -1,4 +1,3 @@
-// src/docs/paths/saidaRebanho.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import saidaRebanhoSchemas from "../schemas/saidaRebanhoSchema.js";

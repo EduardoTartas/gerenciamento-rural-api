@@ -1,4 +1,3 @@
-// prisma/seeds/pastoSeed.js
 
 import { faker } from '@faker-js/faker/locale/pt_BR';
 
@@ -13,15 +12,9 @@ const NOMES_PASTO = [
 
 const STATUS_PASTO = ['Ocupado', 'Vazio', 'Descanso'];
 
-/**
- * Seed de pastos (pastagens).
- * Cria N pastos para cada propriedade com dados aleatórios realistas.
- */
 export async function seedPastos(prisma, propriedades, quantidadePorPropriedade = 3) {
   console.log('Semeando pastos...');
 
-  // O catálogo de forrageiras vem da migration (20261001120000_tipo_pastagem_descanso);
-  // o seed só sorteia entre os tipos ativos. Sem catálogo, o pasto nasce sem tipo.
   const tipos = await prisma.tipoPastagem.findMany({ where: { ativo: true }, select: { id: true, nome: true } });
 
   const created = [];
@@ -46,7 +39,6 @@ export async function seedPastos(prisma, propriedades, quantidadePorPropriedade 
       const extensaoHa = faker.number.float({ min: 2, max: 25, fractionDigits: 1 });
       const tipo = tipos.length > 0 ? faker.helpers.arrayElement(tipos) : null;
 
-      // Se status é Descanso ou Vazio, gera uma data de última saída recente
       const dataUltimaSaida = status !== 'Ocupado'
         ? faker.date.recent({ days: 30 })
         : null;

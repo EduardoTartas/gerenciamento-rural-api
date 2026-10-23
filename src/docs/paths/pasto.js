@@ -1,4 +1,3 @@
-// src/docs/paths/pasto.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import pastoSchemas from "../schemas/pastoSchema.js";

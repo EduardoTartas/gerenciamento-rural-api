@@ -1,4 +1,3 @@
-// src/routes/pastoRoutes.js
 
 import express from 'express';
 import PastoController from '../controllers/PastoController.js';

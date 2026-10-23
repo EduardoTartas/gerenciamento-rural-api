@@ -1,4 +1,3 @@
-// src/docs/schemas/fotoAtividadeSchema.js
 
 const fotoAtividadeSchemas = {
     FotoAtividade: {

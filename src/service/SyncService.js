@@ -1,4 +1,3 @@
-// src/service/SyncService.js
 
 import DbConnect from '../config/dbConnect.js';
 import MutacaoAplicadaRepository from '../repository/MutacaoAplicadaRepository.js';
@@ -9,16 +8,9 @@ import { descendentes, ordenarPorDependencia } from './sync/grafoDeDependencia.j
 import { validarDadosDaMutacao } from './sync/validacao.js';
 import { buscarConflito } from './sync/versao.js';
 
-/** Dias que uma mutação aplicada fica registrada. */
+/** dias que uma mutação aplicada fica registrada. */
 const RETENCAO_EM_DIAS = 30;
 
-/**
- * Aplica um lote de mutações vindas da fila do aplicativo.
- *
- * Uma mutação, uma transação. O lote **não** é atômico entre itens: é o que
- * permite o segundo pasto entrar mesmo com o primeiro recusado. Tudo ou nada
- * travaria a fila inteira por causa de um cadastro inválido.
- */
 class SyncService {
     constructor() {
         this.prisma = DbConnect.prisma;
@@ -30,8 +22,6 @@ class SyncService {
 
         const { ordem, erro } = ordenarPorDependencia(mutacoes);
         if (erro) {
-            // Erro de construção do cliente, não de dado: o lote inteiro é
-            // recusado, e nenhuma mutação chega a ser tentada.
             throw new CustomError({
                 statusCode: HttpStatusCodes.BAD_REQUEST.code,
                 errorType: 'validationError',
@@ -41,8 +31,6 @@ class SyncService {
             });
         }
 
-        // Limpa antes de checar idempotência: um registro vencido não pode
-        // curto-circuitar o reenvio com o resultado arquivado.
         await this.mutacoesAplicadas.limparAntigas(usuarioId, RETENCAO_EM_DIAS);
 
         const porId = new Map(mutacoes.map((m) => [m.id, m]));
@@ -81,7 +69,6 @@ class SyncService {
             }
         }
 
-        // Devolve na ordem em que o cliente enviou, não na de execução.
         return { resultados: mutacoes.map((m) => resultados.get(m.id)) };
     }
 
@@ -97,10 +84,6 @@ class SyncService {
             });
         }
 
-        // Mesma porta de entrada do REST. O controller REST faz
-        // `XSchema.parse(req.body)` antes de chamar o service; aqui não havia
-        // equivalente, e `dados` seguia cru até o Prisma. Recusa é por item —
-        // um corpo inválido não pode abortar o lote inteiro.
         const validacao = validarDadosDaMutacao({ entidade, acao, dados });
         if (!validacao.ok) {
             return this._recusa(mutacao, validacao.erro);
@@ -109,8 +92,6 @@ class SyncService {
 
         try {
             return await this.prisma.$transaction(async (tx) => {
-                // Conflito não vira registro de idempotência: o reenvio reavalia a versão,
-                // e o produtor resolve mandando uma mutação nova com a versão do servidor.
                 if (acao === 'UPDATE') {
                     const conflito = await buscarConflito({ tx, entidade, entidadeId, versaoBase, usuarioId });
                     if (conflito) return this._conflito(mutacao, conflito.versaoServidor);
@@ -126,8 +107,6 @@ class SyncService {
                     dados: gravado,
                 };
 
-                // Na mesma transação: ou a mutação e o registro entram juntos,
-                // ou nenhum dos dois.
                 await this.mutacoesAplicadas.registrar(tx, {
                     id,
                     usuarioId,
@@ -143,12 +122,6 @@ class SyncService {
         }
     }
 
-    /**
-     * Veredito de conflito de edição (issue #76): a mutação **não** foi aplicada
-     * porque o registro mudou no servidor depois da versão em que o aparelho o
-     * editou. Fica ao lado de `recusado` e não dentro dele para o aplicativo
-     * tratar os dois de forma diferente: recusa se corrige, conflito se decide.
-     */
     _conflito(mutacao, versaoServidor) {
         const { tipo, recuperavel } = descreverErro('conflict');
         return {
@@ -168,19 +141,9 @@ class SyncService {
     }
 
     _recusa(mutacao, erro) {
-        // `erro?.` em tudo: um throw fora do padrão (valor não-Error, `null`)
-        // não pode derrubar o item — item ruim vira `recusado`, não 500 no lote.
         const tipoBruto = erro?.errorType;
 
         if (!tipoBruto) {
-            // Sem `errorType` não é um CustomError do domínio — é Prisma cru,
-            // bug ou qualquer coisa inesperada. `errorHandler.js` nunca vê isto
-            // porque o lote captura por item, então o log tem que acontecer
-            // aqui, senão o erro desaparece sem deixar rastro no servidor. E a
-            // mensagem ao cliente não pode ecoar `erro.message`: texto de
-            // erro do Prisma expõe nome de coluna/tabela, o oposto do
-            // "português claro, sem jargão técnico" que chega no celular do
-            // produtor.
             logger.error('Erro inesperado ao aplicar mutação do lote', {
                 mutacaoId: mutacao.id,
                 entidade: mutacao.entidade,

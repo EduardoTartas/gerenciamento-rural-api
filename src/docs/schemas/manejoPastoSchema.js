@@ -1,4 +1,3 @@
-// src/docs/schemas/manejoPastoSchema.js
 
 const tiposManejoPasto = ["Roçagem", "Adubação", "Calagem", "Aplicação de Pesticida", "Reforma de Cerca", "Limpeza Geral", "Plantio/Reforma", "Outro"];
 

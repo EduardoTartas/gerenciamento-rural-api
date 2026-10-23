@@ -1,4 +1,3 @@
-// src/utils/helpers/errorHandler.js
 
 import pkg from '@prisma/client';
 import { ZodError } from 'zod';
@@ -14,13 +13,13 @@ const errorHandler = (err, req, res, next) => {
     const errorId = uuidv4();
     const requestId = req.requestId || 'N/A';
 
-    // Evitar enviar resposta se os headers já foram enviados
+    // evitar enviar resposta se os headers já foram enviados
     if (res.headersSent) {
         logger.error('Headers já enviados, delegando ao Express', { message: err.message, path: req.path, requestId });
         return next(err);
     }
 
-    // Tratamento para erros de validação do Zod
+    // tratamento para erros de validação do Zod
     if (err instanceof ZodError) {
         const zodIssues = err.issues || err.errors || [];
         logger.warn('Erro de validação', { errors: zodIssues, path: req.path, requestId });
@@ -34,7 +33,7 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para erros provenientes do Prisma/PostgreSQL
+    // tratamento para erros provenientes do Prisma/PostgreSQL
     if (
         err instanceof Prisma.PrismaClientKnownRequestError ||
         err instanceof Prisma.PrismaClientUnknownRequestError ||
@@ -60,7 +59,6 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para erros originados do fluxo de autenticação (BetterAuth)
     if (err.provider === 'betterauth' || err.name === 'BetterAuthError') {
         const authError = err instanceof CustomError ? err : CustomError.fromBetterAuth(err);
         logger.warn('Erro de autenticação (BetterAuth)', {
@@ -80,7 +78,6 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento específico para CustomError com errorType 'tokenExpired'
     if (err instanceof CustomError && err.errorType === 'tokenExpired') {
         logger.warn('Erro de token expirado', { message: err.message, path: req.path, requestId });
         return CommonResponse.error(
@@ -93,7 +90,7 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para erros de parsing JSON
+    // tratamento para erros de parsing JSON
     if (err.name === 'SyntaxError' || err.type === 'entity.parse.failed' || err.message?.includes('Unexpected token') || err.message?.includes('is not valid JSON')) {
         logger.warn('Erro de parsing JSON', { message: err.message, path: req.path, requestId });
         return CommonResponse.error(
@@ -106,7 +103,6 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para TypeError (acesso a propriedade de null/undefined)
     if (err instanceof TypeError) {
         logger.error(`TypeError [ID: ${errorId}]`, { message: err.message, stack: err.stack, path: req.path, requestId });
         const detalhes = isProduction
@@ -122,7 +118,7 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para erros operacionais
+    // tratamento para erros operacionais
     if (err.isOperational) {
         logger.warn('Erro operacional', { message: err.message, path: req.path, requestId });
         return CommonResponse.error(
@@ -135,7 +131,7 @@ const errorHandler = (err, req, res, next) => {
         );
     }
 
-    // Tratamento para erros internos
+    // tratamento para erros internos
     logger.error(`Erro interno [ID: ${errorId}]`, { message: err.message, stack: err.stack, requestId });
     const detalhes = isProduction
         ? [{ message: `Erro interno do servidor. Referência: ${errorId}` }]

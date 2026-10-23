@@ -1,4 +1,3 @@
-// src/docs/schemas/saidaRebanhoSchema.js
 
 const MOTIVOS = ["Venda", "Morte", "Abate", "Outro"];
 

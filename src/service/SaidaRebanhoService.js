@@ -1,4 +1,3 @@
-// src/service/SaidaRebanhoService.js
 
 import { CustomError, HttpStatusCodes, messages } from '../utils/helpers/index.js';
 import { saidaRebanhoRepository, rebanhoRepository } from '../repository/index.js';
@@ -9,9 +8,6 @@ class SaidaRebanhoService {
         this.rebanhoRepository = rebanhoRepository;
     }
 
-    /**
-     * Lista as saídas de animais do usuário autenticado.
-     */
     async list(req) {
         const { id } = req.params;
         const usuarioId = req.user.id;
@@ -39,17 +35,6 @@ class SaidaRebanhoService {
         );
     }
 
-    /**
-     * Registra a saída de animais de um rebanho.
-     *
-     * Regras de negócio:
-     * 1. Rebanho deve existir, pertencer ao usuário e estar ativo.
-     * 2. Rebanho sem quantidade de cabeças só aceita a saída que o finaliza —
-     *    sem saldo não há como saber o que sobrou de uma saída parcial.
-     * 3. A saída não pode passar das cabeças atuais do rebanho.
-     * 4. Saída da quantidade inteira (ou com `finalizar`) encerra o rebanho e
-     *    libera o pasto. Tudo numa transação (ver o repository).
-     */
     async create(parsedData, req, tx) {
         const usuarioId = req.user.id;
         const rebanho = await this.ensureRebanhoExists(parsedData.rebanhoId, usuarioId);
@@ -92,7 +77,6 @@ class SaidaRebanhoService {
             });
         }
 
-        // Campo a campo de propósito: `finalizar` é regra de negócio, não coluna.
         return this.repository.createComTransacao({
             id: parsedData.id,
             rebanhoId: parsedData.rebanhoId,
@@ -107,9 +91,7 @@ class SaidaRebanhoService {
         }, tx);
     }
 
-    // ================================
     // MÉTODOS UTILITÁRIOS
-    // ================================
 
     async ensureSaidaExists(id, usuarioId) {
         const saida = await this.repository.findById(id, usuarioId);

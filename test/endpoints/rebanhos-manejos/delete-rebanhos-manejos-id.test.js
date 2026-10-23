@@ -20,9 +20,6 @@ describe('DELETE /v1/rebanhos/manejos/:id', () => {
     const del = (usuario, id) =>
         api().delete(`/v1/rebanhos/manejos/${id}`).set('Authorization', usuario.bearer);
 
-    // Soft-delete: ManejoRebanhoRepository.remove faz update({ ativo: false }),
-    // não apaga a linha. Documentação de rotas está desatualizada nesse ponto
-    // (ver seção Divergências do .md) — comportamento atual vira teste normal.
     it('MREB-DELETE-ID-01 remove manejo de A (soft-delete)', async () => {
         const manejo = await criarManejoRebanho(rebanho.id, tipoManejo.id);
         const r = await del(a, manejo.id);

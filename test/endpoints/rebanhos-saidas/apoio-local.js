@@ -1,6 +1,3 @@
-// Fábrica local: registra saída via HTTP (não via Prisma direto), pois a baixa
-// de cabeças e a finalização só existem depois de passar pela transação de
-// `SaidaRebanhoRepository.createComTransacao`.
 import { api } from '../../apoio/cliente.js';
 
 export async function registrarSaida(usuario, dados) {

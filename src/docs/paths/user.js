@@ -1,4 +1,3 @@
-// src/docs/paths/user.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 import userSchemas from "../schemas/userSchema.js";

@@ -1,4 +1,3 @@
-// src/docs/paths/sync.js
 
 import commonResponses from "../schemas/swaggerCommonResponses.js";
 

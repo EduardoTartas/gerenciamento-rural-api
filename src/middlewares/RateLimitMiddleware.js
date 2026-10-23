@@ -1,12 +1,10 @@
-// src/middlewares/RateLimitMiddleware.js
 
 import rateLimit from 'express-rate-limit';
 import CommonResponse from '../utils/helpers/CommonResponse.js';
 import HttpStatusCodes from '../utils/helpers/HttpStatusCodes.js';
 
-// Helper para extrair IP do cliente considerando Cloudflare Tunnel e proxies
 function getClientIdentifier(req) {
-    // Cloudflare Tunnel injeta o IP real do cliente neste header
+    // cloudflare Tunnel injeta o IP real do cliente neste header
     const cfIp = req.headers['cf-connecting-ip'];
     if (cfIp) return cfIp.trim();
     const forwarded = req.headers['x-forwarded-for'];
@@ -14,7 +12,7 @@ function getClientIdentifier(req) {
     return req.headers['x-real-ip'] || req.ip || req.socket.remoteAddress || 'unknown';
 }
 
-// Rate limiter geral para todas as rotas autenticadas
+// rate limiter geral para todas as rotas autenticadas
 export const authRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,
@@ -46,7 +44,6 @@ export const authRateLimit = rateLimit({
     skip: () => process.env.NODE_ENV === 'test'
 });
 
-// Rate limiter mais restritivo para operações sensíveis (login, etc.)
 export const strictRateLimit = rateLimit({
     windowMs: 5 * 60 * 1000,
     max: 8,
@@ -78,7 +75,7 @@ export const strictRateLimit = rateLimit({
     skip: () => process.env.NODE_ENV === 'test'
 });
 
-// Rate limiter para endpoints públicos
+// rate limiter para endpoints públicos
 export const publicRateLimit = rateLimit({
     windowMs: 15 * 60 * 1000,
     max: 100,

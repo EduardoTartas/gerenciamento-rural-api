@@ -1,11 +1,6 @@
-// src/utils/validators/schemas/zod/MovimentacaoSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Schema para registrar uma nova movimentação de rebanho.
- * O pastoOrigemId é preenchido automaticamente pelo sistema (pasto atual do rebanho).
- */
 export const MovimentacaoCreateSchema = z.object({
     id:              z.string().uuid('O ID deve ser um UUID válido.').optional(),
     rebanhoId:       z.string().uuid('O ID do rebanho deve ser um UUID válido.'),
@@ -14,9 +9,6 @@ export const MovimentacaoCreateSchema = z.object({
                         .refine(d => d <= new Date(), { message: 'A data da movimentação não pode ser no futuro.' })
                         .optional(),
     observacoes:     z.string().max(500, 'Máximo 500 caracteres.').optional().nullable(),
-    // Por padrão o destino precisa estar livre. Juntar dois lotes no mesmo pasto
-    // é decisão consciente do produtor (desmama, formação de lote de venda),
-    // então exige este consentimento explícito em vez de acontecer por descuido.
     permitirLotacaoConjunta: z.boolean().optional().default(false),
 }).strict();
 

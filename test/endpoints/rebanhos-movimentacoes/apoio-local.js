@@ -1,6 +1,3 @@
-// Fábrica local: registra movimentação via HTTP (não via Prisma direto), pois
-// os efeitos colaterais (pastoAtualId, status dos pastos) só existem depois de
-// passar pela transação de `MovimentacaoRepository.createComTransacao`.
 import { api } from '../../apoio/cliente.js';
 
 export async function registrarMovimentacao(usuario, dados) {

@@ -1,4 +1,3 @@
-// src/utils/validators/schemas/zod/RebanhoSchema.js
 
 import { z } from 'zod/v4';
 
@@ -10,11 +9,6 @@ const positivoOpcional = (rotulo) => z.number({ error: `${rotulo} deve ser um n�
     .optional()
     .nullable();
 
-/**
- * Compra do lote (issue #71): tudo opcional e independente — o produtor pode
- * informar só o valor, ou valor, peso e arroba. `null` limpa na edição. A data
- * tolera +5 min como as demais: o app offline usa o relógio do celular.
- */
 const camposDeCompra = {
     valorCompra:       positivoOpcional('O valor da compra'),
     pesoCompraKg:      positivoOpcional('O peso da compra'),
@@ -30,9 +24,6 @@ const camposDeCompra = {
                          .nullable(),
 };
 
-/**
- * Schema para criar um novo rebanho.
- */
 export const RebanhoCreateSchema = z.object({
     id:                   uuidOpcional,
     propriedadeId:        z.string().uuid('O ID da propriedade deve ser um UUID válido.'),
@@ -44,15 +35,10 @@ export const RebanhoCreateSchema = z.object({
     racaId:               uuidOpcional,
     sistemaProducaoId:    uuidOpcional,
     regimeAlimentarId:    uuidOpcional,
-    // Mesma regra da movimentação: o pasto inicial precisa estar livre, salvo
-    // consentimento explícito. Não é coluna — o service remove antes do Prisma.
     permitirLotacaoConjunta: z.boolean().optional().default(false),
     ...camposDeCompra,
 }).strict();
 
-/**
- * Schema para atualizar um rebanho existente.
- */
 export const RebanhoUpdateSchema = z.object({
     nomeRebanho:          z.string().min(2).max(150).optional(),
     quantidadeCabecas:    z.number().int().positive().optional().nullable(),

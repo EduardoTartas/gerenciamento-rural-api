@@ -122,8 +122,6 @@ describe('POST /v1/insumos/movimentacoes', () => {
     it('MINS-POST-13 quantidade = 0', async () => {
         const r = await post(a, corpoValido({ quantidade: 0 }));
         expect(r.status).toBe(400);
-        // ZodError bruto: mensagem específica do refinamento vive em
-        // errors[0].message, não em `message` (genérica) — ver Divergências no .md.
         expect(r.body.errors[0].message).toBe('Quantidade deve ser maior que zero.');
         expect(r.body.errors[0].path).toBe('quantidade');
     });

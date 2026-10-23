@@ -21,7 +21,6 @@ describe('POST /v1/sync — conflito de edição por versão', () => {
         id: randomUUID(), entidade: 'pastos', acao: 'UPDATE', entidadeId, dados, ...extra,
     });
 
-    // Outro cliente editando o mesmo pasto pelo REST (o que sobe a versão no servidor).
     const editarPeloRest = (nome) =>
         api().patch(`/v1/pastagens/${pasto.id}`).set('Authorization', a.bearer).send({ nome });
 
@@ -179,7 +178,6 @@ describe('POST /v1/sync — conflito de edição por versão', () => {
     });
 
     it('SYNC-POST-VER-14só edição pelo usuário sobe a versão: efeito colateral do servidor não conta', async () => {
-        // Criar um rebanho no pasto o marca como Ocupado: consequência, não edição.
         const r = await api().post('/v1/rebanhos').set('Authorization', a.bearer).send({
             propriedadeId: propriedade.id, pastoAtualId: pasto.id, nomeRebanho: 'Lote novo', quantidadeCabecas: 3,
         });
@@ -189,7 +187,6 @@ describe('POST /v1/sync — conflito de edição por versão', () => {
         expect(registro.status).toBe('Ocupado');
         expect(registro.versao).toBe(1);
 
-        // E a edição do aparelho, feita na versão que ele conhecia, segue valendo.
         const edicao = await sync(a, [editar(pasto.id, { nome: 'Editado' }, { versaoBase: 1 })]);
         expect(edicao.body.data.resultados[0].situacao).toBe('aceito');
     });

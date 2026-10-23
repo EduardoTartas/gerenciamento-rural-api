@@ -1,22 +1,8 @@
-// Apoio da suíte de notificações: o mock do NPaaS (nenhum teste fala com o
-// serviço real — o `.env` carregado em `test/apoio/ambiente.js` pode ter a
-// chave de verdade) e a fábrica de notificação gravada direto no banco.
 import { randomUUID } from 'node:crypto';
 import DbConnect from '../../../src/config/dbConnect.js';
 
 const { prisma } = DbConnect;
 
-/**
- * O estado do NPaaS falso nasce em `vi.hoisted` em cada arquivo (o `vi.mock`
- * sobe acima dos imports):
- *
- *     const npaasFalso = vi.hoisted(() => ({
- *         ativo: true, enviar: vi.fn(), registrarDispositivo: vi.fn(), desativarToken: vi.fn(),
- *     }));
- *
- * `ativo` simula `NPAAS_URL`/`NPAAS_API_KEY` presentes. Antes de cada teste,
- * tudo volta a responder `true` (sucesso).
- */
 export function reiniciarNpaasFalso(falso) {
     falso.ativo = true;
     falso.enviar.mockReset().mockResolvedValue(true);
@@ -24,7 +10,7 @@ export function reiniciarNpaasFalso(falso) {
     falso.desativarToken.mockReset().mockResolvedValue(true);
 }
 
-/** Módulo que substitui `src/utils/npaas.js`. */
+/** módulo que substitui `src/utils/npaas.js`. */
 export function moduloNpaasFalso(falso) {
     return {
         default: {

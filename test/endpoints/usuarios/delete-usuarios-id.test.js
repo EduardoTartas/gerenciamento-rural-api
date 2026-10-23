@@ -6,8 +6,6 @@ import { criarUsuario } from '../../apoio/auth.js';
 import { criarPasto, criarPropriedade, criarTipoManejoPasto } from '../../apoio/fabricas.js';
 import { criarMutacaoAplicada } from '../sync/apoio-local.js';
 
-// Mock do Garage/MinIO (mesmo padrão de patch-usuarios-id-foto): a suíte não sobe
-// storage real, e o descarte da foto antiga precisa ser espiado.
 const { removeObject } = vi.hoisted(() => ({
     removeObject: vi.fn().mockResolvedValue(undefined),
 }));

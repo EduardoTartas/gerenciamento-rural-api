@@ -1,23 +1,8 @@
-// src/utils/validators/schemas/zod/PastoSchema.js
 
 import { z } from 'zod/v4';
 
-/**
- * Valores válidos para o status do pasto.
- */
 const statusEnum = ['Ocupado', 'Vazio', 'Descanso'];
 
-/**
- * Ajuste do produtor para o descanso deste pasto. Nulo = usa o padrão da
- * forrageira (`tipoPastagem.diasDescanso`). Teto de um ano: acima disso o pasto
- * não está em rotação, está abandonado.
- */
-/**
- * Campo antigo (texto livre), aceito só por compatibilidade: app em versão
- * anterior e mutações que já estavam na fila do aparelho quando a forrageira
- * virou catálogo. O service troca pelo `tipoPastagemId` de mesmo nome; sem
- * correspondência, o pasto fica sem tipo. Recusar travaria a fila para sempre.
- */
 const tipoPastagemLegado = z.string().max(100).optional().nullable();
 
 const diasDescanso = z
@@ -26,9 +11,6 @@ const diasDescanso = z
   .min(1, 'Os dias de descanso devem ser pelo menos 1.')
   .max(365, 'Os dias de descanso devem ser no máximo 365.');
 
-/**
- * Schema para criar um novo pasto.
- */
 export const PastoCreateSchema = z
   .object({
     id: z
@@ -63,9 +45,6 @@ export const PastoCreateSchema = z
   })
   .strict();
 
-/**
- * Schema para atualizar um pasto existente.
- */
 export const PastoUpdateSchema = z
   .object({
     nome: z

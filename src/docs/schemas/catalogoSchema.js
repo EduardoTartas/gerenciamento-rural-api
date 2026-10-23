@@ -1,4 +1,3 @@
-// src/docs/schemas/catalogoSchema.js
 
 const catalogoSchemas = {
     CatalogoItem: {

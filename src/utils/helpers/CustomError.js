@@ -1,12 +1,7 @@
-// src/utils/helpers/CustomError.js
 
 import pkg from '@prisma/client';
 const { Prisma } = pkg;
 
-/**
- * Wrapper para padronizar erros operacionais na API, permitindo adicionar contexto do
- * PostgreSQL (via Prisma) e do fluxo de autenticação (BetterAuth).
- */
 class CustomError extends Error {
     constructor({
         statusCode = 500,
@@ -32,9 +27,6 @@ class CustomError extends Error {
         Error.captureStackTrace(this, this.constructor);
     }
 
-    /**
-     * Normaliza erros conhecidos do Prisma (PostgreSQL) para o formato CustomError.
-     */
     static fromPrisma(error, overrides = {}) {
         const basePayload = {
             provider: 'postgresql',
@@ -51,7 +43,7 @@ class CustomError extends Error {
 
         if (error instanceof Prisma.PrismaClientKnownRequestError) {
             switch (error.code) {
-                case 'P2002': // Unique constraint violation
+                case 'P2002': // unique constraint violation
                     return new CustomError({
                         ...basePayload,
                         statusCode: 409,
@@ -62,7 +54,7 @@ class CustomError extends Error {
                             'Já existe um registro com os dados informados.',
                         ...overrides,
                     });
-                case 'P2003': // Foreign key constraint
+                case 'P2003': // foreign key constraint
                     return new CustomError({
                         ...basePayload,
                         statusCode: 409,
@@ -72,7 +64,7 @@ class CustomError extends Error {
                             'Relacionamento inválido. Verifique se os registros referenciados existem.',
                         ...overrides,
                     });
-                case 'P2025': // Record not found
+                case 'P2025': // record not found
                     return new CustomError({
                         ...basePayload,
                         statusCode: 404,
@@ -95,9 +87,6 @@ class CustomError extends Error {
         return new CustomError({ ...basePayload, ...overrides });
     }
 
-    /**
-     * Normaliza erros emitidos pelo BetterAuth (ou bibliotecas compatíveis) para o formato CustomError.
-     */
     static fromBetterAuth(error, overrides = {}) {
         const statusCode = overrides.statusCode || error.status || error.statusCode || 401;
         const errorType = overrides.errorType || error.code || 'authError';
