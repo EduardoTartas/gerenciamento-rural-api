@@ -14,14 +14,14 @@ function getClientIdentifier(req) {
 
 // rate limiter geral para todas as rotas autenticadas
 export const authRateLimit = rateLimit({
-    windowMs: 15 * 60 * 1000,
-    max: 100,
+    windowMs: 60 * 1000,
+    max: 300,
     message: {
-        message: 'Muitas requisições. Tente novamente em 15 minutos.',
+        message: 'Muitas requisições. Tente novamente em 1 minuto.',
         data: null,
         errors: [{
             path: 'rate_limit',
-            message: 'Limite de requisições excedido. Aguarde 15 minutos.'
+            message: 'Limite de requisições excedido. Aguarde 1 minuto.'
         }]
     },
     standardHeaders: true,
@@ -36,9 +36,9 @@ export const authRateLimit = rateLimit({
             'rate_limit',
             [{
                 path: 'rate_limit',
-                message: 'Limite de requisições excedido. Aguarde 15 minutos.'
+                message: 'Limite de requisições excedido. Aguarde 1 minuto.'
             }],
-            'Muitas requisições. Tente novamente em 15 minutos.'
+            'Muitas requisições. Tente novamente em 1 minuto.'
         );
     },
     skip: () => process.env.NODE_ENV === 'test'
