@@ -36,19 +36,19 @@ const authSchemas = {
                 type: "string",
                 format: "email",
                 description: "E-mail de usuário registrado",
-                example: "admin@admin.com"
+                example: "usuario@exemplo.com"
             },
             password: {
                 type: "string",
                 description: "Senha do usuário",
-                example: "admin"
+                example: "MinhaSenh@123"
             }
         },
         required: ["email", "password"],
-        description: "Esquema para autenticação de usuário via BetterAuth. Use admin@admin.com / admin para testes.",
+        description: "Esquema para autenticação de usuário via BetterAuth.",
         example: {
-            email: "admin@admin.com",
-            password: "admin"
+            email: "usuario@exemplo.com",
+            password: "MinhaSenh@123"
         }
     },
 
