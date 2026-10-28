@@ -1,4 +1,6 @@
 
+import normalizeDescriptions from "./normalizeDescriptions.js";
+
 const getServersInCorrectOrder = () => {
     const defaultDevUrl = "http://localhost:6060";
     const defaultProdUrl = "https://pastolivre.eduardotartas.dpdns.org";
@@ -90,30 +92,24 @@ const getSwaggerOptions = async () => {
                 title: "Pasto Livre API",
                 version: "1.0.0",
                 description: `
-## Visão Geral
+## Visão geral
 
-Backend para gestão de propriedades rurais focado em pecuária de pequeno e médio porte. Suporta registro de múltiplas fazendas, manejo de pastagens, controle de rebanho e sincronização offline-first com o aplicativo móvel.
+API REST do Pasto Livre, sistema de apoio ao manejo de gado de corte. Cobre propriedades, pastagens, rebanhos, manejos, insumos e a sincronização offline-first com o aplicativo móvel.
 
 ## Autenticação
 
-Sessões baseadas em cookies gerenciadas pelo BetterAuth. Após login, os cookies são definidos automaticamente.
+Sessão por cookie, gerenciada pelo BetterAuth. O aplicativo móvel usa o token Bearer da mesma sessão.
 
-**Endpoints de autenticação:**
-- POST /api/auth/sign-up/email — Cadastro
-- POST /api/auth/sign-in/email — Login
-- POST /api/auth/sign-out — Logout
-- GET /api/auth/get-session — Verificar sessão ativa
+- \`POST /api/auth/sign-up/email\`: cadastro
+- \`POST /api/auth/sign-in/email\`: login
+- \`POST /api/auth/sign-out\`: logout
+- \`GET /api/auth/get-session\`: sessão ativa
 
-**Credenciais de teste:**
-- admin@admin.com / admin
-- joao@pastoverde.com / Senha@123
-- maria@pastoverde.com / Senha@456
+## Versionamento
 
-## Endpoints Versionados
+Os endpoints de negócio ficam sob \`/v1\`. As regras de cada rota estão em [rotas_pastolivre.md](https://github.com/gerenciamento-rural-tcc/gerenciamento-rural-api/blob/main/documentacao/rotas/rotas_pastolivre.md).
 
-Todos os endpoints de negócio estão sob /v1. Documentação de regras e comportamento em https://github.com/gerenciamento-rural-tcc/gerenciamento-rural-api/blob/main/documentacao/rotas/rotas_pastolivre.md.
-
-## Convenções de Resposta
+## Formato das respostas
 
 Sucesso (2xx):
 \`\`\`json
@@ -210,7 +206,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                     description: "Avisos da fazenda (caixa de notificações e push via NPaaS)"
                 }
             ],
-            paths: {
+            paths: normalizeDescriptions({
                 ...authPaths,
                 ...userPaths,
                 ...propriedadePaths,
@@ -226,7 +222,7 @@ Todos os dados rurais (propriedades, pastos, rebanhos, manejos) são escopados a
                 ...uploadPaths,
                 ...notificacaoPaths,
                 ...fotoAtividadePaths,
-            },
+            }),
             components: {
                 securitySchemes: {
                     bearerAuth: {
