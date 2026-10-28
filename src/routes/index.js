@@ -32,6 +32,16 @@ const swaggerMiddlewarePromise = (async () => {
     const swaggerDocs = swaggerJSDoc(opts);
     return swaggerUI.setup(swaggerDocs, {
         customSiteTitle: 'Pasto Livre API Docs',
+        customCssUrl: '/public/assets/swagger/pastolivre.css',
+        customfavIcon: '/public/assets/icons/logo_pastolivre.svg',
+        customJs: '/public/assets/swagger/pastolivre.js',
+        swaggerOptions: {
+            docExpansion: 'none',
+            filter: true,
+            persistAuthorization: true,
+            displayRequestDuration: true,
+            defaultModelsExpandDepth: 0,
+        },
     });
 })();
 
