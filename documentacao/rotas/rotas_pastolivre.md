@@ -286,7 +286,7 @@ Eventos sanitários e zootécnicos aplicados a um lote (vacinação, vermifugaç
 - **Data Não Futura:** `dataAtividade` não pode ser posterior ao momento atual.
 - **Efeito de Pesagem:** Se `pesoRegistrado` for informado, o campo `pesoMedioAtual` do rebanho é atualizado com esse valor.
 
-> ⚠️ **Limitação conhecida:** a atualização do peso não compara `dataAtividade` com a última
+> **Limitação conhecida:** a atualização do peso não compara `dataAtividade` com a última
 > pesagem registrada, e ocorre fora da transação de criação do manejo. Uma pesagem
 > retroativa sincronizada tardiamente sobrescreve o peso atual do lote.
 

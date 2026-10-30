@@ -244,13 +244,18 @@ limitação conhecida para o escopo deste projeto.
 
 | Entidade                  | CREATE | UPDATE | DELETE |
 |----------------------------|:---:|:---:|:---:|
-| `propriedades`             | ✅  | ✅  | ✅  |
-| `pastos`                   | ✅  | ✅  | ✅  |
-| `rebanhos`                 | ✅  | ✅  | ✅  |
-| `manejo_pastos`            | ✅  | ✅  | ✅  |
-| `manejo_rebanhos`          | ✅  | ✅  | ✅  |
-| `historico_movimentacoes`  | ✅  | ❌  | ✅  |
-| `saidas_rebanho`           | ✅  | ❌  | ❌  |
+| `propriedades`             | Sim  | Sim  | Sim  |
+| `pastos`                   | Sim  | Sim  | Sim  |
+| `rebanhos`                 | Sim  | Sim  | Sim  |
+| `manejo_pastos`            | Sim  | Sim  | Sim  |
+| `manejo_rebanhos`          | Sim  | Sim  | Sim  |
+| `historico_movimentacoes`  | Sim  | Não  | Sim  |
+| `saidas_rebanho`           | Sim  | Não  | Não  |
+| `insumos`                  | Sim  | Sim  | Sim  |
+| `movimentacoes_insumo`     | Sim  | Sim  | Sim  |
+| `regimes_consumo_insumo`   | Sim  | Sim  | Sim  |
+| `fotos_atividade`          | Não  | Não  | Sim  |
+| `notificacoes`             | Não  | Sim  | Não  |
 
 `historico_movimentacoes` não aceita `UPDATE`: movimentação é evento que já
 produziu efeito, corrigir significa desfazer a última (`DELETE`) ou lançar

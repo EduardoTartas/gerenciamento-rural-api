@@ -1,205 +1,116 @@
-# ☁️ Pasto Livre — API REST
+# Pasto Livre — API REST
 
 ![Node.js](https://img.shields.io/badge/Node.js-ES%20Modules%20v20%2B-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)
 ![Express](https://img.shields.io/badge/Express-v5.2-000000?style=for-the-badge&logo=express&logoColor=white)
 ![Prisma ORM](https://img.shields.io/badge/Prisma%20ORM-v7.5-2D3748?style=for-the-badge&logo=prisma&logoColor=white)
 ![PostgreSQL](https://img.shields.io/badge/PostgreSQL-v16%2B-4169E1?style=for-the-badge&logo=postgresql&logoColor=white)
 
-Backend do ecossistema **Pasto Livre**, responsável pela persistência central em nuvem e
-pelo atendimento das requisições do aplicativo móvel, que opera em modo offline-first.
+Backend do Pasto Livre, sistema de apoio ao manejo de gado de corte desenvolvido como Trabalho de Conclusão de Curso. Centraliza os dados em nuvem e atende o [aplicativo móvel](../gerenciamento-rural-mobile/README.md), que opera offline-first.
 
-> 🌿 Para a visão geral do produto, consulte o
-> **[README principal](../README.md)**. As diretrizes de interface estão no
-> **[Guia de Identidade Visual](../IDENTIDADE_VISUAL.md)**.
+## Stack
 
----
+Node.js 20+ (ES Modules), Express 5, Prisma 7, PostgreSQL 16, Zod, BetterAuth, Winston e Swagger.
 
-## 🏛️ Arquitetura
-
-API modular em **Node.js (ESM)**, organizada em camadas com responsabilidades estritas:
+## Arquitetura
 
 ```text
-routes/ → controllers/ → service/ → repository/ → Prisma → PostgreSQL
+routes/ -> controllers/ -> service/ -> repository/ -> Prisma -> PostgreSQL
 ```
 
 | Camada | Responsabilidade |
 | :--- | :--- |
-| `routes/` | Definição de caminhos, autenticação e wrapper assíncrono |
-| `controllers/` | Validação de entrada (Zod) e formatação da resposta |
+| `routes/` | Caminhos, autenticação e wrapper assíncrono |
+| `controllers/` | Validação de entrada (Zod) e formato da resposta |
 | `service/` | Regras de negócio, validações cruzadas e transações |
 | `repository/` | Consultas Prisma com `select` explícito |
 
-```text
-gerenciamento-rural-api/
-├── prisma/
-│   ├── schema.prisma            # Modelo de dados declarativo
-│   ├── migrations/              # Histórico versionado de migrações SQL
-│   └── seeds/                   # Populadores de catálogos e dados de teste
-│
-├── src/
-│   ├── app.js                   # Express, CORS, Helmet, compressão, BetterAuth
-│   ├── config/                  # Conexão Prisma (dbConnect) e BetterAuth (auth)
-│   ├── routes/                  # Rotas por domínio + Swagger + health check
-│   ├── controllers/             # Controladores REST
-│   ├── service/                 # Regras de negócio
-│   ├── repository/              # Acesso a dados
-│   ├── middlewares/             # Autenticação, rate limiting, logs, asyncWrapper
-│   ├── docs/                    # Definições OpenAPI (paths e schemas)
-│   └── utils/
-│       ├── helpers/             # CommonResponse, CustomError, errorHandler
-│       ├── validators/          # Schemas Zod de corpo e de query
-│       └── templates/           # Templates HTML de e-mail
-│
-├── documentacao/rotas/          # Regras de negócio por endpoint
-├── deployment/                  # Manifests Kubernetes e diagrama de infraestrutura
-├── Dockerfile                   # Build multi-estágio de produção
-├── docker-compose.dev.yml       # Ambiente de desenvolvimento com hot-reload
-└── docker-compose.yml           # Ambiente de produção
-```
+## Recursos
 
----
+Rotas de domínio sob o prefixo `/v1`.
 
-## 📡 Recursos disponíveis
-
-| Recurso | Endpoints |
+| Recurso | Rota |
 | :--- | :--- |
-| Autenticação | `/api/auth/*` (BetterAuth: cadastro, login, sessão, OTP de redefinição) |
-| Usuários | `GET · PATCH · DELETE /usuarios` |
-| Propriedades | `GET · POST · PATCH · DELETE /propriedades` |
-| Pastagens | `GET · POST · PATCH · DELETE /pastagens` |
-| Manejos de pasto | `GET · POST · PATCH · DELETE /pastagens/manejos` |
-| Rebanhos | `GET · POST · PATCH · DELETE /rebanhos` |
-| Movimentações | `GET · POST /rebanhos/movimentacoes` (imutáveis: sem PATCH/DELETE) |
-| Manejos de rebanho | `GET · POST · PATCH · DELETE /rebanhos/manejos` |
-| Catálogos globais | `GET · POST · PATCH · DELETE /catalogos/:entidade` |
-| Notificações | `GET · PATCH /notificacoes` · `PATCH /notificacoes/lidas` · `POST /notificacoes/verificar` · `POST /dispositivos/registrar` · `POST /dispositivos/desativar-token` |
-| Operacional | `GET /health` · `GET /docs` |
+| Autenticação | `/api/auth/*` |
+| Usuários | `/usuarios` |
+| Propriedades | `/propriedades` |
+| Pastagens e manejos | `/pastagens`, `/pastagens/manejos` |
+| Rebanhos e manejos | `/rebanhos`, `/rebanhos/manejos` |
+| Movimentações | `/rebanhos/movimentacoes` (imutáveis) |
+| Saídas de rebanho (venda, abate, morte) | `/rebanhos/saidas` |
+| Insumos e movimentações de estoque | `/insumos`, `/insumos/movimentacoes` |
+| Regime de consumo | `/rebanhos/regimes-consumo` |
+| Fotos de manejo e upload | `/manejos/fotos`, `/uploads/imagens` |
+| Sincronização em lote | `POST /sync` |
+| Catálogos globais | `/catalogos/:entidade` |
+| Notificações e dispositivos | `/notificacoes`, `/dispositivos/*` |
+| Operacional | `/health`, `/docs` |
 
-As regras de negócio de cada endpoint estão detalhadas em
-[`documentacao/rotas/rotas_pastolivre.md`](documentacao/rotas/rotas_pastolivre.md).
+As regras de cada endpoint estão em [`documentacao/rotas/rotas_pastolivre.md`](documentacao/rotas/rotas_pastolivre.md).
 
-### Padrão de resposta
+### Contrato
 
-Todas as respostas usam o mesmo envelope:
+- Toda resposta usa o envelope `{ message, data, errors }`.
+- Listagens são paginadas: `limit` padrão de 10 e máximo de 100.
+- Todo dado do domínio rural é escopado ao usuário autenticado.
+- Os schemas de criação aceitam `id` (UUID) opcional, gerado pelo app ao criar registros offline.
 
-```json
-{
-  "message": "3 pastagem(ns) encontrada(s).",
-  "data": { "docs": [], "totalDocs": 3, "page": 1, "limit": 10, "totalPages": 1 },
-  "errors": []
-}
-```
-
-Listagens são **paginadas**, com `limit` padrão de `10` e teto de `100`. Clientes devem
-informar `page` e `limit` explicitamente quando esperarem mais de dez registros.
-
-### Isolamento de dados
-
-Todo recurso do domínio rural é escopado ao usuário autenticado, direta ou indiretamente
-pela cadeia `propriedade → pasto → rebanho → evento`. Um produtor nunca acessa dados de
-outro.
-
-### Suporte a offline-first
-
-Os schemas de criação aceitam um campo `id` opcional (UUID). O aplicativo gera o
-identificador no dispositivo ao criar um registro sem conexão e o envia ao sincronizar, de
-modo que o mesmo registro tenha o mesmo ID no celular e no servidor.
-
----
-
-## 📜 Scripts NPM
-
-| Script | Descrição |
-| :--- | :--- |
-| `npm run dev` | Sobe API e PostgreSQL em contêineres, com hot-reload |
-| `npm run dev:local` | Inicia o servidor via nodemon no host (requer PostgreSQL ativo) |
-| `npm start` | Executa `node server.js` |
-| `npm run start:docker` | Sobe o ambiente de produção |
-| `npm run prisma:migrate` | Aplica migrações pendentes |
-| `npm run prisma:seed` | Popula catálogos e dados de teste |
-| `npm run prisma:studio` | Abre a interface visual do banco |
-| `npm test` | Roda a suíte de testes: endpoints por rota, contra PostgreSQL real |
-| `npm run test:endpoints` | Mesma suíte, com o nome explícito |
-
-> Os testes exigem o PostgreSQL do compose ativo
-> (`docker compose -f docker-compose.dev.yml up -d postgresql`). Eles usam o banco
-> `pasto_livre_teste`, criado e migrado automaticamente e truncado antes de cada teste — o banco
-> de desenvolvimento não é tocado. Os cenários de cada rota estão documentados em
-> `documentacao/plano-de-teste/suite-de-teste/suite-teste-<rota>.md`.
-
----
-
-## 🛠️ Configuração
-
-### 1. Variáveis de ambiente
+## Como rodar
 
 ```bash
 cp .env.example .env
-```
-
-O arquivo `.env.example` traz as credenciais padrão de conexão com o contêiner do
-PostgreSQL. As variáveis relevantes incluem `DATABASE_URL`, `APP_PORT`, `CORS_ORIGIN`,
-`BETTER_AUTH_URL` e as credenciais SMTP usadas no envio do código de redefinição de senha.
-
-Push dos avisos da fazenda (opcionais — sem elas, os avisos ficam só na caixa de notificações do app):
-
-| Variável | Uso |
-| :--- | :--- |
-| `NPAAS_URL` | URL base da API do NPaaS (ex.: `https://npaas.fslab.dev/api/v1`) |
-| `NPAAS_API_KEY` | chave do projeto no NPaaS (segredo; nunca versionar) |
-| `NOTIFICACOES_INTERVALO_MIN` | intervalo da verificação periódica em minutos (padrão `60`; `0` desliga) |
-
-### 2. Subindo o ambiente
-
-Com o Docker em execução:
-
-```bash
 npm run dev
 ```
 
-* 🌐 **API**: `http://localhost:6060`
-* 📚 **Swagger UI**: `http://localhost:6060/docs`
-* ❤️ **Health check**: `http://localhost:6060/health`
-* 🗄️ **PostgreSQL**: `localhost:5433` (mapeado da porta 5432 do contêiner)
+Com o Docker em execução, o comando sobe API e PostgreSQL com hot-reload e aplica as migrações no boot.
 
-O contêiner aplica `prisma migrate deploy` automaticamente no boot.
+| Serviço | Endereço |
+| :--- | :--- |
+| API | `http://localhost:6060` |
+| Swagger | `http://localhost:6060/docs` |
+| Health check | `http://localhost:6060/health` |
+| PostgreSQL | `localhost:5433` |
 
-### 3. Inspecionando o banco
+### Variáveis de ambiente
+
+Principais: `DATABASE_URL`, `APP_PORT`, `CORS_ORIGIN`, `BETTER_AUTH_URL` e as credenciais SMTP usadas no código de redefinição de senha. Detalhes em `.env.example`.
+
+O push de avisos é opcional; sem as variáveis abaixo, os avisos ficam apenas na caixa de notificações do app.
+
+| Variável | Uso |
+| :--- | :--- |
+| `NPAAS_URL` | URL base da API do NPaaS |
+| `NPAAS_API_KEY` | Chave do projeto (segredo, nunca versionar) |
+| `NOTIFICACOES_INTERVALO_MIN` | Intervalo da verificação periódica em minutos (padrão 60; 0 desliga) |
+
+### Scripts
+
+| Script | Descrição |
+| :--- | :--- |
+| `npm run dev` | API e PostgreSQL em contêineres, com hot-reload |
+| `npm run dev:local` | Servidor via nodemon no host (requer PostgreSQL ativo) |
+| `npm start` | Executa `node server.js` |
+| `npm run prisma:migrate` | Aplica migrações pendentes |
+| `npm run prisma:seed` | Popula catálogos e dados de teste |
+| `npm run prisma:studio` | Interface visual do banco |
+| `npm test` | Suíte de endpoints contra PostgreSQL real |
+
+## Testes
 
 ```bash
-npm run prisma:studio
+docker compose -f docker-compose.dev.yml up -d postgresql
+npm test
 ```
 
----
+Os testes usam o banco `pasto_livre_teste`, criado e migrado automaticamente e truncado a cada teste; o banco de desenvolvimento não é afetado. Os cenários estão em `documentacao/plano-de-teste/suite-de-teste/`.
 
-## 🛡️ Segurança e observabilidade
+## Segurança
 
-* **Cabeçalhos de segurança** via `helmet`, com Content Security Policy restritiva
-* **Rate limiting** com `express-rate-limit`: limite geral nas rotas autenticadas e limite
-  mais estrito nas rotas de autenticação
-* **Autenticação** com `better-auth` — sessões com cookie e plugin `bearer` para o cliente
-  móvel; senhas com política de 8 a 32 caracteres, exigindo maiúscula e dígito
-* **Redefinição de senha por OTP** enviado por e-mail (`nodemailer`)
-* **Compressão** de respostas com `compression`, relevante em conexões de baixa largura
-* **Logs estruturados** com `winston` e rotação diária (`winston-daily-rotate-file`)
-* **Tratamento centralizado de erros** normalizando códigos do Prisma, do Zod e do
-  BetterAuth para o envelope padrão, com identificador de rastreio e ocultação de stack
-  trace em produção
-* **Encerramento gracioso** em `SIGINT`/`SIGTERM`, fechando o pool de conexões
+- Cabeçalhos via `helmet` e rate limiting, mais estrito nas rotas de autenticação.
+- Autenticação com BetterAuth: sessão por cookie e plugin `bearer` para o app. Senha de 8 a 32 caracteres, com maiúscula e dígito.
+- Redefinição de senha por OTP enviado por e-mail.
+- Tratamento centralizado de erros, com identificador de rastreio e sem stack trace em produção.
+- Logs com `winston` e rotação diária.
 
----
+## Implantação
 
-## 🚢 Implantação
-
-Produção roda em cluster **K3s** na Oracle Cloud (ARM64), exposto por **Cloudflare Tunnel**
-— sem portas abertas na máquina. O pipeline do GitLab CI valida os manifests com
-`kubeconform`, constrói a imagem com Kaniko e atualiza o Deployment via `kubectl`.
-
-Detalhes e diagrama completo em
-[`deployment/infrastructure_diagram.md`](deployment/infrastructure_diagram.md).
-
----
-
-<p align="center">
-  <em>Backend do Pasto Livre.</em> ☁️ 🐂
-</p>
+Produção em cluster K3s na Oracle Cloud (ARM64), exposto por Cloudflare Tunnel. O GitLab CI valida os manifests com `kubeconform`, constrói a imagem com Kaniko e atualiza o Deployment. Detalhes em [`deployment/infrastructure_diagram.md`](deployment/infrastructure_diagram.md).
